@@ -1,0 +1,10 @@
+[build-system]
+requires = ["setuptools>=64.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "taxonova"
+version = "1.0.0"
+description = "Deep Learning-based Taxonomic Classification"
+readme = "README.md"
+requires-python = ">=3.8"

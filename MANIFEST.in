@@ -1,0 +1,10 @@
+include README.md
+include requirements.txt
+include LICENSE
+include bin/dt
+recursive-include database *.fasta
+recursive-include input *.fasta
+recursive-include models *.pt
+recursive-include output *
+recursive-exclude * __pycache__
+recursive-exclude * *.py[cod]
