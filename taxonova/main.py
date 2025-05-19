@@ -9,6 +9,7 @@ import setproctitle
 from taxonova.data.fasta import read_fasta_file
 from taxonova.model.model_config import ModelConfig
 from taxonova.model.model_factory import ModelFactory
+from taxonova.model.model_saver import save_model
 from taxonova.preprocessing.sequence_processor import SequenceProcessor
 from taxonova.data.dataset import TaxonomyDataset
 from taxonova.tuning.hyperparameter_tuner import HyperparameterTuner
@@ -137,15 +138,12 @@ def training_mode(args, validation_mode: str = None):
     try:
         if validation_mode == "cv":
             model, metrics = trainer.cross_validate(num_epochs=args.epochs)
-            if hasattr(args, 'model_output') and args.model_output:
-                ModelFactory.save_model(model, args.model_output, dataset=dataset)
-                logger.info(f"Saved trained model to {args.model_output}")
         else:
             # For basic training mode, handle validation split
             validation_split = 0.0 if getattr(args, 'full_data', False) else 0.2
             model, metrics = trainer.train(num_epochs=args.epochs, validation_split=validation_split)
-            if hasattr(args, 'model_output') and args.model_output:
-                ModelFactory.save_model(model, args.model_output, dataset=dataset)
+            if args.mode == "training" and hasattr(args, 'model_output') and args.model_output:
+                save_model(model, args.model_output, dataset=dataset)
                 logger.info(f"Saved trained model to {args.model_output}")
     except TypeError as e:
         logger.error(f"Error in training mode: {str(e)}")
@@ -191,6 +189,14 @@ def classification_mode(args):
 
         # Create dataset with all encoders properly initialized
         logger.info(f"Processing {len(sequences)} query sequences for classification")
+        
+        # Check if we have a taxonomy hierarchy
+        taxonomy_hierarchy = taxonomy_info.get('taxonomy_hierarchy')
+        if getattr(args, 'enforce_taxonomy', True) and taxonomy_hierarchy is None:
+            logger.warning("Taxonomy consistency enforcement was requested but no hierarchy data was found in the model.")
+            logger.warning("Taxonomic consistency will not be enforced.")
+            args.enforce_taxonomy = False
+            
         dataset = TaxonomyDataset(
             sequences=sequences,
             processor=processor,
@@ -199,6 +205,7 @@ def classification_mode(args):
             phylum_encoder=taxonomic_encoders['phylum_encoder'],
             class_encoder=taxonomic_encoders['class_encoder'],
             order_encoder=taxonomic_encoders['order_encoder'],
+            taxonomy_hierarchy=taxonomy_hierarchy,
             family_encoder=taxonomic_encoders['family_encoder'],
             genus_encoder=taxonomic_encoders['genus_encoder'],
             species_encoder=taxonomic_encoders['species_encoder']
@@ -228,7 +235,84 @@ def classification_mode(args):
         raise
     
     logger.info("Running prediction using pre-trained model...")
+    
+    enforce_taxonomy = getattr(args, 'enforce_taxonomy', True)
+    if enforce_taxonomy:
+        logger.info("Taxonomy consistency enforcement is enabled")
+    
+    # Use the standard predict method
     predictions = trainer.predict(sequences)
+    
+    if enforce_taxonomy:
+        logger.info("Applying taxonomic consistency to predictions...")
+        # Update the predictions to enforce taxonomic consistency
+        consistent_predictions = {}
+        consistent_predictions['predictions'] = {}
+        consistent_predictions['confidence'] = {}
+        
+        for level in trainer.level_order:
+            consistent_predictions['predictions'][level] = []
+            consistent_predictions['confidence'][level] = []
+            
+        # Process each sequence
+        for idx, seq in enumerate(sequences):
+            # Build the current prediction dict for this sequence
+            current_pred = {}
+            for level in trainer.level_order:
+                # Get label and convert back to index using the appropriate encoder
+                label = predictions['predictions'][level][idx]
+                conf = predictions['confidence'][level][idx]
+                
+                # Convert label back to index for the consistency function
+                if level == "domain":
+                    pred_idx = dataset.domain_encoder.get(label, 0)
+                elif level == "phylum":
+                    pred_idx = dataset.phylum_encoder.get(label, 0)
+                elif level == "class":
+                    pred_idx = dataset.class_encoder.get(label, 0)
+                elif level == "order":
+                    pred_idx = dataset.order_encoder.get(label, 0)
+                elif level == "family":
+                    pred_idx = dataset.family_encoder.get(label, 0)
+                elif level == "genus":
+                    pred_idx = dataset.genus_encoder.get(label, 0)
+                elif level == "species":
+                    pred_idx = dataset.species_encoder.get(label, 0)
+                else:
+                    pred_idx = 0
+                
+                current_pred[level] = (pred_idx, conf)
+            
+            # Apply consistency enforcement
+            consistent_pred = dataset.get_consistent_taxonomy(current_pred)
+            
+            # Store the consistent predictions
+            for level in trainer.level_order:
+                pred_idx, conf = consistent_pred[level]
+                
+                # Get the label for this index
+                if level == "domain":
+                    label = dataset.get_domain_label(pred_idx)
+                elif level == "phylum":
+                    label = dataset.get_phylum_label(pred_idx)
+                elif level == "class":
+                    label = dataset.get_class_label(pred_idx)
+                elif level == "order":
+                    label = dataset.get_order_label(pred_idx)
+                elif level == "family":
+                    label = dataset.get_family_label(pred_idx)
+                elif level == "genus":
+                    label = dataset.get_genus_label(pred_idx)
+                elif level == "species":
+                    label = dataset.get_species_label(pred_idx)
+                else:
+                    label = "unknown"
+                
+                consistent_predictions['predictions'][level].append(label)
+                consistent_predictions['confidence'][level].append(conf)
+        
+        # Use the consistent predictions
+        predictions = consistent_predictions
     
     try:
         logger.info("Writing classifications to TSV file...")
@@ -599,6 +683,8 @@ Output Control:
                              help="Confidence threshold for class classification (default: 0.5)")
     classification_parser.add_argument("--order_threshold", type=float, default=0.5,
                              help="Confidence threshold for order classification (default: 0.5)")
+    classification_parser.add_argument("--enforce_taxonomy", action="store_true", default=True,
+                             help="Enforce taxonomic consistency in predictions (default: True)")
     classification_parser.add_argument("--family_threshold", type=float, default=0.5,
                              help="Confidence threshold for family classification (default: 0.5)")
     classification_parser.add_argument("--genus_threshold", type=float, default=0.5,
