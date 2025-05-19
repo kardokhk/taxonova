@@ -5,6 +5,7 @@ import numpy as np
 from typing import Dict, List, Tuple, Optional
 from collections import defaultdict
 from taxonova.preprocessing.sequence_processor import SequenceProcessor
+from taxonova.utils.taxonomy_hierarchy import TaxonomyHierarchy
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +21,8 @@ class TaxonomyDataset(Dataset):
                  order_encoder: Dict[str, int] = None,
                  family_encoder: Dict[str, int] = None,
                  genus_encoder: Dict[str, int] = None,
-                 species_encoder: Dict[str, int] = None):
+                 species_encoder: Dict[str, int] = None,
+                 taxonomy_hierarchy: TaxonomyHierarchy = None):
         self.sequences = sequences
         self.processor = processor
         self.num_features = processor.num_features
@@ -51,6 +53,9 @@ class TaxonomyDataset(Dataset):
         # Track frequencies for reporting purposes
         self.taxa_frequencies = defaultdict(int)
         
+        # Initialize or use provided taxonomy hierarchy
+        self.taxonomy_hierarchy = taxonomy_hierarchy or TaxonomyHierarchy()
+        
         # For backward compatibility
         if label_encoder is not None:
             self.label_encoder = label_encoder
@@ -64,6 +69,11 @@ class TaxonomyDataset(Dataset):
             species_encoder
         ]))
         self._encode_sequences(create_encoder=create_encoder)
+        
+        # Build taxonomy hierarchy if it wasn't provided
+        if taxonomy_hierarchy is None:
+            self._build_taxonomy_hierarchy()
+            self.taxonomy_hierarchy.log_statistics()
         
         self.features = np.array(self.features, dtype=np.float32)
         self.domain_labels = np.array(self.domain_labels) if self.domain_labels else np.array([])
@@ -285,3 +295,88 @@ class TaxonomyDataset(Dataset):
             if idx == species_idx:
                 return species
         return "unknown"
+    
+    def _build_taxonomy_hierarchy(self):
+        """Build the taxonomy hierarchy from the dataset's sequences."""
+        logger.info("Building taxonomy hierarchy from training data...")
+        
+        for _, _, taxonomy in self.sequences:
+            # Skip taxonomies with missing levels
+            if not all(level in taxonomy for level in self.level_order):
+                continue
+                
+            # Add this taxonomy to the hierarchy
+            self.taxonomy_hierarchy.add_taxonomy(taxonomy)
+        
+        logger.info("Taxonomy hierarchy built successfully")
+    
+    def get_taxonomy_hierarchy(self) -> TaxonomyHierarchy:
+        """Get the taxonomy hierarchy object."""
+        return self.taxonomy_hierarchy
+        
+    def get_consistent_taxonomy(self, predictions: Dict[str, Tuple[int, float]]) -> Dict[str, Tuple[int, float]]:
+        """
+        Enforce taxonomic consistency in predictions using the taxonomy hierarchy.
+        
+        Args:
+            predictions: Dictionary containing predicted indices and confidence scores for each taxonomic level.
+            
+        Returns:
+            Dictionary containing consistent taxonomic predictions with indices and confidence scores.
+        """
+        # Convert predictions to taxonomy names
+        taxonomy = {}
+        for level in self.level_order:
+            idx, _ = predictions.get(level, (0, 0.0))
+            if level == "domain":
+                name = self.get_domain_label(idx)
+            elif level == "phylum":
+                name = self.get_phylum_label(idx)
+            elif level == "class":
+                name = self.get_class_label(idx)
+            elif level == "order":
+                name = self.get_order_label(idx)
+            elif level == "family":
+                name = self.get_family_label(idx)
+            elif level == "genus":
+                name = self.get_genus_label(idx)
+            elif level == "species":
+                name = self.get_species_label(idx)
+            else:
+                name = "unknown"
+            taxonomy[level] = name
+        
+        # Apply consistency check using the taxonomy hierarchy
+        consistent_taxonomy = self.taxonomy_hierarchy.get_consistent_path(taxonomy)
+        
+        # Convert back to indices and confidence scores
+        consistent_predictions = {}
+        for level in self.level_order:
+            name = consistent_taxonomy.get(level, "unknown")
+            if name == "unknown":
+                consistent_predictions[level] = (0, 0.0)
+                continue
+                
+            # Convert name back to index
+            if level == "domain":
+                idx = self.domain_encoder.get(name, 0)
+            elif level == "phylum":
+                idx = self.phylum_encoder.get(name, 0)
+            elif level == "class":
+                idx = self.class_encoder.get(name, 0)
+            elif level == "order":
+                idx = self.order_encoder.get(name, 0)
+            elif level == "family":
+                idx = self.family_encoder.get(name, 0)
+            elif level == "genus":
+                idx = self.genus_encoder.get(name, 0)
+            elif level == "species":
+                idx = self.species_encoder.get(name, 0)
+            else:
+                idx = 0
+                
+            # Use original confidence if available, otherwise default to 1.0
+            confidence = predictions.get(level, (0, 1.0))[1]
+            consistent_predictions[level] = (idx, confidence)
+        
+        return consistent_predictions
