@@ -36,12 +36,12 @@ class ModelConfig:
     
     # Confidence Threshold Parameters
     confidence_threshold: float = 0.5
-    domain_confidence_threshold: float = 0.5  # For hierarchical classification
-    phylum_confidence_threshold: float = 0.5  # For hierarchical classification
-    class_confidence_threshold: float = 0.5   # For hierarchical classification
-    order_confidence_threshold: float = 0.5   # For hierarchical classification
-    family_confidence_threshold: float = 0.5  # For hierarchical classification
-    genus_confidence_threshold: float = 0.5   # For hierarchical classification
+    domain_confidence_threshold: float = 0.1  # For hierarchical classification
+    phylum_confidence_threshold: float = 0.1  # For hierarchical classification
+    class_confidence_threshold: float = 0.1   # For hierarchical classification
+    order_confidence_threshold: float = 0.1   # For hierarchical classification
+    family_confidence_threshold: float = 0.1  # For hierarchical classification
+    genus_confidence_threshold: float = 0.2   # For hierarchical classification
     species_confidence_threshold: float = 0.5  # For hierarchical classification
     
     # Learning Rate Schedule Parameters
