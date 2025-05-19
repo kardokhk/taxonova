@@ -183,7 +183,11 @@ class CVTrainer:
         best_model = None
         best_species_f1 = 0.0
         
-        # Track optimized thresholds
+        # Track optimized thresholds for all levels
+        domain_optimized_thresholds = []
+        phylum_optimized_thresholds = []
+        class_optimized_thresholds = []
+        order_optimized_thresholds = []
         family_optimized_thresholds = []
         genus_optimized_thresholds = []
         species_optimized_thresholds = []
@@ -278,43 +282,88 @@ class CVTrainer:
                 # Optimize thresholds for family, genus and species separately
                 logger.info(f"Optimizing confidence thresholds for fold {fold + 1}")
                 
-                # Family first
+                # Optimize thresholds for all levels
+                # Domain
+                domain_best_threshold, domain_metrics = self._optimize_hierarchical_threshold(
+                    val_loader, level='domain'
+                )
+                logger.info(f"Optimized domain threshold: {domain_best_threshold:.4f} "
+                          f"(P: {domain_metrics['precision']:.4f}, R: {domain_metrics['recall']:.4f}, F1: {domain_metrics['f1']:.4f})")
+
+                # Phylum
+                phylum_best_threshold, phylum_metrics = self._optimize_hierarchical_threshold(
+                    val_loader, level='phylum'
+                )
+                logger.info(f"Optimized phylum threshold: {phylum_best_threshold:.4f} "
+                          f"(P: {phylum_metrics['precision']:.4f}, R: {phylum_metrics['recall']:.4f}, F1: {phylum_metrics['f1']:.4f})")
+
+                # Class
+                class_best_threshold, class_metrics = self._optimize_hierarchical_threshold(
+                    val_loader, level='class'
+                )
+                logger.info(f"Optimized class threshold: {class_best_threshold:.4f} "
+                          f"(P: {class_metrics['precision']:.4f}, R: {class_metrics['recall']:.4f}, F1: {class_metrics['f1']:.4f})")
+
+                # Order
+                order_best_threshold, order_metrics = self._optimize_hierarchical_threshold(
+                    val_loader, level='order'
+                )
+                logger.info(f"Optimized order threshold: {order_best_threshold:.4f} "
+                          f"(P: {order_metrics['precision']:.4f}, R: {order_metrics['recall']:.4f}, F1: {order_metrics['f1']:.4f})")
+
+                # Family
                 family_best_threshold, family_metrics = self._optimize_hierarchical_threshold(
                     val_loader, level='family'
                 )
                 logger.info(f"Optimized family threshold: {family_best_threshold:.4f} "
                           f"(P: {family_metrics['precision']:.4f}, R: {family_metrics['recall']:.4f}, F1: {family_metrics['f1']:.4f})")
                 
-                # Genus second
+                # Genus
                 genus_best_threshold, genus_metrics = self._optimize_hierarchical_threshold(
                     val_loader, level='genus'
                 )
                 logger.info(f"Optimized genus threshold: {genus_best_threshold:.4f} "
-                           f"(P: {genus_metrics['precision']:.4f}, R: {genus_metrics['recall']:.4f}, F1: {genus_metrics['f1']:.4f})")
+                          f"(P: {genus_metrics['precision']:.4f}, R: {genus_metrics['recall']:.4f}, F1: {genus_metrics['f1']:.4f})")
                 
-                # Species last
+                # Species
                 species_best_threshold, species_metrics = self._optimize_hierarchical_threshold(
                     val_loader, level='species'
                 )
                 logger.info(f"Optimized species threshold: {species_best_threshold:.4f} "
-                           f"(P: {species_metrics['precision']:.4f}, R: {species_metrics['recall']:.4f}, F1: {species_metrics['f1']:.4f})")
+                          f"(P: {species_metrics['precision']:.4f}, R: {species_metrics['recall']:.4f}, F1: {species_metrics['f1']:.4f})")
                 
-                # Store optimized thresholds
+                # Store optimized thresholds for all levels
+                domain_optimized_thresholds.append(domain_best_threshold)
+                phylum_optimized_thresholds.append(phylum_best_threshold)
+                class_optimized_thresholds.append(class_best_threshold)
+                order_optimized_thresholds.append(order_best_threshold)
                 family_optimized_thresholds.append(family_best_threshold)
                 genus_optimized_thresholds.append(genus_best_threshold)
                 species_optimized_thresholds.append(species_best_threshold)
                 
-                # Use species F1 as the primary metric, but still calculate overall F1 for reporting
+                # Use species F1 as the primary metric, but calculate overall F1 with all levels
                 species_f1 = species_metrics['f1']
-                overall_f1 = (0.1 * family_metrics['f1'] + 
-                             0.2 * genus_metrics['f1'] + 
-                             0.7 * species_metrics['f1'])
+                overall_f1 = (0.05 * domain_metrics['f1'] +
+                            0.05 * phylum_metrics['f1'] +
+                            0.05 * class_metrics['f1'] +
+                            0.05 * order_metrics['f1'] +
+                            0.1 * family_metrics['f1'] + 
+                            0.2 * genus_metrics['f1'] + 
+                            0.5 * species_metrics['f1'])
                 
-                # Store metrics with optimized thresholds
+                # Store metrics with optimized thresholds for all levels
                 optimized_metrics = {
+                    'domain': domain_metrics,
+                    'phylum': phylum_metrics,
+                    'class': class_metrics,
+                    'order': order_metrics,
                     'family': family_metrics,
                     'genus': genus_metrics,
                     'species': species_metrics,
+                    'domain_threshold': domain_best_threshold,
+                    'phylum_threshold': phylum_best_threshold,
+                    'class_threshold': class_best_threshold,
+                    'order_threshold': order_best_threshold,
                     'family_threshold': family_best_threshold,
                     'genus_threshold': genus_best_threshold,
                     'species_threshold': species_best_threshold,
@@ -376,46 +425,37 @@ class CVTrainer:
         # Compute aggregate CV metrics
         cv_metrics = self._compute_hierarchical_cv_metrics(fold_metrics)
         
-        # Calculate average optimized thresholds
+        # Calculate average optimized thresholds for all taxonomic levels
         if optimize_threshold:
-            avg_family_threshold = np.mean(family_optimized_thresholds)
-            avg_genus_threshold = np.mean(genus_optimized_thresholds)
-            avg_species_threshold = np.mean(species_optimized_thresholds)
-            cv_metrics['average_family_threshold'] = avg_family_threshold
-            cv_metrics['average_genus_threshold'] = avg_genus_threshold
-            cv_metrics['average_species_threshold'] = avg_species_threshold
-            logger.info(f"Average optimized family threshold: {avg_family_threshold:.4f}")
-            logger.info(f"Average optimized genus threshold: {avg_genus_threshold:.4f}")
-            logger.info(f"Average optimized species threshold: {avg_species_threshold:.4f}")
+            taxa_levels = ['domain', 'phylum', 'class', 'order', 'family', 'genus', 'species']
+            thresholds_dict = {
+                'domain': domain_optimized_thresholds,
+                'phylum': phylum_optimized_thresholds,
+                'class': class_optimized_thresholds,
+                'order': order_optimized_thresholds,
+                'family': family_optimized_thresholds,
+                'genus': genus_optimized_thresholds,
+                'species': species_optimized_thresholds
+            }
+            
+            for level in taxa_levels:
+                thresholds = thresholds_dict[level]
+                avg_threshold = np.mean(thresholds)
+                cv_metrics[f'average_{level}_threshold'] = avg_threshold
+                logger.info(f"Average optimized {level} threshold: {avg_threshold:.4f}")
         
         logger.info("Final Cross-Validation Results:")
         
-        # Log family metrics
-        if 'family' in cv_metrics['average_metrics']:
-            avg = cv_metrics['average_metrics']['family']
-            std = cv_metrics['std_dev']['family']
-            logger.info(f"  Family Metrics:")
-            logger.info(f"    Precision: {avg['precision']:.4f} (±{std['precision']:.4f})")
-            logger.info(f"    Recall: {avg['recall']:.4f} (±{std['recall']:.4f})")
-            logger.info(f"    F1 Score: {avg['f1']:.4f} (±{std['f1']:.4f})")
-        
-        # Log genus metrics
-        if 'genus' in cv_metrics['average_metrics']:
-            avg = cv_metrics['average_metrics']['genus']
-            std = cv_metrics['std_dev']['genus']
-            logger.info(f"  Genus Metrics:")
-            logger.info(f"    Precision: {avg['precision']:.4f} (±{std['precision']:.4f})")
-            logger.info(f"    Recall: {avg['recall']:.4f} (±{std['recall']:.4f})")
-            logger.info(f"    F1 Score: {avg['f1']:.4f} (±{std['f1']:.4f})")
-        
-        # Log species metrics
-        if 'species' in cv_metrics['average_metrics']:
-            avg = cv_metrics['average_metrics']['species']
-            std = cv_metrics['std_dev']['species']
-            logger.info(f"  Species Metrics:")
-            logger.info(f"    Precision: {avg['precision']:.4f} (±{std['precision']:.4f})")
-            logger.info(f"    Recall: {avg['recall']:.4f} (±{std['recall']:.4f})")
-            logger.info(f"    F1 Score: {avg['f1']:.4f} (±{std['f1']:.4f})")
+        # Log metrics for all taxonomic levels
+        taxa_levels = ['domain', 'phylum', 'class', 'order', 'family', 'genus', 'species']
+        for level in taxa_levels:
+            if level in cv_metrics['average_metrics']:
+                avg = cv_metrics['average_metrics'][level]
+                std = cv_metrics['std_dev'][level]
+                logger.info(f"  {level.capitalize()} Metrics:")
+                logger.info(f"    Precision: {avg['precision']:.4f} (±{std['precision']:.4f})")
+                logger.info(f"    Recall: {avg['recall']:.4f} (±{std['recall']:.4f})")
+                logger.info(f"    F1 Score: {avg['f1']:.4f} (±{std['f1']:.4f})")
         
         # Load the best model 
         if best_model is not None:
@@ -423,6 +463,10 @@ class CVTrainer:
             
         cv_metrics['best_model_state'] = best_model if best_model is not None else None
         cv_metrics['best_species_f1'] = best_species_f1
+        cv_metrics['domain_optimized_thresholds'] = domain_optimized_thresholds
+        cv_metrics['phylum_optimized_thresholds'] = phylum_optimized_thresholds
+        cv_metrics['class_optimized_thresholds'] = class_optimized_thresholds
+        cv_metrics['order_optimized_thresholds'] = order_optimized_thresholds
         cv_metrics['family_optimized_thresholds'] = family_optimized_thresholds
         cv_metrics['genus_optimized_thresholds'] = genus_optimized_thresholds
         cv_metrics['species_optimized_thresholds'] = species_optimized_thresholds
@@ -714,51 +758,32 @@ class CVTrainer:
     
     def _compute_hierarchical_cv_metrics(self, fold_metrics: list) -> Dict:
         """Compute average metrics and standard deviations across CV folds for hierarchical model."""
-        # Extract metrics from each fold
-        family_metrics = []
-        genus_metrics = []
-        species_metrics = []
+        # Extract metrics from each fold for all taxonomic levels
+        taxa_levels = ['domain', 'phylum', 'class', 'order', 'family', 'genus', 'species']
+        metrics_by_level = {level: [] for level in taxa_levels}
         overall_f1_values = []
         
         for fold in fold_metrics:
-            if 'family' in fold['metrics']:
-                family_metrics.append(fold['metrics']['family'])
-            if 'genus' in fold['metrics']:
-                genus_metrics.append(fold['metrics']['genus'])
-            if 'species' in fold['metrics']:
-                species_metrics.append(fold['metrics']['species'])
+            for level in taxa_levels:
+                if level in fold['metrics']:
+                    metrics_by_level[level].append(fold['metrics'][level])
             if 'overall_f1' in fold['metrics']:
                 overall_f1_values.append(fold['metrics']['overall_f1'])
         
-        # Calculate family averages and std if available
-        avg_family_metrics = {}
-        std_family_metrics = {}
-        if family_metrics:
-            for key in ['precision', 'recall', 'f1', 'accuracy']:
-                if key in family_metrics[0]:
-                    values = [m[key] for m in family_metrics]
-                    avg_family_metrics[key] = np.mean(values)
-                    std_family_metrics[key] = np.std(values)
+        # Calculate averages and std dev for each taxonomic level
+        avg_metrics = {}
+        std_metrics = {}
         
-        # Calculate genus averages and std if available
-        avg_genus_metrics = {}
-        std_genus_metrics = {}
-        if genus_metrics:
-            for key in ['precision', 'recall', 'f1', 'accuracy']:
-                if key in genus_metrics[0]:
-                    values = [m[key] for m in genus_metrics]
-                    avg_genus_metrics[key] = np.mean(values)
-                    std_genus_metrics[key] = np.std(values)
-        
-        # Calculate species averages and std if available
-        avg_species_metrics = {}
-        std_species_metrics = {}
-        if species_metrics:
-            for key in ['precision', 'recall', 'f1', 'accuracy']:
-                if key in species_metrics[0]:
-                    values = [m[key] for m in species_metrics]
-                    avg_species_metrics[key] = np.mean(values)
-                    std_species_metrics[key] = np.std(values)
+        for level in taxa_levels:
+            level_metrics = metrics_by_level[level]
+            if level_metrics:
+                avg_metrics[level] = {}
+                std_metrics[level] = {}
+                for key in ['precision', 'recall', 'f1', 'accuracy']:
+                    if key in level_metrics[0]:
+                        values = [m[key] for m in level_metrics]
+                        avg_metrics[level][key] = np.mean(values)
+                        std_metrics[level][key] = np.std(values)
         
         # Calculate overall F1 average and std
         avg_overall_f1 = np.mean(overall_f1_values) if overall_f1_values else 0.0
@@ -767,15 +792,11 @@ class CVTrainer:
         # Create hierarchical metrics dictionary
         cv_metrics = {
             'average_metrics': {
-                'family': avg_family_metrics,
-                'genus': avg_genus_metrics,
-                'species': avg_species_metrics,
+                **avg_metrics,
                 'overall_f1': avg_overall_f1
             },
             'std_dev': {
-                'family': std_family_metrics,
-                'genus': std_genus_metrics,
-                'species': std_species_metrics,
+                **std_metrics,
                 'overall_f1': std_overall_f1
             },
             'fold_metrics': fold_metrics,
@@ -800,150 +821,129 @@ class CVTrainer:
         # Export metrics to TSV
         metrics_file = os.path.join(output_dir, "hierarchical_fold_metrics.tsv")
         rows = []
+        
+        # Include metrics for all taxonomic levels
+        taxa_levels = ['domain', 'phylum', 'class', 'order', 'family', 'genus', 'species']
+        
         for fold_idx, fold in enumerate(cv_metrics['fold_metrics']):
             row = {"Fold": f"Fold {fold_idx+1}"}
             
-            # Add family metrics if available
-            if 'family' in fold['metrics']:
-                for key, value in fold['metrics']['family'].items():
-                    row[f"Family {key.capitalize()}"] = value
-            
-            # Add genus metrics if available
-            if 'genus' in fold['metrics']:
-                for key, value in fold['metrics']['genus'].items():
-                    row[f"Genus {key.capitalize()}"] = value
-            
-            # Add species metrics if available
-            if 'species' in fold['metrics']:
-                for key, value in fold['metrics']['species'].items():
-                    row[f"Species {key.capitalize()}"] = value
+            # Add metrics for each taxonomic level
+            for level in taxa_levels:
+                if level in fold['metrics']:
+                    for key, value in fold['metrics'][level].items():
+                        row[f"{level.capitalize()} {key.capitalize()}"] = value
+                    
+                    # Add threshold if available
+                    threshold_key = f'{level}_threshold'
+                    if threshold_key in fold['metrics']:
+                        row[f"{level.capitalize()} Threshold"] = fold['metrics'][threshold_key]
             
             # Add overall F1
             if 'overall_f1' in fold['metrics']:
                 row["Overall F1"] = fold['metrics']['overall_f1']
-            
-            # Add thresholds if available
-            if 'family_threshold' in fold['metrics']:
-                row["Family Threshold"] = fold['metrics']['family_threshold']
-            if 'genus_threshold' in fold['metrics']:
-                row["Genus Threshold"] = fold['metrics']['genus_threshold']
-            if 'species_threshold' in fold['metrics']:
-                row["Species Threshold"] = fold['metrics']['species_threshold']
                 
             rows.append(row)
             
         # Add average row
         avg_row = {"Fold": "Average"}
         
-        # Add family averages
-        for key in ['precision', 'recall', 'f1', 'accuracy']:
-            if key in cv_metrics['average_metrics']['family']:
-                avg_row[f"Family {key.capitalize()}"] = cv_metrics['average_metrics']['family'][key]
-        
-        # Add genus averages
-        for key in ['precision', 'recall', 'f1', 'accuracy']:
-            if key in cv_metrics['average_metrics']['genus']:
-                avg_row[f"Genus {key.capitalize()}"] = cv_metrics['average_metrics']['genus'][key]
-        
-        # Add species averages
-        for key in ['precision', 'recall', 'f1', 'accuracy']:
-            if key in cv_metrics['average_metrics']['species']:
-                avg_row[f"Species {key.capitalize()}"] = cv_metrics['average_metrics']['species'][key]
+        # Add averages for each taxonomic level
+        for level in taxa_levels:
+            if level in cv_metrics['average_metrics']:
+                for key in ['precision', 'recall', 'f1', 'accuracy']:
+                    if key in cv_metrics['average_metrics'][level]:
+                        avg_row[f"{level.capitalize()} {key.capitalize()}"] = cv_metrics['average_metrics'][level][key]
+                        
+            # Add threshold averages if available
+            avg_thresh_key = f'average_{level}_threshold'
+            if avg_thresh_key in cv_metrics:
+                avg_row[f"{level.capitalize()} Threshold"] = cv_metrics[avg_thresh_key]
         
         # Add overall F1 average
         avg_row["Overall F1"] = cv_metrics['average_metrics']['overall_f1']
-        
-        # Add threshold averages if available
-        if 'average_family_threshold' in cv_metrics:
-            avg_row["Family Threshold"] = cv_metrics['average_family_threshold']
-        if 'average_genus_threshold' in cv_metrics:
-            avg_row["Genus Threshold"] = cv_metrics['average_genus_threshold']
-        if 'average_species_threshold' in cv_metrics:
-            avg_row["Species Threshold"] = cv_metrics['average_species_threshold']
-            
         rows.append(avg_row)
         
         # Add std deviation row
         std_row = {"Fold": "Std Dev"}
         
-        # Add family std dev
-        for key in ['precision', 'recall', 'f1', 'accuracy']:
-            if key in cv_metrics['std_dev']['family']:
-                std_row[f"Family {key.capitalize()}"] = cv_metrics['std_dev']['family'][key]
-        
-        # Add genus std dev
-        for key in ['precision', 'recall', 'f1', 'accuracy']:
-            if key in cv_metrics['std_dev']['genus']:
-                std_row[f"Genus {key.capitalize()}"] = cv_metrics['std_dev']['genus'][key]
-        
-        # Add species std dev
-        for key in ['precision', 'recall', 'f1', 'accuracy']:
-            if key in cv_metrics['std_dev']['species']:
-                std_row[f"Species {key.capitalize()}"] = cv_metrics['std_dev']['species'][key]
+        # Add std dev for each taxonomic level
+        for level in taxa_levels:
+            if level in cv_metrics['std_dev']:
+                for key in ['precision', 'recall', 'f1', 'accuracy']:
+                    if key in cv_metrics['std_dev'][level]:
+                        std_row[f"{level.capitalize()} {key.capitalize()}"] = cv_metrics['std_dev'][level][key]
         
         # Add overall F1 std dev
         std_row["Overall F1"] = cv_metrics['std_dev']['overall_f1']
-        
         rows.append(std_row)
         
         # Save to TSV
         df = pd.DataFrame(rows)
         df.to_csv(metrics_file, sep="\t", index=False)
         
-        # Create metrics plots for each taxonomic level
-        # Family metrics plot
-        if 'family' in cv_metrics['average_metrics']:
-            family_plot_path = os.path.join(output_dir, "family_metrics.png")
-            self._plot_level_metrics(cv_metrics, 'family', family_plot_path)
-            
-        # Genus metrics plot
-        if 'genus' in cv_metrics['average_metrics']:
-            genus_plot_path = os.path.join(output_dir, "genus_metrics.png")
-            self._plot_level_metrics(cv_metrics, 'genus', genus_plot_path)
-            
-        # Species metrics plot
-        if 'species' in cv_metrics['average_metrics']:
-            species_plot_path = os.path.join(output_dir, "species_metrics.png")
-            self._plot_level_metrics(cv_metrics, 'species', species_plot_path)
+        # Create metrics plots for all taxonomic levels
+        for level in taxa_levels:
+            if level in cv_metrics['average_metrics']:
+                plot_path = os.path.join(output_dir, f"{level}_metrics.png")
+                self._plot_level_metrics(cv_metrics, level, plot_path)
         
         # Plot threshold optimization curves
-        if all(key in cv_metrics for key in ['family_optimized_thresholds', 'genus_optimized_thresholds', 'species_optimized_thresholds']):
+        if all(key in cv_metrics for key in ['domain_optimized_thresholds', 'phylum_optimized_thresholds', 
+                                           'class_optimized_thresholds', 'order_optimized_thresholds',
+                                           'family_optimized_thresholds', 'genus_optimized_thresholds', 
+                                           'species_optimized_thresholds']):
             thresholds_plot_path = os.path.join(output_dir, "hierarchical_thresholds.png")
             plt.figure(figsize=(12, 7))
             
-            # Plot family thresholds
+            # Plot thresholds for all levels
+            # Domain
+            plt.plot(np.arange(1, len(cv_metrics['domain_optimized_thresholds'])+1), 
+                   cv_metrics['domain_optimized_thresholds'], 'o-', color='#4c72b0', 
+                   linewidth=2, markersize=8, label='Domain')
+            
+            # Phylum
+            plt.plot(np.arange(1, len(cv_metrics['phylum_optimized_thresholds'])+1), 
+                   cv_metrics['phylum_optimized_thresholds'], 'o-', color='#dd8452', 
+                   linewidth=2, markersize=8, label='Phylum')
+            
+            # Class
+            plt.plot(np.arange(1, len(cv_metrics['class_optimized_thresholds'])+1), 
+                   cv_metrics['class_optimized_thresholds'], 'o-', color='#55a868', 
+                   linewidth=2, markersize=8, label='Class')
+            
+            # Order
+            plt.plot(np.arange(1, len(cv_metrics['order_optimized_thresholds'])+1), 
+                   cv_metrics['order_optimized_thresholds'], 'o-', color='#c44e52', 
+                   linewidth=2, markersize=8, label='Order')
+            
+            # Family
             plt.plot(np.arange(1, len(cv_metrics['family_optimized_thresholds'])+1), 
-                   cv_metrics['family_optimized_thresholds'], 'o-', color='#66c2a5', 
+                   cv_metrics['family_optimized_thresholds'], 'o-', color='#8172b3', 
                    linewidth=2, markersize=8, label='Family')
             
-            # Plot genus thresholds
+            # Genus
             plt.plot(np.arange(1, len(cv_metrics['genus_optimized_thresholds'])+1), 
-                   cv_metrics['genus_optimized_thresholds'], 'o-', color='#8da0cb',
+                   cv_metrics['genus_optimized_thresholds'], 'o-', color='#937860',
                    linewidth=2, markersize=8, label='Genus')
             
-            # Plot species thresholds
+            # Species
             plt.plot(np.arange(1, len(cv_metrics['species_optimized_thresholds'])+1), 
-                   cv_metrics['species_optimized_thresholds'], 'o-', color='#fc8d62',
+                   cv_metrics['species_optimized_thresholds'], 'o-', color='#da8bc3',
                    linewidth=2, markersize=8, label='Species')
             
-            # Add average lines
-            if 'average_family_threshold' in cv_metrics:
-                plt.axhline(y=cv_metrics['average_family_threshold'], color='#66c2a5', linestyle='--')
-                plt.text(0.5, cv_metrics['average_family_threshold']*1.02, 
-                       f"Family Avg: {cv_metrics['average_family_threshold']:.2f}", 
-                       ha='center', va='bottom', color='#66c2a5')
-                
-            if 'average_genus_threshold' in cv_metrics:
-                plt.axhline(y=cv_metrics['average_genus_threshold'], color='#8da0cb', linestyle='--')
-                plt.text(0.5, cv_metrics['average_genus_threshold']*1.02, 
-                       f"Genus Avg: {cv_metrics['average_genus_threshold']:.2f}", 
-                       ha='center', va='bottom', color='#8da0cb')
-                
-            if 'average_species_threshold' in cv_metrics:
-                plt.axhline(y=cv_metrics['average_species_threshold'], color='#fc8d62', linestyle='--')
-                plt.text(0.5, cv_metrics['average_species_threshold']*1.02, 
-                       f"Species Avg: {cv_metrics['average_species_threshold']:.2f}", 
-                       ha='center', va='bottom', color='#fc8d62')
+            # Add average lines for all levels
+            levels = ['domain', 'phylum', 'class', 'order', 'family', 'genus', 'species']
+            colors = ['#4c72b0', '#dd8452', '#55a868', '#c44e52', '#8172b3', '#937860', '#da8bc3']
+            positions = [0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1]  # Stagger text positions
+
+            for level, color, pos in zip(levels, colors, positions):
+                avg_key = f'average_{level}_threshold'
+                if avg_key in cv_metrics:
+                    plt.axhline(y=cv_metrics[avg_key], color=color, linestyle='--', alpha=0.7)
+                    plt.text(pos, cv_metrics[avg_key]*1.02, 
+                           f"{level.capitalize()} Avg: {cv_metrics[avg_key]:.2f}", 
+                           ha='right' if pos > 0.7 else 'left', va='bottom', color=color)
             
             plt.xlabel('Fold', fontsize=12)
             plt.ylabel('Optimal Threshold', fontsize=12)
