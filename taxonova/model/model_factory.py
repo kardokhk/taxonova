@@ -2,13 +2,15 @@ import torch
 import logging
 from pathlib import Path
 from typing import List, Tuple, Dict, Optional
+from collections import defaultdict
 
 from taxonova.model.classifier import Classifier, FocalLoss
-from taxonova.model.trainer import Trainer
-from taxonova.model.cv_trainer import CVTrainer
-from taxonova.model.model_config import ModelConfig
 from taxonova.data.dataset import TaxonomyDataset
 from taxonova.preprocessing.sequence_processor import SequenceProcessor
+from taxonova.model.cv_trainer import CVTrainer
+from taxonova.model.model_config import ModelConfig
+from taxonova.model.model_saver import save_model
+from taxonova.model.trainer import Trainer
 
 logger = logging.getLogger(__name__)
 
@@ -142,69 +144,6 @@ class ModelFactory:
         return trainer
 
     @staticmethod
-    def save_model(model: torch.nn.Module, path: str, dataset: Optional[TaxonomyDataset] = None):
-        """Save model state and taxonomy information to disk."""
-        path = Path(path)
-        path.parent.mkdir(parents=True, exist_ok=True)
-        
-        try:
-            # Save model state
-            torch.save(model.state_dict(), path)
-            logger.info(f"Model saved successfully to {path}")
-            
-            # Save dataset information if provided
-            if dataset is not None:
-                taxonomy_path = path.parent / f"{path.stem}.taxonomy.pt"
-                
-                # Save k-mer values if using the updated SequenceProcessor
-                kmer_values = None
-                if hasattr(dataset.processor, 'k_values'):
-                    kmer_values = dataset.processor.k_values
-                
-                # Verify all encoders are present and not empty
-                required_encoders = {
-                    'domain_encoder': dataset.domain_encoder,
-                    'phylum_encoder': dataset.phylum_encoder,
-                    'class_encoder': dataset.class_encoder,
-                    'order_encoder': dataset.order_encoder,
-                    'family_encoder': dataset.family_encoder,
-                    'genus_encoder': dataset.genus_encoder,
-                    'species_encoder': dataset.species_encoder
-                }
-
-                for encoder_name, encoder in required_encoders.items():
-                    if not encoder:
-                        raise ValueError(f"Empty {encoder_name} found. All taxonomic encoders must be initialized before saving.")
-
-                taxonomy_info = {
-                    'label_encoder': dataset.label_encoder,
-                    'num_classes': dataset.get_num_species_classes(),  # For backward compatibility
-                    'input_dim': dataset.processor.num_features,
-                    'level_order': dataset.level_order,  # Save level order for output formatting
-                    'kmer_values': kmer_values,  # Save k-mer values for proper model loading
-                }
-
-                # Add validated encoders
-                taxonomy_info.update(required_encoders)
-
-                # Add class counts
-                taxonomy_info.update({
-                    'num_domain_classes': dataset.get_num_domain_classes(),
-                    'num_phylum_classes': dataset.get_num_phylum_classes(),
-                    'num_class_classes': dataset.get_num_class_classes(),
-                    'num_order_classes': dataset.get_num_order_classes(),
-                    'num_family_classes': dataset.get_num_family_classes(),
-                    'num_genus_classes': dataset.get_num_genus_classes(),
-                    'num_species_classes': dataset.get_num_species_classes()
-                })
-                
-                torch.save(taxonomy_info, taxonomy_path)
-                logger.info(f"Model configuration and taxonomy information saved to {taxonomy_path}")
-        except Exception as e:
-            logger.error(f"Failed to save model: {str(e)}")
-            raise
-
-    @staticmethod
     def load_model(path: str, config: Optional[ModelConfig] = None) -> Tuple[torch.nn.Module, Dict]:
         """Load model state and taxonomy information from disk."""
         try:
@@ -216,6 +155,26 @@ class ModelFactory:
             
             logger.debug(f"Loading taxonomy from {taxonomy_path}")
             taxonomy_info = torch.load(taxonomy_path, map_location=torch.device('cpu'))
+            
+            # Try to load taxonomy hierarchy if it exists
+            hierarchy_path = path.parent / f"{path.stem}.hierarchy.pt"
+            if hierarchy_path.exists():
+                logger.info(f"Loading taxonomy hierarchy from {hierarchy_path}")
+                hierarchy_data = torch.load(hierarchy_path, map_location=torch.device('cpu'))
+                
+                # Create a TaxonomyHierarchy and initialize with loaded data
+                from taxonova.utils.taxonomy_hierarchy import TaxonomyHierarchy
+                taxonomy_hierarchy = TaxonomyHierarchy()
+                taxonomy_hierarchy.child_to_parent = hierarchy_data['child_to_parent']
+                taxonomy_hierarchy.parent_to_children = defaultdict(set, hierarchy_data['parent_to_children'])
+                taxonomy_hierarchy.species_to_domain_paths = hierarchy_data['species_to_domain_paths']
+                taxonomy_hierarchy.path_frequencies = defaultdict(int, hierarchy_data['path_frequencies'])
+                
+                # Add the hierarchy to the taxonomy info
+                taxonomy_info['taxonomy_hierarchy'] = taxonomy_hierarchy
+                logger.info("Taxonomy hierarchy loaded successfully")
+            else:
+                logger.warning("No taxonomy hierarchy file found. Taxonomic consistency will not be enforced.")
             
             # Use saved configuration or update provided config
             if config is None:
@@ -255,6 +214,10 @@ class ModelFactory:
             # Load model weights
             try:
                 model.load_state_dict(torch.load(path, map_location=torch.device('cpu')))
+                
+                # Add the level_order to taxonomy_info if not present (for backwards compatibility)
+                if 'level_order' not in taxonomy_info:
+                    taxonomy_info['level_order'] = ["domain", "phylum", "class", "order", "family", "genus", "species"]
                 logger.info(f"Model loaded successfully")
             except Exception as load_error:
                 logger.error(f"Error loading model weights: {str(load_error)}")
