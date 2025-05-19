@@ -553,5 +553,185 @@ class Classifier(nn.Module):
         self.clear_family_labels()
         self.clear_genus_labels()
         self.clear_species_labels()
+        
+    def predict_with_consistency(self, x: torch.Tensor, dataset) -> Dict[str, Tuple[int, float]]:
+        """
+        Make predictions with enforced taxonomic consistency.
+        
+        Args:
+            x: Input tensor of shape [batch_size, features].
+            dataset: TaxonomyDataset containing the taxonomy hierarchy.
+            
+        Returns:
+            Dictionary of consistent taxonomic predictions with indices and confidence scores.
+        """
+        # Get raw predictions
+        raw_predictions = self(x)
+        
+        # Process predictions for each sample in the batch
+        if len(x.shape) > 1 and x.shape[0] > 1:
+            # Multiple samples (batch mode)
+            consistent_batch_predictions = []
+            for i in range(x.shape[0]):
+                # Extract predictions for this sample
+                sample_predictions = self._extract_sample_predictions(raw_predictions, i)
+                # Apply consistency correction
+                consistent_predictions = dataset.get_consistent_taxonomy(sample_predictions)
+                consistent_batch_predictions.append(consistent_predictions)
+            return consistent_batch_predictions
+        else:
+            # Single sample
+            sample_predictions = self._extract_sample_predictions(raw_predictions, 0)
+            consistent_predictions = dataset.get_consistent_taxonomy(sample_predictions)
+            return consistent_predictions
+    
+    def _extract_sample_predictions(self, raw_predictions: Dict[str, torch.Tensor], index: int) -> Dict[str, Tuple[int, float]]:
+        """
+        Extract predictions for a single sample from batch predictions.
+        
+        Args:
+            raw_predictions: Dictionary containing prediction tensors.
+            index: Index of the sample in the batch.
+            
+        Returns:
+            Dictionary containing predictions for each taxonomic level with indices and confidence scores.
+        """
+        # Process domain
+        domain_logits = raw_predictions["domain_logits"]
+        domain_probs = F.softmax(domain_logits, dim=1)
+        domain_values, domain_indices = torch.max(domain_probs, dim=1)
+        
+        # Process phylum
+        phylum_logits = raw_predictions["phylum_logits"]
+        phylum_probs = F.softmax(phylum_logits, dim=1)
+        phylum_values, phylum_indices = torch.max(phylum_probs, dim=1)
+        
+        # Process class
+        class_logits = raw_predictions["class_logits"]
+        class_probs = F.softmax(class_logits, dim=1)
+        class_values, class_indices = torch.max(class_probs, dim=1)
+        
+        # Process order
+        order_logits = raw_predictions["order_logits"]
+        order_probs = F.softmax(order_logits, dim=1)
+        order_values, order_indices = torch.max(order_probs, dim=1)
+        
+        # Process family
+        family_logits = raw_predictions["family_logits"]
+        family_probs = F.softmax(family_logits, dim=1)
+        family_values, family_indices = torch.max(family_probs, dim=1)
+        
+        # Process genus
+        genus_logits = raw_predictions["genus_logits"]
+        genus_probs = F.softmax(genus_logits, dim=1)
+        genus_values, genus_indices = torch.max(genus_probs, dim=1)
+        
+        # Process species
+        species_logits = raw_predictions["species_logits"]
+        species_probs = F.softmax(species_logits, dim=1)
+        species_values, species_indices = torch.max(species_probs, dim=1)
+        
+        # Combine predictions
+        predictions = {
+            "domain": (domain_indices[index].item(), domain_values[index].item()),
+            "phylum": (phylum_indices[index].item(), phylum_values[index].item()),
+            "class": (class_indices[index].item(), class_values[index].item()),
+            "order": (order_indices[index].item(), order_values[index].item()),
+            "family": (family_indices[index].item(), family_values[index].item()),
+            "genus": (genus_indices[index].item(), genus_values[index].item()),
+            "species": (species_indices[index].item(), species_values[index].item())
+        }
+        
+        return predictions
+    
+    def predict_with_consistency(self, x: torch.Tensor, dataset) -> Dict[str, Tuple[int, float]]:
+        """
+        Make predictions with enforced taxonomic consistency.
+        
+        Args:
+            x: Input tensor of shape [batch_size, features].
+            dataset: TaxonomyDataset containing the taxonomy hierarchy.
+            
+        Returns:
+            Dictionary of consistent taxonomic predictions with indices and confidence scores.
+        """
+        # Get raw predictions
+        raw_predictions = self(x)
+        
+        # Process predictions for each sample in the batch
+        if len(x.shape) > 1 and x.shape[0] > 1:
+            # Multiple samples (batch mode)
+            consistent_batch_predictions = []
+            for i in range(x.shape[0]):
+                # Extract predictions for this sample
+                sample_predictions = self._extract_sample_predictions(raw_predictions, i)
+                # Apply consistency correction
+                consistent_predictions = dataset.get_consistent_taxonomy(sample_predictions)
+                consistent_batch_predictions.append(consistent_predictions)
+            return consistent_batch_predictions
+        else:
+            # Single sample
+            sample_predictions = self._extract_sample_predictions(raw_predictions, 0)
+            consistent_predictions = dataset.get_consistent_taxonomy(sample_predictions)
+            return consistent_predictions
+    
+    def _extract_sample_predictions(self, raw_predictions: Dict[str, torch.Tensor], index: int) -> Dict[str, Tuple[int, float]]:
+        """
+        Extract predictions for a single sample from batch predictions.
+        
+        Args:
+            raw_predictions: Dictionary containing prediction tensors.
+            index: Index of the sample in the batch.
+            
+        Returns:
+            Dictionary containing predictions for each taxonomic level with indices and confidence scores.
+        """
+        # Process domain
+        domain_logits = raw_predictions["domain_logits"]
+        domain_probs = torch.softmax(domain_logits, dim=1)
+        domain_values, domain_indices = torch.max(domain_probs, dim=1)
+        
+        # Process phylum
+        phylum_logits = raw_predictions["phylum_logits"]
+        phylum_probs = torch.softmax(phylum_logits, dim=1)
+        phylum_values, phylum_indices = torch.max(phylum_probs, dim=1)
+        
+        # Process class
+        class_logits = raw_predictions["class_logits"]
+        class_probs = torch.softmax(class_logits, dim=1)
+        class_values, class_indices = torch.max(class_probs, dim=1)
+        
+        # Process order
+        order_logits = raw_predictions["order_logits"]
+        order_probs = torch.softmax(order_logits, dim=1)
+        order_values, order_indices = torch.max(order_probs, dim=1)
+        
+        # Process family
+        family_logits = raw_predictions["family_logits"]
+        family_probs = torch.softmax(family_logits, dim=1)
+        family_values, family_indices = torch.max(family_probs, dim=1)
+        
+        # Process genus
+        genus_logits = raw_predictions["genus_logits"]
+        genus_probs = torch.softmax(genus_logits, dim=1)
+        genus_values, genus_indices = torch.max(genus_probs, dim=1)
+        
+        # Process species
+        species_logits = raw_predictions["species_logits"]
+        species_probs = torch.softmax(species_logits, dim=1)
+        species_values, species_indices = torch.max(species_probs, dim=1)
+        
+        # Combine predictions
+        predictions = {
+            "domain": (domain_indices[index].item(), domain_values[index].item()),
+            "phylum": (phylum_indices[index].item(), phylum_values[index].item()),
+            "class": (class_indices[index].item(), class_values[index].item()),
+            "order": (order_indices[index].item(), order_values[index].item()),
+            "family": (family_indices[index].item(), family_values[index].item()),
+            "genus": (genus_indices[index].item(), genus_values[index].item()),
+            "species": (species_indices[index].item(), species_values[index].item())
+        }
+        
+        return predictions
 
 
