@@ -10,6 +10,7 @@ from copy import deepcopy
 from torch.utils.data import DataLoader
 from tqdm.auto import tqdm
 from taxonova.data.dataset import TaxonomyDataset
+from taxonova.model.model_saver import save_model
 from taxonova.preprocessing.sequence_processor import SequenceProcessor
 from taxonova.utils.resource_tracking import track_resources
 from taxonova.model.classifier import Classifier
@@ -22,6 +23,10 @@ class Trainer:
     def __init__(self, model: Classifier, dataset: TaxonomyDataset,
                  criterion: torch.nn.Module, processor: SequenceProcessor,
                  config, mode: str = "training", device: Optional[str] = None):
+        self.best_periodic_train_loss = float('inf')
+        self.last_periodic_save_epoch = -10  # Initialize to -10 so first save happens at epoch 0
+        self.best_model_since_last_export = None
+        self.best_loss_since_last_export = float('inf')
         
         # Check if model is the correct type
         if not isinstance(model, Classifier):
@@ -274,6 +279,30 @@ class Trainer:
             'recall': recall
         }
     
+    def save_periodic_model(self, epoch: int, train_loss: float, ema_params: Dict[str, torch.Tensor]) -> None:
+        """Save model checkpoint during training."""
+        timestamp = time.strftime("%Y%m%d_%H%M%S")
+        model_filename = f"my_model_{timestamp}_epoch{epoch+1}_loss{train_loss:.4f}.pt"
+        
+        # Apply EMA parameters temporarily for saving
+        model_params_backup = {}
+        with torch.no_grad():
+            for name, param in self.model.named_parameters():
+                if param.requires_grad:
+                    model_params_backup[name] = param.data.clone()
+                    param.data.copy_(ema_params[name])
+        
+        # Save model with all components
+        try:
+            save_model(self.model, f"models/{model_filename}", self.dataset)
+            logger.info(f"Saved periodic model checkpoint at epoch {epoch+1} with train loss: {train_loss:.4f}")
+        finally:
+            # Restore original parameters
+            with torch.no_grad():
+                for name, param in self.model.named_parameters():
+                    if param.requires_grad:
+                        param.data.copy_(model_params_backup[name])
+    
     @track_resources("Training")
     def train(self, num_epochs: int = 100, validation_split: float = 0.2) -> Tuple[torch.nn.Module, Dict]:
         """Train the hierarchical model on taxonomic data."""
@@ -433,6 +462,32 @@ class Trainer:
             avg_train_loss = epoch_loss / num_batches
             train_loss_history.append(avg_train_loss)
             
+            # Track best model between exports
+            if avg_train_loss < self.best_loss_since_last_export:
+                self.best_loss_since_last_export = avg_train_loss
+                self.best_model_since_last_export = {
+                    'epoch': epoch,
+                    'loss': avg_train_loss,
+                    'ema_params': {k: v.clone() for k, v in ema_params.items()}
+                }
+
+            # Check if it's time for periodic save
+            save_interval = 10 if epoch < 50 else 5
+            if (epoch - self.last_periodic_save_epoch) >= save_interval:
+                # If we have a better model since last export, save it
+                if self.best_model_since_last_export is not None:
+                    if self.best_loss_since_last_export < self.best_periodic_train_loss:
+                        self.best_periodic_train_loss = self.best_loss_since_last_export
+                        self.save_periodic_model(
+                            self.best_model_since_last_export['epoch'],
+                            self.best_model_since_last_export['loss'],
+                            self.best_model_since_last_export['ema_params']
+                        )
+                    # Reset tracking for next period
+                    self.best_model_since_last_export = None
+                    self.best_loss_since_last_export = float('inf')
+                self.last_periodic_save_epoch = epoch
+            
             # Step the scheduler once per epoch
             scheduler.step()
             
@@ -515,14 +570,26 @@ class Trainer:
                         )
                         break
             else:
-                # Store final model when training on full dataset
-                best_model = {
-                    'state_dict': self.model.state_dict(),
-                    'ema_state_dict': {k: v.clone() for k, v in ema_params.items()},
-                    'epoch': epoch,
-                    'val_loss': None,
-                    'val_metrics': None
-                }
+                # Keep track of best model based on training loss when using full dataset
+                if avg_train_loss < self.best_val_loss:  # Reuse best_val_loss for tracking best train loss
+                    self.best_val_loss = avg_train_loss
+                    self.patience_counter = 0
+                    # Store best model (with lowest train loss)
+                    best_model = {
+                        'state_dict': self.model.state_dict(),
+                        'ema_state_dict': {k: v.clone() for k, v in ema_params.items()},
+                        'epoch': epoch,
+                        'train_loss': avg_train_loss,  # Store the training loss
+                        'val_loss': None,
+                        'val_metrics': None
+                    }
+                    logger.info(f"New best model with training loss: {avg_train_loss:.4f}")
+                else:
+                    self.patience_counter += 1
+                    # Apply early stopping if configured
+                    if self.patience and self.patience_counter >= self.patience:
+                        logger.info(f"Early stopping triggered after {epoch + 1} epochs")
+                        break
         
         # Restore best model (using EMA parameters for better generalization)
         if best_model:
@@ -539,10 +606,18 @@ class Trainer:
                     f"with validation loss {best_model['val_loss']:.4f}"
                 )
             else:
-                logger.info(
-                    f"Restored final model from epoch {best_model['epoch'] + 1} "
-                    f"trained on full dataset"
-                )
+                # Show training loss for full dataset training mode
+                if 'train_loss' in best_model:
+                    logger.info(
+                        f"Restored best model from epoch {best_model['epoch'] + 1} "
+                        f"with training loss {best_model['train_loss']:.4f}"
+                    )
+                else:
+                    # For backwards compatibility
+                    logger.info(
+                        f"Restored final model from epoch {best_model['epoch'] + 1} "
+                        f"trained on full dataset"
+                    )
         
         return self.model, {
             'metrics': best_model['val_metrics'] if best_model else None,
