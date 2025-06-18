@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Taxonova Web Classifier</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        textarea { width: 100%; height: 150px; }
+        #results { white-space: pre; margin-top: 1em; background: #f0f0f0; padding: 10px; }
+    </style>
+</head>
+<body>
+    <h1>Taxonova Classifier</h1>
+    <form id="classify-form">
+        <button type="button" onclick="insertExample()">Insert Example</button><br><br>
+        <textarea name="sequences" id="sequence" placeholder="Paste sequences or FASTA here"></textarea><br>
+        <input type="file" name="file" id="file"><br>
+        <label for="vregion">V region:</label>
+        <select name="v_region" id="vregion">
+            <option value="V4">V4</option>
+            <option value="V3-4">V3-4</option>
+        </select>
+        <button type="submit">Classify</button>
+    </form>
+    <pre id="results"></pre>
+    <a id="download" href="#" download="predictions.tsv" style="display:none">Download TSV</a>
+    <script>
+        function insertExample() {
+            document.getElementById('sequence').value = '>seq1\nACGTACGTACGT';
+        }
+        document.getElementById('classify-form').addEventListener('submit', async function(e){
+            e.preventDefault();
+            const formData = new FormData(this);
+            const response = await fetch('/classify', {method:'POST', body: formData});
+            const data = await response.json();
+            if(data.tsv){
+                document.getElementById('results').textContent = data.tsv;
+                const blob = new Blob([data.tsv], {type:'text/tab-separated-values'});
+                const url = URL.createObjectURL(blob);
+                const dl = document.getElementById('download');
+                dl.href = url;
+                dl.style.display = 'inline';
+            } else {
+                document.getElementById('results').textContent = JSON.stringify(data, null, 2);
+            }
+        });
+    </script>
+</body>
+</html>

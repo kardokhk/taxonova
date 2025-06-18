@@ -15,6 +15,7 @@ A deep learning system for accurate hierarchical taxonomic classification of bio
   - [Classification Mode](#3-classification-mode-classification)
   - [Tuning Mode](#4-tuning-mode-tuning)
   - [Weight Tuning Mode](#5-weight-tuning-mode-weight-tuning)
+  - [Web Application](#web-application)
 - [Input Data Format](#input-data-format)
 - [Output Files](#output-files)
 - [Advanced Configuration](#advanced-configuration)
@@ -176,6 +177,16 @@ Features:
 - Cross-validation for robust weight evaluation
 - Detailed metrics showing F1 scores for each level
 - Saves top weight configurations for reference
+
+## Web Application
+
+Run an interactive web server to classify sequences:
+
+```bash
+uvicorn webapp.app:app --reload
+```
+
+Open your browser at [http://localhost:8000](http://localhost:8000) and use the form to upload or paste sequences. Results can be downloaded as a TSV file.
 
 ## Input Data Format
 
