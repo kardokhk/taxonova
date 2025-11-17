@@ -4,14 +4,14 @@
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![PyPI version](https://img.shields.io/pypi/v/taxonova.svg)](https://pypi.org/project/taxonova/)
 
-**Taxonova** is a deep learning-based taxonomic classification system designed for high-accuracy classification of bacterial 16S rRNA amplicon sequences. Built on hierarchical prototypical neural networks, Taxonova achieves exceptional species-level precision across variable sequence lengths (250-1500 bp) and multiple hypervariable regions.
+**Taxonova** is a deep learning-based taxonomic classification system designed for high-accuracy species-level classification of microbial 16S rRNA amplicon sequences. Built on hierarchical neural networks, Taxonova achieves strong species-level precision across variable sequence lengths (250-4900 bp) and multiple hypervariable regions.
 
 ## Overview
 
 Accurate taxonomic assignment is fundamental to microbial ecology and microbiome research. Taxonova addresses critical challenges in amplicon-based taxonomic classification, including:
 
 - **Data imbalance** across taxonomic levels (domain to species)
-- **Variable sequence lengths** from short (250 bp) to long (1500 bp) amplicons
+- **Variable sequence lengths** from short (250 bp) to long (4900 bp) amplicons
 - **Hierarchical consistency** in taxonomic predictions
 - **Species-level resolution** in complex microbial communities
 
@@ -68,7 +68,7 @@ pip install taxonova
 
 ### Practical Capabilities
 
-- **Broad Sequence Compatibility**: Supports amplicons from 250-1500 bp across multiple hypervariable regions (V1-V9, V3-V4, V4)
+- **Broad Sequence Compatibility**: Supports amplicons from 250-4900 bp across multiple hypervariable regions (V1-V9, V3-V4, V4)
 - **Pre-trained Models**: Ready-to-use models trained on GreenGenes2 and GTDB databases
 - **GPU Acceleration**: CUDA support for efficient large-scale classification and training
 - **Flexible Confidence Thresholding**: Taxonomic-level-specific confidence thresholds for controlled precision
@@ -79,7 +79,7 @@ pip install taxonova
 ### Prerequisites
 
 - Python ≥ 3.8
-- 2 GB RAM minimum (4+ GB recommended)
+- 2 GB RAM minimum
 - CUDA-compatible GPU (optional, recommended for training)
 
 
