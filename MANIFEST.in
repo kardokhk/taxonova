@@ -1,14 +1,10 @@
 include README.md
-include requirements.txt
+include MODELS.md
+include QUICKSTART.md
+include CHANGELOG.md
 include LICENSE
-recursive-include taxonova *.py
+include requirements.txt
+include bin/taxonova
+recursive-include examples *.fasta
 recursive-exclude * __pycache__
 recursive-exclude * *.py[cod]
-recursive-exclude * *.so
-recursive-exclude * .DS_Store
-exclude database/*
-exclude models/*
-exclude input/*
-exclude output/*
-exclude build/*
-exclude bin/taxonova

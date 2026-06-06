@@ -159,3 +159,6 @@ def _validate_stratification(dataset, train_indices, val_indices, species_revers
     common_species = set(train_species_counts.keys()) & set(val_species_counts.keys())
     train_only_species = set(train_species_counts.keys()) - set(val_species_counts.keys())
     val_only_species = set(val_species_counts.keys()) - set(train_species_counts.keys())
+    
+    logger.info(f"Stratification quality: {len(common_species)} species in both sets, "
+               f"{len(train_only_species)} train-only, {len(val_only_species)} val-only")

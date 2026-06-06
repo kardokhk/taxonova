@@ -28,7 +28,7 @@ class DeviceManager:
         elif hasattr(torch.backends, 'mps') and torch.backends.mps.is_available():
             return 'mps'
         else:
-            logger.warning("No GPU detected. Training will use CPU (slower).")
+            logger.warning("No GPU detected. Training will use CPU with 2 threads, which will be significantly slower.")
             import os
             torch.set_num_threads(2)
             os.environ['OMP_NUM_THREADS'] = '2'

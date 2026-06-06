@@ -1,6 +1,7 @@
 """
 Classification predictor
 """
+import numpy as np
 import torch
 import torch.nn.functional as F
 import logging
@@ -66,25 +67,55 @@ class HierarchicalPredictor:
             shuffle=False
         )
         
-        predictions = {level: {'preds': [], 'confidences': []} 
+        predictions = {level: {'preds': [], 'confidences': []}
                       for level in self.level_order}
-        
+        # tx_wip_04 iter-B: when an alternate OOD score method is requested
+        # (e.g. energy_phylum), accumulate the per-row score here so
+        # write_tsv_output can compare it against τ at write time.
+        ood_score_method = getattr(self.config, "ood_score_method", None)
+        ood_scores = [] if ood_score_method else None
+
         with torch.no_grad():
             pred_pbar = tqdm(eval_loader, desc="Classifying", leave=False, unit="batch")
             for batch in pred_pbar:
                 (features, _), _ = batch
                 features = features.to(self.device)
-                
+
                 outputs = self.model(features)
-                
+
+                # Collect per-rank predictions + raw confidences first.
+                batch_preds = {}
+                batch_confs = {}
                 for level in self.level_order:
                     logits = outputs[f"{level}_logits"]
                     confidence = outputs[f"{level}_confidence"]
                     probs = F.softmax(logits, dim=1)
                     preds = torch.argmax(probs, dim=1)
-                    
-                    predictions[level]['preds'].extend(preds.cpu().numpy())
-                    predictions[level]['confidences'].extend(confidence.cpu().numpy())
+                    batch_preds[level] = preds.cpu().numpy()
+                    batch_confs[level] = confidence.cpu().numpy()
+
+                if ood_scores is not None:
+                    from taxonova.calibration.ood import compute_ood_score_from_outputs
+                    ood_scores.extend(
+                        compute_ood_score_from_outputs(outputs, ood_score_method).cpu().numpy().tolist()
+                    )
+
+                # Enforce hierarchical confidence monotonicity:
+                # each rank's confidence is capped at its parent rank's
+                # confidence (domain ≥ phylum ≥ ... ≥ species). This is
+                # required because the per-rank softmax heads are independent
+                # in the model architecture and so do not satisfy the
+                # P(child) ≤ P(parent) constraint of a true hierarchical
+                # probability model.
+                parent_conf = None
+                for level in self.level_order:
+                    if parent_conf is None:
+                        capped = batch_confs[level]
+                    else:
+                        capped = np.minimum(batch_confs[level], parent_conf)
+                    parent_conf = capped
+                    predictions[level]['preds'].extend(batch_preds[level])
+                    predictions[level]['confidences'].extend(capped)
         
         for level in self.level_order:
             get_label_func = getattr(self.dataset, f'get_{level}_label')
@@ -98,5 +129,7 @@ class HierarchicalPredictor:
             'predictions': {level: predictions[level]['labels'] for level in self.level_order},
             'confidence': {level: predictions[level]['confidences'] for level in self.level_order}
         }
-        
+        if ood_scores is not None:
+            formatted_predictions['ood_score'] = ood_scores
+
         return formatter.format_predictions(formatted_predictions)

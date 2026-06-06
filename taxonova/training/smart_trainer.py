@@ -28,9 +28,9 @@ class SmartTrainer:
         
         scout_trainer = trainer_factory(sequences, self.config, dataset)
         
-        logger.info("🔍 Starting scouting phase...")
+        logger.info("Starting scouting phase...")
         scout_epochs = getattr(self.config, 'scout_epochs', 100)
-        logger.info(f"🔍 Scouting with up to {scout_epochs} epochs (early stopping enabled)")
+        logger.info(f"Scouting with up to {scout_epochs} epochs (early stopping enabled)")
         
         try:
             train_indices, val_indices = create_stratified_split_for_scout(
@@ -45,10 +45,10 @@ class SmartTrainer:
                 val_indices=val_indices
             )
             optimal_epochs = scout_metrics.get('best_epoch', scout_epochs)
-            logger.info(f"📊 Scout metrics: {scout_metrics}")
+            logger.info(f"Scout metrics: {scout_metrics}")
             
         except Exception as e:
-            logger.error(f"❌ Scouting phase failed: {str(e)}")
+            logger.error(f"Scouting phase failed: {str(e)}")
             raise
         
         return optimal_epochs

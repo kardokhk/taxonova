@@ -71,9 +71,15 @@ class ResourceTracker:
         metrics = self.get_metrics()
         if self._show_usage:
             logger.info(
-                f"{operation} - Time: {metrics['total_time']:.1f}s | "
-                f"Memory: {metrics['peak_memory_mb']:.0f}MB peak"
+                f"{operation} completed in {metrics['total_time']:.2f} seconds"
+                f"\nMemory Usage:"
+                f"\n  Initial: {metrics['start_memory_mb']:.1f} MB"
+                f"\n  Peak: {metrics['peak_memory_mb']:.1f} MB"
+                f"\n  Final: {metrics['end_memory_mb']:.1f} MB"
+                f"\n  Increase: {metrics['memory_increase_mb']:.1f} MB"
             )
+        else:
+            logger.info(f"{operation} completed")
         return metrics
 
 def track_resources(operation: str):

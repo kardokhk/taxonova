@@ -77,7 +77,16 @@ class HierarchicalClassifier(nn.Module):
         self.species_processor = make_level_processor(hidden_dim + embed_dim * 6, hidden_dim, dropout)
         self.species_classifier = nn.Linear(hidden_dim, num_species_classes)
         self.species_attention = UnifiedAttention(hidden_dim, num_heads=4, dropout=dropout)
-        
+
+        # Per-rank temperature scaling (Guo et al. 2017).
+        # Non-persistent buffers — kept out of state_dict so checkpoints stay
+        # backward-compatible with tx_wip_02. Default 1.0 = identity.
+        # Set via set_temperatures(); persisted under a top-level
+        # 'temperatures' key in the unified checkpoint by save_model().
+        for _lvl in ("domain", "phylum", "class", "order",
+                     "family", "genus", "species"):
+            self.register_buffer(f"{_lvl}_T", torch.ones(1), persistent=False)
+
         initialize_model_weights(self)
     
     def forward(self, x: torch.Tensor) -> Dict[str, torch.Tensor]:
@@ -91,7 +100,7 @@ class HierarchicalClassifier(nn.Module):
         current_features = features
         
         domain_logits = self.domain_classifier(current_features)
-        domain_probs = F.softmax(domain_logits, dim=1)
+        domain_probs = F.softmax(domain_logits / self.domain_T, dim=1)
         domain_values, domain_indices = torch.max(domain_probs, dim=1)
         domain_confidence = domain_values
         
@@ -105,7 +114,7 @@ class HierarchicalClassifier(nn.Module):
         phylum_features = self.phylum_processor(combined_features)
         phylum_features = self.phylum_attention(phylum_features, current_features)
         phylum_logits = self.phylum_classifier(phylum_features)
-        phylum_probs = F.softmax(phylum_logits, dim=1)
+        phylum_probs = F.softmax(phylum_logits / self.phylum_T, dim=1)
         phylum_values, phylum_indices = torch.max(phylum_probs, dim=1)
         phylum_confidence = phylum_values
         
@@ -119,7 +128,7 @@ class HierarchicalClassifier(nn.Module):
         class_features = self.class_processor(combined_features)
         class_features = self.class_attention(class_features, phylum_features)
         class_logits = self.class_classifier(class_features)
-        class_probs = F.softmax(class_logits, dim=1)
+        class_probs = F.softmax(class_logits / self.class_T, dim=1)
         class_values, class_indices = torch.max(class_probs, dim=1)
         class_confidence = class_values
         
@@ -133,7 +142,7 @@ class HierarchicalClassifier(nn.Module):
         order_features = self.order_processor(combined_features)
         order_features = self.order_attention(order_features, class_features)
         order_logits = self.order_classifier(order_features)
-        order_probs = F.softmax(order_logits, dim=1)
+        order_probs = F.softmax(order_logits / self.order_T, dim=1)
         order_values, order_indices = torch.max(order_probs, dim=1)
         order_confidence = order_values
         
@@ -147,7 +156,7 @@ class HierarchicalClassifier(nn.Module):
         family_features = self.family_processor(combined_features)
         family_features = self.family_attention(family_features, order_features)
         family_logits = self.family_classifier(family_features)
-        family_probs = F.softmax(family_logits, dim=1)
+        family_probs = F.softmax(family_logits / self.family_T, dim=1)
         family_values, family_indices = torch.max(family_probs, dim=1)
         family_confidence = family_values
         
@@ -161,7 +170,7 @@ class HierarchicalClassifier(nn.Module):
         genus_features = self.genus_processor(combined_features)
         genus_features = self.genus_attention(genus_features, family_features)
         genus_logits = self.genus_classifier(genus_features)
-        genus_probs = F.softmax(genus_logits, dim=1)
+        genus_probs = F.softmax(genus_logits / self.genus_T, dim=1)
         genus_values, genus_indices = torch.max(genus_probs, dim=1)
         genus_confidence = genus_values
         
@@ -175,7 +184,7 @@ class HierarchicalClassifier(nn.Module):
         species_features = self.species_processor(combined_features)
         species_features = self.species_attention(species_features, genus_features)
         species_logits = self.species_classifier(species_features)
-        species_probs = F.softmax(species_logits, dim=1)
+        species_probs = F.softmax(species_logits / self.species_T, dim=1)
         species_values, species_indices = torch.max(species_probs, dim=1)
         species_confidence = species_values
         
@@ -225,6 +234,20 @@ class HierarchicalClassifier(nn.Module):
         """Set species labels for teacher forcing during training."""
         self.current_species_labels = species_labels
     
+    def set_temperatures(self, temperatures: Dict[str, float]):
+        """Apply fitted per-rank temperatures to the model's softmax heads."""
+        for lvl in ("domain", "phylum", "class", "order", "family", "genus", "species"):
+            if lvl in temperatures:
+                buf = getattr(self, f"{lvl}_T")
+                buf.fill_(float(temperatures[lvl]))
+
+    def get_temperatures(self) -> Dict[str, float]:
+        """Return current per-rank temperatures as a plain dict."""
+        return {
+            lvl: float(getattr(self, f"{lvl}_T").item())
+            for lvl in ("domain", "phylum", "class", "order", "family", "genus", "species")
+        }
+
     def clear_all_labels(self):
         """Clear all taxonomic level labels."""
         for attr in ['current_domain_labels', 'current_phylum_labels', 'current_class_labels', 

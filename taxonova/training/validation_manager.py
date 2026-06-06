@@ -1,14 +1,22 @@
 """
 Validation utilities for training.
 """
+import os
 import torch
 import logging
 import numpy as np
+from contextlib import nullcontext
 from typing import Dict, Tuple
 from torch.utils.data import DataLoader
 from tqdm.auto import tqdm
 
 logger = logging.getLogger(__name__)
+
+
+def _autocast_ctx(device: str):
+    if device == "cuda" and os.environ.get("TAXONOVA_AMP", "1") == "1":
+        return torch.autocast(device_type="cuda", dtype=torch.bfloat16)
+    return nullcontext()
 
 class ValidationManager:
     """Manages model validation during training."""
@@ -63,17 +71,17 @@ class ValidationManager:
                 self.model.set_order_labels(order_labels)
                 self.model.set_family_labels(family_labels)
                 self.model.set_genus_labels(genus_labels)
-                
-                outputs = self.model(features)
-                
-                loss = self.criterion(
-                    outputs["domain_logits"], outputs["phylum_logits"],
-                    outputs["class_logits"], outputs["order_logits"],
-                    outputs["family_logits"], outputs["genus_logits"],
-                    outputs["species_logits"],
-                    domain_labels, phylum_labels, class_labels, order_labels,
-                    family_labels, genus_labels, species_labels
-                )
+
+                with _autocast_ctx(self.device):
+                    outputs = self.model(features)
+                    loss = self.criterion(
+                        outputs["domain_logits"], outputs["phylum_logits"],
+                        outputs["class_logits"], outputs["order_logits"],
+                        outputs["family_logits"], outputs["genus_logits"],
+                        outputs["species_logits"],
+                        domain_labels, phylum_labels, class_labels, order_labels,
+                        family_labels, genus_labels, species_labels
+                    )
                 
                 total_loss += loss.item()
                 num_batches += 1
@@ -87,9 +95,9 @@ class ValidationManager:
                     ('genus', outputs["genus_logits"], genus_labels),
                     ('species', outputs["species_logits"], species_labels)
                 ]:
-                    probs = torch.softmax(logits, dim=1)
+                    probs = torch.softmax(logits.float(), dim=1)
                     confidences, preds = torch.max(probs, dim=1)
-                    
+
                     prediction_data[level]['preds'].extend(preds.cpu().numpy())
                     prediction_data[level]['labels'].extend(labels.cpu().numpy())
                     prediction_data[level]['probs'].extend(confidences.cpu().numpy())

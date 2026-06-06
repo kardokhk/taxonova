@@ -1,257 +1,85 @@
-# Taxonova Quick Reference
+# Quickstart
 
-Quick reference for common Taxonova commands and workflows.
+Five minutes, start to finish. We will first run a no-download smoke test on the
+tiny example files, then do one real classification with a pretrained model.
 
-## Installation
+## Install
 
 ```bash
-# Install from PyPI
-pip install taxonova
-
-# Download models (interactive)
-taxonova-setup
-
-# Or download models manually
-taxonova download-models --interactive
+git clone https://github.com/kardokhk/taxonova.git
+cd taxonova
+pip install -e .
 ```
 
-## Model Management
+Or just `pip install taxonova` if you do not need the example files.
+
+## 1. Offline smoke test (no downloads)
+
+The repo ships a tiny reference (`examples/tiny_db.fasta`) and a tiny query set
+(`examples/tiny_test.fasta`). Train a small throwaway model and classify with it.
+This only checks that the pipeline runs end to end; the model is far too small to
+be accurate.
 
 ```bash
-# List available models
-taxonova download-models --list
-
-# Download specific models
-taxonova download-models --models gg2_v3v4 gg2_v4
-
-# Download all models
-taxonova download-models --models all
-
-# Force re-download
-taxonova download-models --models gg2_v3v4 --force
-```
-
-## Classification
-
-```bash
-# Basic classification
-taxonova classification \
-    --input sequences.fasta \
-    --model_input gg2_v3v4_model.pt \
-    --output results.tsv
-
-# With custom confidence thresholds
-taxonova classification \
-    --input sequences.fasta \
-    --model_input gg2_v3v4_model.pt \
-    --output results.tsv \
-    --species_confidence 0.7 \
-    --genus_confidence 0.6 \
-    --verbose
-
-# Using model from custom location
-taxonova classification \
-    --input sequences.fasta \
-    --model_input /path/to/custom_model.pt \
-    --output results.tsv
-```
-
-## Training
-
-```bash
-# Basic training
+# train a tiny model on the bundled reference (a minute or two on CPU)
 taxonova training \
-    --train_db database.fasta \
-    --model_output my_model.pt \
-    --batch_size 32 \
-    --epochs 30 \
-    --kmer-length 8
+    --train_db examples/tiny_db.fasta \
+    --model_output /tmp/tiny_model.pt \
+    --epochs 3 --batch_size 16 --learning_rate 0.01
 
-# Smart full data training (recommended)
-taxonova training \
-    --train_db database.fasta \
-    --model_output my_model.pt \
-    --batch_size 32 \
-    --learning_rate 0.01 \
-    --kmer-length 8 \
-    --smart_full_data \
-    --verbose
-
-# Custom taxonomic weights
-taxonova training \
-    --train_db database.fasta \
-    --model_output my_model.pt \
-    --domain_weight 0.2 \
-    --phylum_weight 0.3 \
-    --class_weight 0.4 \
-    --order_weight 0.6 \
-    --family_weight 0.8 \
-    --genus_weight 1.0 \
-    --species_weight 1.5
-```
-
-## Environment Variables
-
-```bash
-# Set custom models directory
-export TAXONOVA_MODELS_DIR=/data/taxonova/models
-
-# Set custom config directory  
-export TAXONOVA_CONFIG_DIR=/data/taxonova/config
-
-# Force CPU usage (no GPU)
-CUDA_VISIBLE_DEVICES="" taxonova classification ...
-```
-
-## File Locations
-
-- **Models**: `~/.taxonova/models/` (default)
-- **Config**: `~/.taxonova/` (default)
-- **Logs**: `output/` (in current directory)
-
-## Input Format
-
-### Training Database (FASTA)
-```
->seq1|d:Bacteria;p:Proteobacteria;c:Gammaproteobacteria;o:Enterobacterales;f:Enterobacteriaceae;g:Escherichia;s:Escherichia_coli
-ATCGATCGATCG...
-```
-
-### Query Sequences (FASTA)
-```
->seq1
-ATCGATCGATCG...
->seq2
-GCTAGCTAGCTA...
-```
-
-## Output Format (TSV)
-
-```
-sequence_id    domain    phylum    class    order    family    genus    species    domain_confidence    ...
-seq1          Bacteria  Proteo... Gamma... Enter... Enter... Esche... E_coli   0.99                 ...
-```
-
-## Common Options
-
-### Global Options
-- `--verbose`: Show detailed progress
-- `--show-resource-usage`: Display memory and time metrics
-- `--help`: Show help message
-
-### Training Options
-- `--train_db`: Training database (required)
-- `--model_output`: Output model path (required)
-- `--batch_size`: Batch size (default: 32)
-- `--epochs`: Number of epochs (default: 30)
-- `--learning_rate`: Learning rate (default: 5e-5)
-- `--kmer-length`: K-mer length (default: 8)
-- `--smart_full_data`: Enable smart training
-
-### Classification Options
-- `--input`: Input sequences (required)
-- `--model_input`: Model file (required)
-- `--output`: Output file (required)
-- `--species_confidence`: Species threshold (default: 0.6)
-- `--genus_confidence`: Genus threshold (default: 0.5)
-- `--family_confidence`: Family threshold (default: 0.4)
-
-## Troubleshooting
-
-### Model not found
-```bash
-# Check available models
-taxonova download-models --list
-
-# Download required model
-taxonova download-models --models gg2_v3v4
-```
-
-### Out of memory
-```bash
-# Reduce batch size
-taxonova training --batch_size 16 ...
-
-# Or use CPU only
-CUDA_VISIBLE_DEVICES="" taxonova training ...
-```
-
-### CUDA errors
-```bash
-# Force CPU usage
-CUDA_VISIBLE_DEVICES="" taxonova classification ...
-```
-
-## Getting Help
-
-```bash
-# General help
-taxonova --help
-
-# Mode-specific help
-taxonova classification --help
-taxonova training --help
-taxonova download-models --help
-```
-
-## Examples
-
-### Complete Workflow
-
-```bash
-# 1. Install
-pip install taxonova
-
-# 2. Download models
-taxonova download-models --models gg2_v3v4
-
-# 3. Classify sequences
+# classify the bundled queries with it
 taxonova classification \
-    --input my_sequences.fasta \
-    --model_input gg2_v3v4_model.pt \
-    --output classifications.tsv \
-    --verbose
+    --input examples/tiny_test.fasta \
+    --model_input /tmp/tiny_model.pt \
+    --output /tmp/tiny_predictions.tsv
 
-# 4. View results
-head -n 10 classifications.tsv
+# take a look
+column -t -s $'\t' /tmp/tiny_predictions.tsv | less -S
 ```
 
-### Custom Training
+If `predictions.tsv` has one row per input sequence with a label and a confidence
+for each rank, everything is wired up correctly.
+
+## 2. A real classification
+
+For actual work, download a pretrained model from the Releases page and use that.
+Choose the model that matches your amplicon region (see [MODELS.md](MODELS.md)).
+
+https://github.com/kardokhk/taxonova/releases
 
 ```bash
-# 1. Prepare your database (FASTA with taxonomic headers)
-
-# 2. Train model
-taxonova training \
-    --train_db my_database.fasta \
-    --model_output my_custom_model.pt \
-    --smart_full_data \
-    --verbose
-
-# 3. Use your custom model
+# example: V4 reads
 taxonova classification \
-    --input sequences.fasta \
-    --model_input my_custom_model.pt \
-    --output results.tsv
+    --input reads.fasta \
+    --model_input gg2_v4_mrgroups_model.pt \
+    --output predictions.tsv
 ```
 
-## Version Info
+That is it. The calibration is already inside the checkpoint, so there is no extra
+setup step.
+
+## Reading the output
+
+The TSV has `sequence_id` followed by a label and a confidence column for each of
+the seven ranks (domain through species). Where the model is not confident enough
+at a rank, you will see `Unclassified` there and at every rank below it. That is
+the model abstaining rather than guessing. A read that resolves to genus but not
+species is the common and expected case for short regions.
+
+## Tuning how cautious it is
+
+`--confidence_threshold` (default 0.5) sets the species cutoff. Raise it for fewer,
+higher-confidence species calls; lower it to let more through. You can also set
+per-rank cutoffs from domain through genus with `--domain_threshold` ...
+`--genus_threshold`.
 
 ```bash
-# Check version
-taxonova --version
-
-# Check Python version
-python --version
-
-# Check installed packages
-pip show taxonova
+taxonova classification \
+    --input reads.fasta \
+    --model_input gg2_v4_mrgroups_model.pt \
+    --output predictions.tsv \
+    --confidence_threshold 0.7
 ```
 
-## More Information
-
-- Full documentation: `README.md`
-- Publishing guide: `PUBLISHING.md`
-- Changelog: `CHANGELOG.md`
-- GitHub: https://github.com/YOUR_USERNAME/taxonova
-- PyPI: https://pypi.org/project/taxonova/
+Want more detail on training, modes, and the architecture? See the
+[README](README.md).

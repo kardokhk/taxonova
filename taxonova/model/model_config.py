@@ -53,6 +53,18 @@ class ModelConfig:
     min_improvement: float = 0.001
     
     optimize_metric: str = 'overall_f1'
+
+    # tx_wip_03 iter-4: class-balanced loss reweighting (Cui et al. 2019)
+    class_balanced: bool = False
+    cb_beta: float = 0.9999
+    # iter-5: optional per-rank β. None means "fall back to global cb_beta".
+    cb_beta_domain: Optional[float] = None
+    cb_beta_phylum: Optional[float] = None
+    cb_beta_class: Optional[float] = None
+    cb_beta_order: Optional[float] = None
+    cb_beta_family: Optional[float] = None
+    cb_beta_genus: Optional[float] = None
+    cb_beta_species: Optional[float] = None
     
     def __post_init__(self):
         """Validate configuration."""

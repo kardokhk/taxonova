@@ -4,7 +4,6 @@ Post-prediction processing utilities for taxonomic classification.
 import logging
 from typing import Dict, List, Tuple, Any
 from collections import defaultdict
-from taxonova.cli.logging_setup import console_log
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +17,12 @@ class TaxonomicConsistencyProcessor:
         consistent_predictions = {}
         consistent_predictions['predictions'] = {}
         consistent_predictions['confidence'] = {}
-        
+        # tx_wip_04 iter-B: pass through the per-row OOD score if the predictor
+        # computed one (energy_phylum etc.). Consistency enforcement only
+        # rewrites taxa/confidence, not the OOD score.
+        if 'ood_score' in predictions:
+            consistent_predictions['ood_score'] = predictions['ood_score']
+
         for level in self.level_order:
             consistent_predictions['predictions'][level] = []
             consistent_predictions['confidence'][level] = []
@@ -91,31 +95,82 @@ class PredictionOutputFormatter:
             'confidence': {level: predictions['confidence'][level]
                          for level in self.level_order}
         }
-        
+        if 'ood_score' in predictions:
+            result['ood_score'] = predictions['ood_score']
+
         for level in self.level_order:
             result[f'{level}_predictions'] = predictions['predictions'][level]
             result[f'{level}_confidence'] = predictions['confidence'][level]
-        
+
         return result
     
-    def write_tsv_output(self, args: Any, predictions: Dict, sequences: List[Tuple], config=None) -> None:
-        """Write classification results to TSV file."""
+    def write_tsv_output(self, args: Any, predictions: Dict, sequences: List[Tuple]) -> None:
+        """Write classification results to TSV file.
+
+        Hierarchical confidence monotonicity is enforced at write time: each
+        rank's reported confidence is capped at its parent rank's reported
+        confidence so that domain ≥ phylum ≥ class ≥ order ≥ family ≥ genus
+        ≥ species, as required by the laws of probability for a hierarchical
+        taxonomy (a sequence's species probability cannot exceed its genus
+        probability since each species belongs to exactly one genus). The
+        per-rank softmax heads in the model are independent and do not
+        enforce this constraint, so we apply it post-hoc here. This also
+        guarantees that if a parent rank's confidence falls below the
+        threshold, all child ranks are marked Unclassified — uncertainty
+        propagates downward.
+        """
         try:
+            ood_config = getattr(args, "ood_config", None)
+            ood_n_relaxed = 0
+            ood_n_strict = 0
             with open(args.output, 'w') as f:
                 header = ["sequence_id"]
                 for level in self.level_order:
                     header.extend([level, f"{level}_confidence"])
                 f.write("\t".join(header) + "\n")
-                
+
+                strict_thresholds = self._get_level_thresholds(args)
+
                 for idx, seq in enumerate(sequences):
                     row = [seq[0]]
-                    
-                    thresholds = self._get_level_thresholds(config if config else args)
-                    
+
+                    # tx_wip_03 iter-2: per-input OOD-aware adaptive
+                    # thresholding. Default score is phylum-MSP. tx_wip_04
+                    # iter-B added the energy_phylum alternative; in that
+                    # mode the per-row score lives in predictions['ood_score']
+                    # (precomputed by the predictor) and the OOD direction
+                    # flips (high energy = OOD).
+                    if ood_config is not None:
+                        score_method = ood_config.get("score_method", "phylum_msp")
+                        if score_method == "phylum_msp":
+                            score_rank = ood_config["score_rank"]
+                            score = float(predictions['confidence'].get(score_rank, [1.0] * len(sequences))[idx])
+                            is_ood_row = score < ood_config["tau"]
+                        else:
+                            from taxonova.calibration.ood import is_ood as _is_ood
+                            score = float(predictions['ood_score'][idx])
+                            is_ood_row = _is_ood(score, ood_config["tau"], score_method)
+                        if is_ood_row:
+                            thresholds = ood_config["relaxed_thresholds"]
+                            ood_n_relaxed += 1
+                        else:
+                            thresholds = strict_thresholds
+                            ood_n_strict += 1
+                    else:
+                        thresholds = strict_thresholds
+
+                    parent_conf = 1.0
                     for level in self.level_order:
-                        confidence = predictions['confidence'].get(level, [0.0] * len(sequences))[idx]
-                        threshold = thresholds.get(level, 0.5)
-                        
+                        raw_confidence = predictions['confidence'].get(level, [0.0] * len(sequences))[idx]
+                        try:
+                            raw_confidence = float(raw_confidence)
+                        except (TypeError, ValueError):
+                            raw_confidence = 0.0
+                        # Monotonic cap: confidence at this rank cannot exceed parent.
+                        confidence = min(raw_confidence, parent_conf)
+                        parent_conf = confidence
+                        threshold = thresholds.get(level, args.confidence_threshold)
+
                         if confidence < threshold:
                             row.extend(["Unclassified", f"{confidence:.4f}"])
                         else:
@@ -123,33 +178,37 @@ class PredictionOutputFormatter:
                             if not label or label == "unknown":
                                 label = "Unknown"
                             row.extend([label, f"{confidence:.4f}"])
-                    
+
                     f.write("\t".join(row) + "\n")
-                
-            console_log(f"✓ Results written to {args.output}")
+
+            if ood_config is not None:
+                total = ood_n_relaxed + ood_n_strict
+                pct = 100.0 * ood_n_relaxed / total if total else 0.0
+                method = ood_config.get("score_method", "phylum_msp")
+                logger.info(
+                    f"OOD-aware thresholding: {ood_n_relaxed}/{total} ({pct:.1f}%) inputs flagged OOD "
+                    f"(score_method={method}, τ={ood_config['tau']:.4f}) and used relaxed thresholds"
+                )
+            logger.info(f"Successfully wrote classifications to {args.output}")
         except Exception as e:
             logger.error(f"Error writing classifications: {str(e)}")
             raise
     
-    def _get_level_thresholds(self, source: Any) -> Dict[str, float]:
-        """Get confidence thresholds for each taxonomic level."""
-        if hasattr(source, 'domain_confidence_threshold'):
-            return {
-                "domain": source.domain_confidence_threshold,
-                "phylum": source.phylum_confidence_threshold,
-                "class": source.class_confidence_threshold,
-                "order": source.order_confidence_threshold,
-                "family": source.family_confidence_threshold,
-                "genus": source.genus_confidence_threshold,
-                "species": source.species_confidence_threshold
-            }
-        else:
-            return {
-                "domain": getattr(source, 'domain_confidence', 0.5),
-                "phylum": getattr(source, 'phylum_confidence', 0.5),
-                "class": getattr(source, 'class_confidence', 0.5),
-                "order": getattr(source, 'order_confidence', 0.5),
-                "family": getattr(source, 'family_confidence', 0.4),
-                "genus": getattr(source, 'genus_confidence', 0.5),
-                "species": getattr(source, 'species_confidence', 0.6)
-            }
+    def _get_level_thresholds(self, args: Any) -> Dict[str, float]:
+        """Per-level thresholds default to 0.5; --<level>_threshold overrides.
+
+        Default lowered from 0.8 to 0.5 in tx_wip_02 after the threshold-sweep
+        diagnostic showed that 0.8 was rejecting confident-but-not-saturated
+        predictions on OOD samples (coral/emp500_plant/emp500_soil), causing
+        catastrophic recall collapse. 0.5 captures most of the OOD recovery
+        while maintaining noise filtering on in-distribution data. See
+        docs/threshold_sweep_results.md for the full evidence.
+        """
+        defaults = {"domain": 0.5, "phylum": 0.5, "class": 0.5,
+                    "order": 0.5, "family": 0.5, "genus": 0.5}
+        result = {}
+        for lvl, dflt in defaults.items():
+            override = getattr(args, f"{lvl}_threshold", None)
+            result[lvl] = dflt if override is None else override
+        result["species"] = args.confidence_threshold
+        return result

@@ -36,6 +36,26 @@ class HierarchicalModelFactory:
     
     @staticmethod
     def create_loss_function(config: ModelConfig, dataset: TaxonomyDataset, device: str = 'cpu') -> HierarchicalFocalLoss:
+        class_frequencies = None
+        per_rank_beta = None
+        if getattr(config, 'class_balanced', False):
+            import numpy as np
+            import torch as _torch
+            class_frequencies = {}
+            per_rank_beta = {}
+            global_beta = float(config.cb_beta)
+            for level in ("domain", "phylum", "class", "order", "family", "genus", "species"):
+                labels = getattr(dataset, f"{level}_labels")
+                num_classes = getattr(dataset, f"get_num_{level}_classes")()
+                counts = np.bincount(labels, minlength=num_classes)
+                class_frequencies[level] = _torch.from_numpy(counts).long()
+                override = getattr(config, f"cb_beta_{level}", None)
+                per_rank_beta[level] = float(override) if override is not None else global_beta
+            logger.info(
+                "Class-balanced loss enabled. Per-rank (num_classes, beta): "
+                + ", ".join(f"{k}=({v.numel()}, {per_rank_beta[k]})" for k, v in class_frequencies.items())
+            )
+
         return HierarchicalFocalLoss(
             num_domain_classes=dataset.get_num_domain_classes(),
             num_phylum_classes=dataset.get_num_phylum_classes(),
@@ -53,7 +73,10 @@ class HierarchicalModelFactory:
             order_weight=getattr(config, 'order_weight', 0.6),
             family_weight=getattr(config, 'family_weight', 0.8),
             genus_weight=getattr(config, 'genus_weight', 1.0),
-            species_weight=getattr(config, 'species_weight', 1.5)
+            species_weight=getattr(config, 'species_weight', 1.5),
+            class_frequencies=class_frequencies,
+            cb_beta=getattr(config, 'cb_beta', 0.9999),
+            per_rank_beta=per_rank_beta,
         )
     
     @staticmethod
@@ -91,7 +114,7 @@ class HierarchicalModelFactory:
             path = Path(path)
             
             try:
-                unified_data = torch.load(path, map_location=torch.device('cpu'), weights_only=False)
+                unified_data = torch.load(path, map_location=torch.device('cpu'))
                 
                 if 'model_state_dict' in unified_data and 'taxonomy_info' in unified_data:
                     taxonomy_info = unified_data['taxonomy_info']
@@ -139,13 +162,27 @@ class HierarchicalModelFactory:
             )
             
             model.load_state_dict(model_state_dict)
-            
+
+            temperatures = unified_data.get('temperatures')
+            if temperatures:
+                model.set_temperatures(temperatures)
+                logger.info(f"Applied calibrated temperatures: {temperatures}")
+
+            ood_config = unified_data.get('ood_config')
+            if ood_config:
+                taxonomy_info['ood_config'] = ood_config
+                logger.info(
+                    f"Loaded OOD config: score_rank={ood_config.get('score_rank')} "
+                    f"τ={ood_config.get('tau'):.4f} "
+                    f"relaxed={ood_config.get('relaxed_thresholds')}"
+                )
+
             if 'level_order' not in taxonomy_info:
                 taxonomy_info['level_order'] = ["domain", "phylum", "class", "order", "family", "genus", "species"]
-            
+
             taxonomy_info['hierarchical'] = True
             return model, taxonomy_info
-            
+
         except Exception as e:
             logger.error(f"Failed to load model: {str(e)}")
             raise
@@ -157,12 +194,12 @@ class HierarchicalModelFactory:
             taxonomy_path = path.parent / f"{path.stem}.taxonomy.pt"
             if not taxonomy_path.exists():
                 raise FileNotFoundError(f"Taxonomy information not found at {taxonomy_path}")
-            taxonomy_info = torch.load(taxonomy_path, map_location=torch.device('cpu'), weights_only=False)
+            taxonomy_info = torch.load(taxonomy_path, map_location=torch.device('cpu'))
             
             hierarchy_path = path.parent / f"{path.stem}.hierarchy.pt"
             if hierarchy_path.exists():
                 logger.info(f"Loading taxonomy hierarchy from {hierarchy_path}")
-                hierarchy_data = torch.load(hierarchy_path, map_location=torch.device('cpu'), weights_only=False)
+                hierarchy_data = torch.load(hierarchy_path, map_location=torch.device('cpu'))
                 
                 from taxonova.utils.taxonomy_hierarchy import TaxonomyHierarchy
                 taxonomy_hierarchy = TaxonomyHierarchy()
@@ -198,7 +235,7 @@ class HierarchicalModelFactory:
                 dropout=0.3
             )
             
-            model.load_state_dict(torch.load(path, map_location=torch.device('cpu'), weights_only=False))
+            model.load_state_dict(torch.load(path, map_location=torch.device('cpu')))
             
             if 'level_order' not in taxonomy_info:
                 taxonomy_info['level_order'] = ["domain", "phylum", "class", "order", "family", "genus", "species"]

@@ -24,6 +24,7 @@ class DeviceManager:
         os.environ['OMP_NUM_THREADS'] = str(cpu_threads)
         os.environ['MKL_NUM_THREADS'] = str(cpu_threads)
         
+        logger.info(f"Using CPU with {cpu_threads} threads for classification")
         return device
     
     @staticmethod
@@ -43,3 +44,13 @@ class DeviceManager:
             return 'mps'
         else:
             return 'cpu'
+    
+    @staticmethod
+    def log_device_info(device: str):
+        """Log information about the selected device."""
+        if device == 'cuda':
+            logger.info(f"Using CUDA device: {torch.cuda.get_device_name(0)}")
+        elif device == 'mps':
+            logger.info("Using MPS (Metal Performance Shaders) device")
+        else:
+            logger.info("Using CPU device")

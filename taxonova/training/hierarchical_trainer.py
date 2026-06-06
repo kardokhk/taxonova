@@ -1,6 +1,7 @@
 """
 Refactored core training loop and optimization for hierarchical models.
 """
+import os
 import torch
 import logging
 from typing import Dict, List, Tuple, Optional
@@ -63,8 +64,9 @@ class HierarchicalTrainer:
             train_dataset,
             batch_size=self.config.batch_size,
             shuffle=True,
-            num_workers=0,
-            pin_memory=True
+            num_workers=int(os.environ.get("TAXONOVA_NUM_WORKERS", "4")),
+            pin_memory=True,
+            persistent_workers=int(os.environ.get("TAXONOVA_NUM_WORKERS", "4")) > 0,
         )
         
         val_loader = None
@@ -99,10 +101,7 @@ class HierarchicalTrainer:
             self.checkpoint_manager.update_periodic_save_tracking(
                 epoch, avg_train_loss, ema_manager.get_ema_params()
             )
-            
-            if self.checkpoint_manager.should_periodic_save(epoch):
-                self.checkpoint_manager.save_periodic_model(epoch)
-            
+
             model_params_backup = ema_manager.apply_ema_params(self.model)
             
             if val_loader is not None:
@@ -117,6 +116,14 @@ class HierarchicalTrainer:
                     'lr': f"{optimizer.param_groups[0]['lr']:.2e}"
                 })
                 
+                logger.info(
+                    f"Epoch {epoch+1}/{num_epochs} - "
+                    f"Train Loss: {avg_train_loss:.4f}, "
+                    f"Val Loss: {val_loss:.4f}, "
+                    f"Overall F1: {val_metrics['overall_f1']:.4f}, "
+                    f"Depth-weighted F1: {val_metrics['depth_weighted_f1']:.4f}"
+                )
+                
                 is_best_model, metric_value, metric_name = self.checkpoint_manager.should_save_best_model(
                     val_loss, val_metrics
                 )
@@ -125,7 +132,9 @@ class HierarchicalTrainer:
                     best_model = self.checkpoint_manager.create_best_model_checkpoint(
                         epoch, val_loss, val_metrics, ema_manager.get_ema_params(), metric_value
                     )
+                    logger.info(f"New best model with {metric_name}: {metric_value:.4f}")
                 elif self.checkpoint_manager.should_early_stop():
+                    logger.info(f"Early stopping triggered after {epoch + 1} epochs")
                     break
                     
             else:
@@ -135,20 +144,31 @@ class HierarchicalTrainer:
                     'lr': f"{optimizer.param_groups[0]['lr']:.2e}"
                 })
                 
+                logger.info(
+                    f"Epoch {epoch+1}/{num_epochs} - "
+                    f"Train Loss: {avg_train_loss:.4f}, "
+                    f"Smoothed Loss: {smoothed_loss:.4f}"
+                )
+                
                 should_stop, is_best_model = self.stopping_criteria.check_plateau_stopping()
                 
                 if is_best_model:
                     best_model = self.checkpoint_manager.create_best_model_checkpoint_full_data(
                         epoch, avg_train_loss, smoothed_loss, ema_manager.get_ema_params()
                     )
+                    logger.info(f"New best model with smoothed training loss: {smoothed_loss:.4f}")
                 elif should_stop:
+                    logger.info(f"Early stopping triggered: smoothed loss plateau detected")
                     break
             
             ema_manager.restore_original_params(self.model, model_params_backup)
         
         if best_model:
             self.checkpoint_manager.restore_best_model(best_model)
-            self.checkpoint_manager.save_best_model(best_model)
+            # Intermediate "models/best_model_<ts>...pt" snapshot removed in
+            # tx_wip_09. The user-facing --model_output save (in
+            # training_handler.py after train() returns) already captures the
+            # restored best-val EMA weights.
         
         return self.model, {
             'metrics': best_model['val_metrics'] if best_model else None,
@@ -174,16 +194,18 @@ class HierarchicalTrainer:
             self.dataset,
             batch_size=self.config.batch_size,
             sampler=SubsetRandomSampler(train_indices),
-            num_workers=0,
-            pin_memory=True
+            num_workers=int(os.environ.get("TAXONOVA_NUM_WORKERS", "4")),
+            pin_memory=True,
+            persistent_workers=int(os.environ.get("TAXONOVA_NUM_WORKERS", "4")) > 0,
         )
         
         val_loader = DataLoader(
             self.dataset,
             batch_size=self.config.batch_size * 2,
             sampler=SubsetRandomSampler(val_indices),
-            num_workers=0,
-            pin_memory=True
+            num_workers=int(os.environ.get("TAXONOVA_NUM_WORKERS", "4")),
+            pin_memory=True,
+            persistent_workers=int(os.environ.get("TAXONOVA_NUM_WORKERS", "4")) > 0,
         )
 
         optimizer, scheduler = OptimizerManager.create_optimizer_and_scheduler(
@@ -218,6 +240,14 @@ class HierarchicalTrainer:
             
             ema_manager.restore_original_params(self.model, model_params_backup)
             
+            logger.info(
+                f"Epoch {epoch+1}/{num_epochs} - "
+                f"Train Loss: {avg_train_loss:.4f}, "
+                f"Val Loss: {val_loss:.4f}, "
+                f"Overall F1: {val_metrics['overall_f1']:.4f}, "
+                f"Depth-weighted F1: {val_metrics['depth_weighted_f1']:.4f}"
+            )
+            
             is_best_model, metric_value, metric_name = self.checkpoint_manager.should_save_best_model(
                 val_loss, val_metrics
             )
@@ -226,12 +256,17 @@ class HierarchicalTrainer:
                 best_model = self.checkpoint_manager.create_best_model_checkpoint(
                     epoch, val_loss, val_metrics, ema_manager.get_ema_params(), metric_value
                 )
+                logger.info(f"New best model with {metric_name}: {metric_value:.4f}")
             elif self.checkpoint_manager.should_early_stop():
+                logger.info(f"Early stopping triggered after {epoch + 1} epochs")
                 break
         
         if best_model:
             self.checkpoint_manager.restore_best_model(best_model)
-            self.checkpoint_manager.save_best_model(best_model)
+            # Intermediate "models/best_model_<ts>...pt" snapshot removed in
+            # tx_wip_09. The user-facing --model_output save (in
+            # training_handler.py after train() returns) already captures the
+            # restored best-val EMA weights.
         
         return self.model, {
             'metrics': best_model['val_metrics'] if best_model else None,

@@ -175,6 +175,7 @@ class ModelCheckpointManager:
         
         try:
             save_model(self.model, f"models/{model_filename}", self.dataset)
+            logger.info(f"Saved BEST model to models/{model_filename}")
         except Exception as e:
             logger.error(f"Failed to save best model: {str(e)}")
     
@@ -184,3 +185,17 @@ class ModelCheckpointManager:
             for name, param in self.model.named_parameters():
                 if param.requires_grad and name in best_model['ema_state_dict']:
                     param.data.copy_(best_model['ema_state_dict'][name])
+        
+        if best_model.get('val_loss') is not None:
+            overall_f1 = best_model.get('overall_f1', 0.0)
+            depth_weighted_f1 = best_model.get('depth_weighted_f1', 0.0)
+            logger.info(
+                f"Restored best model from epoch {best_model['epoch'] + 1} "
+                f"with overall F1: {overall_f1:.4f}, depth-weighted F1: {depth_weighted_f1:.4f}"
+            )
+        else:
+            smoothed_loss = best_model.get('smoothed_loss', best_model.get('val_loss', 0.0))
+            logger.info(
+                f"Restored best model from epoch {best_model['epoch'] + 1} "
+                f"with smoothed training loss: {smoothed_loss:.4f}"
+            )

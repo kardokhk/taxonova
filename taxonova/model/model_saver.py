@@ -74,6 +74,7 @@ def save_model(model: torch.nn.Module, path: str, dataset: Optional[TaxonomyData
             unified_model['taxonomy_info'] = taxonomy_info
             
         torch.save(unified_model, path)
+        logger.info(f"Unified model saved successfully to {path}")
         
     except Exception as e:
         logger.error(f"Failed to save unified model: {str(e)}")

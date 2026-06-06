@@ -37,6 +37,15 @@ def create_base_config(args, processor) -> ModelConfig:
         plateau_patience=getattr(args, 'plateau_patience', 5),
         min_improvement=getattr(args, 'min_improvement', 0.001),
         optimize_metric=getattr(args, 'optimize_metric', 'overall_f1'),
+        class_balanced=getattr(args, 'class_balanced', False),
+        cb_beta=getattr(args, 'cb_beta', 0.9999),
+        cb_beta_domain=getattr(args, 'cb_beta_domain', None),
+        cb_beta_phylum=getattr(args, 'cb_beta_phylum', None),
+        cb_beta_class=getattr(args, 'cb_beta_class', None),
+        cb_beta_order=getattr(args, 'cb_beta_order', None),
+        cb_beta_family=getattr(args, 'cb_beta_family', None),
+        cb_beta_genus=getattr(args, 'cb_beta_genus', None),
+        cb_beta_species=getattr(args, 'cb_beta_species', None),
     )
 
 def create_scout_config(args, processor) -> ModelConfig:
@@ -70,6 +79,15 @@ def create_scout_config(args, processor) -> ModelConfig:
         plateau_patience=getattr(args, 'plateau_patience', 5),
         min_improvement=getattr(args, 'min_improvement', 0.001),
         optimize_metric=getattr(args, 'optimize_metric', 'overall_f1'),
+        class_balanced=getattr(args, 'class_balanced', False),
+        cb_beta=getattr(args, 'cb_beta', 0.9999),
+        cb_beta_domain=getattr(args, 'cb_beta_domain', None),
+        cb_beta_phylum=getattr(args, 'cb_beta_phylum', None),
+        cb_beta_class=getattr(args, 'cb_beta_class', None),
+        cb_beta_order=getattr(args, 'cb_beta_order', None),
+        cb_beta_family=getattr(args, 'cb_beta_family', None),
+        cb_beta_genus=getattr(args, 'cb_beta_genus', None),
+        cb_beta_species=getattr(args, 'cb_beta_species', None),
     )
 
 def create_classification_config(args, taxonomy_info) -> ModelConfig:
@@ -77,12 +95,12 @@ def create_classification_config(args, taxonomy_info) -> ModelConfig:
     return ModelConfig(
         input_dim=taxonomy_info['input_dim'],
         show_resource_usage=args.show_resource_usage,
-        confidence_threshold=0.5,
+        confidence_threshold=args.confidence_threshold,
         domain_confidence_threshold=0.5,
         phylum_confidence_threshold=0.5,
         class_confidence_threshold=0.5,
         order_confidence_threshold=0.5,
-        family_confidence_threshold=getattr(args, 'family_confidence', 0.4),
-        genus_confidence_threshold=getattr(args, 'genus_confidence', 0.5),
-        species_confidence_threshold=getattr(args, 'species_confidence', 0.6)
+        family_confidence_threshold=0.5,
+        genus_confidence_threshold=0.5,
+        species_confidence_threshold=args.confidence_threshold
     )

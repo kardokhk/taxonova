@@ -22,12 +22,27 @@ class TaxonomyDataset(Dataset):
                  family_encoder: Dict[str, int] = None,
                  genus_encoder: Dict[str, int] = None,
                  species_encoder: Dict[str, int] = None,
-                 taxonomy_hierarchy: TaxonomyHierarchy = None):
+                 taxonomy_hierarchy: TaxonomyHierarchy = None,
+                 length_aug_p: float = 0.0,
+                 length_aug_min: int = 100,
+                 length_aug_max: int = 10**9):
         self.sequences = sequences
         self.processor = processor
         self.num_features = processor.num_features
-        self.features = []
+        # Pre-allocate the feature cache as a single contiguous ndarray.
+        # On V1-V9 (~340k seqs × 65,536 features × 4 B = ~88 GB) the prior
+        # "build a list then np.array(list, dtype=...)" approach doubled
+        # the peak host memory during construction (list + destination
+        # array live simultaneously) and OOM-killed the training process
+        # even with --mem=250G. Pre-allocating keeps peak at the single
+        # 88 GB destination.
+        self.features = np.empty((len(sequences), processor.num_features), dtype=np.float32)
+        self._features_filled = 0
         self.sequence_ids = []
+        self.raw_sequences = []
+        self.length_aug_p = float(length_aug_p)
+        self.length_aug_min = int(length_aug_min)
+        self.length_aug_max = int(length_aug_max)
         
         self.domain_labels = []
         self.phylum_labels = []
@@ -67,7 +82,7 @@ class TaxonomyDataset(Dataset):
             self._build_taxonomy_hierarchy()
             self.taxonomy_hierarchy.log_statistics()
         
-        self.features = np.array(self.features, dtype=np.float32)
+        # features already pre-allocated + filled in _encode_sequences; nothing to do here.
         self.domain_labels = np.array(self.domain_labels) if self.domain_labels else np.array([])
         self.phylum_labels = np.array(self.phylum_labels) if self.phylum_labels else np.array([])
         self.class_labels = np.array(self.class_labels) if self.class_labels else np.array([])
@@ -84,9 +99,26 @@ class TaxonomyDataset(Dataset):
             idx = idx.item()
         elif isinstance(idx, np.ndarray):
             idx = idx.item()
-            
-        feature = torch.tensor(self.features[idx], dtype=torch.float32)
-        
+
+        if self.length_aug_p > 0.0 and torch.rand(1).item() < self.length_aug_p:
+            seq = self.raw_sequences[idx]
+            seq_len = len(seq)
+            l_max = min(self.length_aug_max, seq_len)
+            l_min = min(self.length_aug_min, l_max)
+            if l_max > l_min:
+                L = int(torch.randint(l_min, l_max + 1, (1,)).item())
+                max_start = seq_len - L
+                start = int(torch.randint(0, max_start + 1, (1,)).item()) if max_start > 0 else 0
+                truncated = seq[start:start + L]
+                feature = torch.tensor(
+                    self.processor.generate_kmer_frequencies(truncated),
+                    dtype=torch.float32,
+                )
+            else:
+                feature = torch.tensor(self.features[idx], dtype=torch.float32)
+        else:
+            feature = torch.tensor(self.features[idx], dtype=torch.float32)
+
         return (feature, self.sequence_ids[idx]), (
             int(self.domain_labels[idx]),
             int(self.phylum_labels[idx]),
@@ -194,11 +226,13 @@ class TaxonomyDataset(Dataset):
             self.genus_encoder = {genus: idx for idx, genus in enumerate(sorted_genera)}
             self.species_encoder = {species: idx for idx, species in enumerate(sorted_species)}
 
-        for seq_id, sequence, taxonomy in self.sequences:
+        for i, (seq_id, sequence, taxonomy) in enumerate(self.sequences):
             self.sequence_ids.append(seq_id)
-            
+            self.raw_sequences.append(sequence)
+
             feats = self.processor.generate_kmer_frequencies(sequence)
-            self.features.append(feats)
+            self.features[i] = feats
+            self._features_filled = i + 1
             
             domain = taxonomy.get("domain", "unknown")
             phylum = taxonomy.get("phylum", "unknown")

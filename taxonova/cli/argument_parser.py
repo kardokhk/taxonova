@@ -3,180 +3,239 @@ Command line argument parser for Taxonova.
 """
 import argparse
 
-__version__ = "25.11.0"
-
 def create_argument_parser():
     """Create and configure the argument parser for Taxonova."""
     parser = argparse.ArgumentParser(
-        prog="taxonova",
-        usage="taxonova {training/classification} -h",
         description="""
-═══════════════════════════════════════════════════════════════════════════
-  taxonova v{}: Deep Learning-based Taxonomic Classification
-═══════════════════════════════════════════════════════════════════════════
-        """.format(__version__, __version__),
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-    )
-    
-    parser.add_argument('--version', action='version', version='%(prog)s ' + __version__)
-    
-    subparsers = parser.add_subparsers(dest="mode", title="Operation Modes", required=True, 
-                                      help="Select the operational mode")
+Taxonova: Deep Learning-based Taxonomic Classification
 
-    _add_training_parser(subparsers)
-    _add_classification_parser(subparsers)
-    _add_download_models_parser(subparsers)
-    
-    return parser
+A hierarchical deep learning tool for taxonomic classification of biological sequences.
+Supports training and classification modes using optimized hierarchical classification.
 
-def _add_common_output_args(parser):
-    """Add common output control arguments."""
-    output_group = parser.add_argument_group("Output and Logging Options")
-    output_group.add_argument("--show-resource-usage", action="store_true", default=False,
-                           help="Display comprehensive memory utilization and execution time metrics")
-    output_group.add_argument("--verbose", action="store_true", default=False,
-                           help="Enable detailed progress logging to console output")
-
-def _add_training_parser(subparsers):
-    """Add training mode parser."""
-    train_parser = subparsers.add_parser(
-        "training", 
-        help="Train a deep learning model for taxonomic classification",
-        description="""
-Train a new model for taxonomic classification using a reference sequence database with known taxonomic lineages.
+Smart Full Data Training:
+  Use --smart_full_data for optimal training on 100% of your data:
+    1. Scouts with early stopping to find optimal stopping point
+    2. Retrains on 100% of data using those optimal epochs
+  
+  Example: taxonova training --train_db data.fasta --smart_full_data --verbose
         """,
         formatter_class=argparse.RawDescriptionHelpFormatter
     )
     
-    # Required Arguments
-    required_group = train_parser.add_argument_group("Required Arguments")
-    required_group.add_argument("--train_db", type=str, required=True, metavar="PATH",
-                           help="Path to the reference database FASTA file containing training sequences with taxonomic annotations")
-    required_group.add_argument("--model_output", type=str, required=True, metavar="PATH",
-                           help="Path to save the trained model file (.pt format)")
+    subparsers = parser.add_subparsers(dest="mode", title="Operation Modes", required=True)
+
+    _add_training_parser(subparsers)
+    _add_classification_parser(subparsers)
+    _add_calibration_parser(subparsers)
+    _add_fit_ood_parser(subparsers)
+
+    return parser
+
+
+def _add_fit_ood_parser(subparsers):
+    """Add fit-ood mode parser (post-hoc per-input OOD-aware thresholding)."""
+    p = subparsers.add_parser(
+        "fit-ood",
+        help="Fit a per-input OOD-detection threshold τ on a held-out split and embed it in the checkpoint",
+    )
+    p.add_argument("--model_input", type=str, required=True)
+    p.add_argument("--train_db", type=str, required=True)
+    p.add_argument("--model_output", type=str, default=None,
+                   help="Where to write the updated checkpoint. Default: overwrite --model_input")
+    p.add_argument("--report_json", type=str, default=None)
+    p.add_argument("--val_split", type=float, default=0.2)
+    p.add_argument("--seed", type=int, default=42)
+    p.add_argument("--batch_size", type=int, default=512)
+    p.add_argument("--score_rank", type=str, default="phylum",
+                   choices=["domain", "phylum", "class", "order",
+                            "family", "genus", "species"],
+                   help="Which rank's max-softmax-prob to use as OOD score (default: phylum)")
+    p.add_argument("--score_method", type=str, default="phylum_msp",
+                   choices=["phylum_msp", "energy_phylum"],
+                   help="OOD score function. phylum_msp = legacy max-softmax-prob at score_rank "
+                        "(low = OOD). energy_phylum = -logsumexp(phylum_logits) per Liu 2020 "
+                        "(high = OOD). tx_wip_04 iter-B.")
+    p.add_argument("--id_quantile", type=float, default=0.01,
+                   help="Fraction of ID samples allowed below tau (default: 0.01 = 99 percent of ID stay above tau)")
+    p.add_argument("--relaxed_domain_threshold", type=float, default=0.0)
+    p.add_argument("--relaxed_phylum_threshold", type=float, default=0.0)
+    p.add_argument("--relaxed_class_threshold",  type=float, default=0.0)
+    p.add_argument("--relaxed_order_threshold",  type=float, default=0.0)
+    p.add_argument("--relaxed_family_threshold", type=float, default=0.0)
+    p.add_argument("--relaxed_genus_threshold",  type=float, default=0.0)
+    p.add_argument("--relaxed_species_threshold", type=float, default=0.0)
+    p.add_argument("--cpu_threads", type=int, default=None)
+    p.add_argument("--cpu_only", action="store_true", default=False)
+    _add_common_output_args(p)
+
+
+def _add_calibration_parser(subparsers):
+    """Add calibration mode parser (post-hoc per-rank temperature scaling)."""
+    p = subparsers.add_parser(
+        "calibrate",
+        help="Fit per-rank temperatures on a held-out split and embed them in the checkpoint",
+    )
+    p.add_argument("--model_input", type=str, required=True,
+                   help="Path to the trained .pt model to calibrate")
+    p.add_argument("--train_db", type=str, required=True,
+                   help="Reference FASTA used to build the held-out split (same one used for training)")
+    p.add_argument("--model_output", type=str, default=None,
+                   help="Where to write the calibrated checkpoint. Default: overwrite --model_input")
+    p.add_argument("--report_json", type=str, default=None,
+                   help="Optional path to dump the per-rank ECE/T report")
+    p.add_argument("--val_split", type=float, default=0.2,
+                   help="Fraction of the reference set held out for calibration (default: 0.2)")
+    p.add_argument("--seed", type=int, default=42,
+                   help="Generator seed for the random_split (default: 42, matches training)")
+    p.add_argument("--batch_size", type=int, default=256,
+                   help="Forward-pass batch size when collecting logits")
+    p.add_argument("--num_workers", type=int, default=0,
+                   help="DataLoader workers")
+    p.add_argument("--cpu_threads", type=int, default=None,
+                   help="CPU threads if running on CPU")
+    p.add_argument("--cpu_only", action="store_true", default=False,
+                   help="Disable CUDA even if available")
+    _add_common_output_args(p)
+
+def _add_common_output_args(parser):
+    """Add common output control arguments."""
+    output_group = parser.add_argument_group("Output Control")
+    output_group.add_argument("--show-resource-usage", action="store_true", default=False,
+                           help="Display memory usage and execution time statistics")
+    output_group.add_argument("--verbose", action="store_true", default=False,
+                           help="Show detailed progress output in console")
+
+def _add_training_parser(subparsers):
+    """Add training mode parser."""
+    train_parser = subparsers.add_parser("training", help="Train a new model")
+    train_parser.add_argument("--train_db", type=str, required=True,
+                           help="Path to the training database FASTA file")
+    train_parser.add_argument("--model_output", type=str,
+                           help="Path to save the trained model")
     
-    # K-mer Parameters
-    kmer_group = train_parser.add_argument_group("Feature Extraction Parameters")
-    kmer_group.add_argument("--kmer-length", type=int, default=8, metavar="INT",
-                         help="K-mer length for sequence feature extraction (default: 8)")
-    
-    # Training Parameters
-    train_group = train_parser.add_argument_group("Training Hyperparameters")
-    train_group.add_argument("--epochs", type=int, default=30, metavar="INT",
-                          help="Maximum number of training epochs (default: 30)")
-    train_group.add_argument("--batch_size", type=int, default=32, metavar="INT",
-                          help="Mini-batch size for gradient descent optimization (default: 32)")
-    train_group.add_argument("--learning_rate", type=float, default=5e-5, metavar="FLOAT",
-                          help="Initial learning rate for optimizer (default: 5e-5)")
-    train_group.add_argument("--weight_decay", type=float, default=1e-5, metavar="FLOAT",
-                          help="L2 regularization coefficient for weight decay (default: 1e-5)")
-    train_group.add_argument("--warmup_fraction", type=float, default=0.1, metavar="FLOAT",
-                          help="Proportion of total training steps allocated for learning rate warmup (default: 0.1)")
+    kmer_group = train_parser.add_argument_group("K-mer Parameters")
+    kmer_group.add_argument("--kmer-length", type=int, default=8,
+                         help="Length of k-mers to use (default: 8)")
+
+    aug_group = train_parser.add_argument_group("Length Augmentation (tx_wip_09)")
+    aug_group.add_argument("--length_aug_p", type=float, default=0.0,
+                          help="Per-sample probability of applying random-truncation aug. "
+                               "0 disables (default; preserves canonical training).")
+    aug_group.add_argument("--length_aug_min", type=int, default=100,
+                          help="Minimum truncated length when aug fires (default: 100).")
+    aug_group.add_argument("--length_aug_max", type=int, default=10**9,
+                          help="Maximum truncated length when aug fires. Clamped to len(seq). "
+                               "Default: effectively len(seq) (large sentinel).")
+
+    train_group = train_parser.add_argument_group("Training Parameters")
+    train_group.add_argument("--epochs", type=int, default=30,
+                          help="Number of training epochs")
+    train_group.add_argument("--batch_size", type=int, default=32,
+                          help="Batch size for training")
+    train_group.add_argument("--learning_rate", type=float, default=5e-5,
+                          help="Initial learning rate")
+    train_group.add_argument("--weight_decay", type=float, default=1e-5,
+                          help="Weight decay coefficient")
+    train_group.add_argument("--warmup_fraction", type=float, default=0.1,
+                          help="Fraction of training steps for learning rate warmup")
     train_group.add_argument("--early_stopping", action="store_true", default=True,
-                          help="Enable early stopping based on validation performance")
-    
-    # Smart Training Parameters
-    smart_group = train_parser.add_argument_group("Adaptive Training Strategy")
-    smart_group.add_argument("--smart_full_data", action="store_true", default=False,
-                          help="Enable two-phase training: scouting phase to identify optimal epochs, followed by full-data training")
-    smart_group.add_argument("--scout_val_split", type=float, default=0.2, metavar="FLOAT",
-                          help="Validation data proportion for scouting phase (default: 0.2)")
-    smart_group.add_argument("--scout_patience", type=int, default=10, metavar="INT",
-                          help="Early stopping patience (epochs) during scouting phase (default: 10)")
-    smart_group.add_argument("--scout_epochs", type=int, default=100, metavar="INT",
-                          help="Maximum epochs allocated for scouting phase (default: 100)")
-    smart_group.add_argument("--skip_scout", action="store_true", default=False,
-                          help="Bypass scouting phase and utilize user-specified epoch count")
-    smart_group.add_argument("--optimal_epochs", type=int, default=None, metavar="INT",
-                          help="Explicit epoch count for training, bypassing automatic epoch determination")
-    smart_group.add_argument("--optimize_metric", type=str, default="overall_f1", metavar="METRIC",
+                          help="Enable early stopping based on validation loss")
+    train_group.add_argument("--val_split", type=float, default=None,
+                          help="Validation fraction held out during single-stage training "
+                               "(used only when --smart_full_data is off). 0 disables val "
+                               "(uses smoothed-loss plateau for stopping). Defaults to 0.2 "
+                               "for backwards compatibility; recommended 0.05 to give the "
+                               "best-val EMA checkpoint near-100%% training data.")
+    train_group.add_argument("--smart_full_data", action="store_true", default=False,
+                          help="Two-stage training: scout to find optimal epochs, then train on 100%% data")
+    train_group.add_argument("--scout_val_split", type=float, default=0.2,
+                          help="Validation split for scouting phase (default: 0.2)")
+    train_group.add_argument("--scout_patience", type=int, default=10,
+                          help="Early stopping patience for scouting phase")
+    train_group.add_argument("--scout_epochs", type=int, default=100,
+                          help="Maximum epochs for scouting phase")
+    train_group.add_argument("--skip_scout", action="store_true", default=False,
+                          help="Skip scouting phase and use provided epochs")
+    train_group.add_argument("--optimal_epochs", type=int, default=None,
+                          help="Use this many epochs for training (skips scouting)")
+    train_group.add_argument("--optimize_metric", type=str, default="overall_f1",
                           choices=["val_loss", "overall_f1", "depth_weighted_f1"],
-                          help="Optimization metric for model selection: 'val_loss' (validation loss), 'overall_f1' (macro-averaged F1 across taxonomic levels), or 'depth_weighted_f1' (weighted F1 emphasizing finer taxonomic resolution) (default: overall_f1)")
+                          help="Metric to optimize during training: 'val_loss' for validation loss, 'overall_f1' for equal-weighted F1 across all levels, 'depth_weighted_f1' for depth-weighted F1 emphasizing deeper classifications (default: overall_f1)")
     
-    # Taxonomic Level Weights
-    tax_group = train_parser.add_argument_group("Taxonomic Hierarchy Loss Weights",
-                                               "Relative importance weights for classification loss at each taxonomic level")
-    tax_group.add_argument("--domain_weight", type=float, default=1.0, metavar="FLOAT",
-                         help="Loss weight for domain-level classification (default: 1.0)")
-    tax_group.add_argument("--phylum_weight", type=float, default=1.0, metavar="FLOAT",
-                         help="Loss weight for phylum-level classification (default: 1.0)")
-    tax_group.add_argument("--class_weight", type=float, default=1.0, metavar="FLOAT",
-                         help="Loss weight for class-level classification (default: 1.0)")
-    tax_group.add_argument("--order_weight", type=float, default=1.0, metavar="FLOAT",
-                         help="Loss weight for order-level classification (default: 1.0)")
-    tax_group.add_argument("--family_weight", type=float, default=1.0, metavar="FLOAT",
-                         help="Loss weight for family-level classification (default: 1.0)")
-    tax_group.add_argument("--genus_weight", type=float, default=1.0, metavar="FLOAT",
-                         help="Loss weight for genus-level classification (default: 1.0)")
-    tax_group.add_argument("--species_weight", type=float, default=1.0, metavar="FLOAT",
-                         help="Loss weight for species-level classification (default: 1.0)")
+    tax_group = train_parser.add_argument_group("Taxonomic Level Weights")
+    tax_group.add_argument("--domain_weight", type=float, default=1.0,
+                         help="Weight for domain-level loss (default: 1.0)")
+    tax_group.add_argument("--phylum_weight", type=float, default=1.0,
+                         help="Weight for phylum-level loss (default: 1.0)")
+    tax_group.add_argument("--class_weight", type=float, default=1.0,
+                         help="Weight for class-level loss (default: 1.0)")
+    tax_group.add_argument("--order_weight", type=float, default=1.0,
+                         help="Weight for order-level loss (default: 1.0)")
+    tax_group.add_argument("--family_weight", type=float, default=1.0,
+                         help="Weight for family-level loss (default: 1.0)")
+    tax_group.add_argument("--genus_weight", type=float, default=1.0,
+                         help="Weight for genus-level loss (default: 1.0)")
+    tax_group.add_argument("--species_weight", type=float, default=1.0,
+                         help="Weight for species-level loss (default: 1.0)")
     
-    # Data Filtering
-    filter_group = train_parser.add_argument_group("Taxonomic Lineage Filtering",
-                                                  "Quality control filters for training data completeness")
+    cb_group = train_parser.add_argument_group("Class Balancing (tx_wip_03 iter-4)")
+    cb_group.add_argument("--class_balanced", action="store_true", default=False,
+                          help="Use Cui 2019 effective-number-of-samples per-class loss reweighting at every rank. Recommended for V1-V9 + RRN to lift environmental-genus heads off the long-tail floor.")
+    cb_group.add_argument("--cb_beta", type=float, default=0.9999,
+                          help="Cui beta hyperparameter (default 0.9999; smaller -> milder reweighting). Used as fallback when no per-rank override is given.")
+    cb_group.add_argument("--cb_beta_domain", type=float, default=None,
+                          help="Override --cb_beta at the domain rank only. Falls back to --cb_beta.")
+    cb_group.add_argument("--cb_beta_phylum", type=float, default=None,
+                          help="Override --cb_beta at the phylum rank only.")
+    cb_group.add_argument("--cb_beta_class", type=float, default=None,
+                          help="Override --cb_beta at the class rank only.")
+    cb_group.add_argument("--cb_beta_order", type=float, default=None,
+                          help="Override --cb_beta at the order rank only.")
+    cb_group.add_argument("--cb_beta_family", type=float, default=None,
+                          help="Override --cb_beta at the family rank only.")
+    cb_group.add_argument("--cb_beta_genus", type=float, default=None,
+                          help="Override --cb_beta at the genus rank only.")
+    cb_group.add_argument("--cb_beta_species", type=float, default=None,
+                          help="Override --cb_beta at the species rank only. Set to 1.0 to disable rebalancing on species (recommended for very-fine-grained heads where Cui weights destabilise training).")
+
+    p2_group = train_parser.add_argument_group("Phase-2 Decoupled Retraining (Kang ICLR 2020)")
+    p2_group.add_argument("--phase2_decoupled", action="store_true", default=False,
+                          help="Run Phase-2 decoupled retraining: load --phase1_ckpt, freeze backbone+embeddings+attention, reinit and retrain only the 7 *_classifier heads with class-balanced sampling.")
+    p2_group.add_argument("--phase1_ckpt", type=str, default=None,
+                          help="Path to a Phase-1 (standard end-to-end) checkpoint to use as the frozen backbone.")
+    p2_group.add_argument("--phase2_epochs", type=int, default=15,
+                          help="Number of Phase-2 head-only training epochs (default: 15).")
+    p2_group.add_argument("--phase2_lr", type=float, default=5e-5,
+                          help="Phase-2 learning rate for head parameters (default: 5e-5).")
+    p2_group.add_argument("--phase2_sampler", type=str, default="inv_sqrt_freq",
+                          choices=["inv_sqrt_freq", "inv_freq", "none"],
+                          help="Per-sample sampling weight scheme for Phase-2 (default: inv_sqrt_freq, Kang sqrt-balanced).")
+
+    filter_group = train_parser.add_argument_group("Data Filtering")
     filter_group.add_argument("--filter_incomplete_lineages", action="store_true", default=False,
-                            help="Exclude sequences lacking complete taxonomic annotation through genus level")
+                            help="Filter out sequences that don't have complete taxonomic lineage up to genus level")
     filter_group.add_argument("--require_species", action="store_true", default=False,
-                            help="Enforce complete species-level annotation for all training sequences")
+                            help="Require complete lineage up to species level (implies --filter_incomplete_lineages)")
     
     _add_common_output_args(train_parser)
 
 def _add_classification_parser(subparsers):
     """Add classification mode parser."""
-    classification_parser = subparsers.add_parser(
-        "classification", 
-        help="Classify query sequences using a trained model",
-        description="""
-Perform taxonomic classification of query sequences using a pre-trained model.
-        """,
-        formatter_class=argparse.RawDescriptionHelpFormatter
-    )
-    
-    # Required Arguments
-    required_group = classification_parser.add_argument_group("Required Arguments")
-    required_group.add_argument("--input", type=str, required=True, metavar="PATH",
-                             help="Path to the input FASTA file containing query sequences for classification")
-    required_group.add_argument("--model_input", type=str, required=True, metavar="PATH",
-                             help="Path to the trained model file (.pt format) for inference")
-    required_group.add_argument("--output", type=str, required=True, metavar="PATH",
-                             help="Path to the output file for classification results (TSV format)")
-    
-    # Optional Classification Parameters
-    optional_group = classification_parser.add_argument_group("Classification Parameters")
-    optional_group.add_argument("--cpu_threads", type=int, default=None, metavar="INT",
-                             help="Number of CPU threads for parallel processing (default: 30)")
-    optional_group.add_argument("--species_confidence", type=float, default=0.6, metavar="FLOAT",
-                             help="Minimum confidence threshold for species-level assignments (default: 0.6)")
-    optional_group.add_argument("--genus_confidence", type=float, default=0.5, metavar="FLOAT",
-                             help="Minimum confidence threshold for genus-level assignments (default: 0.5)")
-    optional_group.add_argument("--family_confidence", type=float, default=0.4, metavar="FLOAT",
-                             help="Minimum confidence threshold for family-level assignments (default: 0.4)")
-    
-    _add_common_output_args(classification_parser)
+    classification_parser = subparsers.add_parser("classification", 
+                                                help="Run classifications using a trained model")
+    classification_parser.add_argument("--input", type=str, required=True,
+                             help="Path to input FASTA file for classification")
+    classification_parser.add_argument("--model_input", type=str, required=True,
+                             help="Path to input model file for classification")
+    classification_parser.add_argument("--output", type=str, required=True,
+                             help="Path to save classification results")
+    classification_parser.add_argument("--cpu_threads", type=int, default=None,
+                             help="Number of CPU threads to use for classification (default: 30)")
+    classification_parser.add_argument("--confidence_threshold", type=float, default=0.5,
+                             help="Confidence threshold for species classification (default: 0.7)")
+    for _lvl in ("domain", "phylum", "class", "order", "family", "genus"):
+        classification_parser.add_argument(
+            f"--{_lvl}_threshold", type=float, default=None,
+            help=f"Optional confidence threshold for {_lvl} (default: 0.5)")
 
-def _add_download_models_parser(subparsers):
-    """Add download-models mode parser."""
-    download_parser = subparsers.add_parser(
-        "download-models",
-        help="Download pre-trained models for taxonomic classification",
-        description="""
-Download pre-trained Taxonova models for different V regions.
-Models are stored in ~/.taxonova/models/ by default.
-        """,
-        formatter_class=argparse.RawDescriptionHelpFormatter
-    )
-    
-    download_group = download_parser.add_argument_group("Download Options")
-    download_group.add_argument("--models", type=str, nargs="+", metavar="MODEL",
-                               choices=["gg2_v1v9", "gg2_v3v4", "gg2_v4", "gg2_rrn", "gtdb_rrn", "all"],
-                               help="Model(s) to download: gg2_v1v9, gg2_v3v4, gg2_v4, gg2_rrn, gtdb_rrn, or 'all'")
-    download_group.add_argument("--list", action="store_true",
-                               help="List all available models and their download status")
-    download_group.add_argument("--interactive", action="store_true",
-                               help="Interactive model selection")
-    download_group.add_argument("--force", action="store_true",
-                               help="Force re-download even if model already exists")
-    download_group.add_argument("--models-dir", type=str, metavar="PATH",
-                               help="Custom directory for storing models (default: ~/.taxonova/models/)")
-    
-    _add_common_output_args(download_parser)
+    _add_common_output_args(classification_parser)
