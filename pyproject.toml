@@ -4,7 +4,44 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "taxonova"
-version = "1.0.0"
-description = "Deep Learning-based Taxonomic Classification"
+version = "26.6.0"
+description = "Deep Learning-based Taxonomic Classification for Amplicon Sequences"
 readme = "README.md"
 requires-python = ">=3.8"
+license = { text = "MIT" }
+authors = [{ name = "Kardokh Kaka Bra", email = "kardokhkaka@gmail.com" }]
+keywords = ["bioinformatics", "taxonomy", "classification", "deep-learning", "amplicon", "16S", "rRNA", "microbiome", "metagenomics"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "torch>=1.10.0",
+    "numpy>=1.19.2",
+    "pandas>=1.2.3",
+    "scikit-learn>=0.24.1",
+    "tqdm>=4.59.0",
+    "psutil>=5.8.0",
+    "setproctitle>=1.3.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/kardokhk/taxonova"
+Documentation = "https://github.com/kardokhk/taxonova#readme"
+Repository = "https://github.com/kardokhk/taxonova"
+"Bug Tracker" = "https://github.com/kardokhk/taxonova/issues"
+
+[project.scripts]
+taxonova = "taxonova.main:main"
+taxonova-setup = "taxonova.utils.model_downloader:post_install_setup"
+
+[tool.setuptools.packages.find]
+include = ["taxonova*"]

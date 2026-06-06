@@ -18,21 +18,30 @@ Greengenes2; the RRN model uses GTDB directly.
 ## Where they live
 
 Each checkpoint is roughly 235 to 246 MB, too large to keep inside the git repo, so
-they are attached to the GitHub Release rather than committed. Download them from
-the Releases page:
-
-https://github.com/kardokhk/taxonova/releases
+they are attached to the GitHub Release rather than committed.
 
 ## Downloading and using one
 
-Grab the checkpoint for your region (here, V4):
+The easy way is the built-in downloader, which fetches the checkpoints from the
+GitHub Release for you. The model keys are `gg2_v4`, `gg2_v3v4`, `gg2_v5v7`,
+`gg2_v1v9`, and `gtdb_rrn`.
 
 ```bash
-# from the Releases page, e.g. with curl/wget once you have the asset URL
-wget -O gg2_v4_mrgroups_model.pt <release-asset-url-for-gg2_v4_mrgroups_model.pt>
+# interactive picker (also runs as `taxonova-setup` straight after install)
+taxonova-setup
+
+# or pull specific models / everything
+taxonova download-models --models gg2_v4
+taxonova download-models --models all
+
+# list what is available and what you already have
+taxonova download-models --list
 ```
 
-Then point classification at it:
+Models are stored in `~/.taxonova/models/` by default. Set the
+`TAXONOVA_MODELS_DIR` environment variable to keep them somewhere else. Once a
+model is in that directory you can pass just its filename to `--model_input` and
+Taxonova will resolve it automatically:
 
 ```bash
 taxonova classification \
@@ -40,6 +49,11 @@ taxonova classification \
     --model_input gg2_v4_mrgroups_model.pt \
     --output predictions.tsv
 ```
+
+You can still download the assets manually from the Releases page and pass a full
+path to `--model_input` instead:
+
+https://github.com/kardokhk/taxonova/releases
 
 ## Calibration is already baked in
 

@@ -45,5 +45,11 @@ def setup_logging(output_dir: str = "output", mode: str = "training", verbose: b
         warnings_logger.warning(warning_msg)
     
     warnings.showwarning = warning_to_logger
-    
+
     return log_file
+
+
+def console_log(message: str, level: str = "INFO"):
+    """Print a message to the console and also record it in the log file."""
+    print(message)
+    logging.getLogger("taxonova").log(getattr(logging, level.upper(), logging.INFO), message)

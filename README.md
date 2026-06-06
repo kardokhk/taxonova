@@ -99,19 +99,42 @@ that matches how your reads were generated.
 | `gtdb_rrn_mrgroups_model.pt` | RRN (full rRNA operon) | GTDB |
 
 Each checkpoint is around 235 to 246 MB, which is too big to sit in the git repo,
-so they are attached to the GitHub Release instead. Grab the one you need from the
-Releases page:
+so they are attached to the GitHub Release instead.
+
+The easy way is the built-in downloader. After installing the package you can run:
+
+```bash
+# interactive picker (also available straight after install as `taxonova-setup`)
+taxonova-setup
+
+# or grab specific models non-interactively
+taxonova download-models --models gg2_v4
+taxonova download-models --models all
+
+# see what is available and what is already downloaded
+taxonova download-models --list
+```
+
+The model keys are `gg2_v4`, `gg2_v3v4`, `gg2_v5v7`, `gg2_v1v9`, and `gtdb_rrn`.
+Downloads land in `~/.taxonova/models/` by default; set the `TAXONOVA_MODELS_DIR`
+environment variable to store them somewhere else. Once a model is in that
+directory you can pass just its filename (for example
+`gg2_v4_mrgroups_model.pt`) to `--model_input` and Taxonova will find it.
+
+The manual alternative still works: grab the `.pt` file you need directly from the
+Releases page and point `--model_input` at it.
 
 https://github.com/kardokhk/taxonova/releases
 
 The confidence calibration (tau-norm rescaling) is already baked into these
-checkpoints, so there is nothing extra to run. Download the `.pt` file and hand it
-to `--model_input`. More detail in [MODELS.md](MODELS.md).
+checkpoints, so there is nothing extra to run. More detail in
+[MODELS.md](MODELS.md).
 
 ## Usage
 
-Taxonova has four modes: `training`, `classification`, `calibrate`, and `fit-ood`.
-For day-to-day use you only need `classification`.
+Taxonova has five modes: `training`, `classification`, `calibrate`, `fit-ood`, and
+`download-models`. For day-to-day use you only need `download-models` (once) and
+`classification`.
 
 ### Classification
 
@@ -136,8 +159,9 @@ The flags that matter:
 - `--cpu_threads`: number of CPU threads to use.
 - `--verbose`: chatty progress output.
 
-There is no separate model-download command. You download checkpoints from the
-Releases page and point `--model_input` at the file.
+You can pass either a full path to a `.pt` checkpoint or, if you fetched it with
+`taxonova download-models`, just the filename (Taxonova resolves it from
+`~/.taxonova/models/`, or `TAXONOVA_MODELS_DIR` if you set it).
 
 ### Input and output
 
@@ -211,9 +235,12 @@ taxonova classification \
 ```
 
 That model is too small to be accurate; it just proves the pipeline runs. For real
-work, download a pretrained model from the Releases page and classify with that:
+work, download a pretrained model and classify with that:
 
 ```bash
+# fetch the V4 model into ~/.taxonova/models/
+taxonova download-models --models gg2_v4
+
 taxonova classification \
     --input reads.fasta \
     --model_input gg2_v4_mrgroups_model.pt \

@@ -28,8 +28,29 @@ Smart Full Data Training:
     _add_classification_parser(subparsers)
     _add_calibration_parser(subparsers)
     _add_fit_ood_parser(subparsers)
+    _add_download_models_parser(subparsers)
 
     return parser
+
+
+def _add_download_models_parser(subparsers):
+    """Add the download-models mode parser."""
+    download_parser = subparsers.add_parser(
+        "download-models",
+        help="Download pre-trained models from the GitHub release",
+        description="Download pre-trained Taxonova models. They are stored in ~/.taxonova/models/ by default.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    g = download_parser.add_argument_group("Download Options")
+    g.add_argument("--models", type=str, nargs="+", metavar="MODEL",
+                   choices=["gg2_v4", "gg2_v3v4", "gg2_v5v7", "gg2_v1v9", "gtdb_rrn", "all"],
+                   help="Model(s) to download: gg2_v4, gg2_v3v4, gg2_v5v7, gg2_v1v9, gtdb_rrn, or 'all'")
+    g.add_argument("--list", action="store_true", help="List available models and their download status")
+    g.add_argument("--interactive", action="store_true", help="Interactive model selection")
+    g.add_argument("--force", action="store_true", help="Re-download even if the model already exists")
+    g.add_argument("--models-dir", type=str, metavar="PATH",
+                   help="Custom directory for storing models (default: ~/.taxonova/models/)")
+    _add_common_output_args(download_parser)
 
 
 def _add_fit_ood_parser(subparsers):

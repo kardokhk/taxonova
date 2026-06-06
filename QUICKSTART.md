@@ -42,18 +42,23 @@ for each rank, everything is wired up correctly.
 
 ## 2. A real classification
 
-For actual work, download a pretrained model from the Releases page and use that.
-Choose the model that matches your amplicon region (see [MODELS.md](MODELS.md)).
-
-https://github.com/kardokhk/taxonova/releases
+For actual work, download a pretrained model and use that. Choose the model that
+matches your amplicon region (see [MODELS.md](MODELS.md)).
 
 ```bash
 # example: V4 reads
+# fetch the model into ~/.taxonova/models/ (set TAXONOVA_MODELS_DIR to change that)
+taxonova download-models --models gg2_v4
+
+# then classify, passing just the filename
 taxonova classification \
     --input reads.fasta \
     --model_input gg2_v4_mrgroups_model.pt \
     --output predictions.tsv
 ```
+
+You can also fetch the asset manually from the Releases page
+(https://github.com/kardokhk/taxonova/releases) and pass a full path instead.
 
 That is it. The calibration is already inside the checkpoint, so there is no extra
 setup step.

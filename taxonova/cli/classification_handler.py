@@ -11,6 +11,7 @@ from taxonova.core.factory import HierarchicalModelFactory
 from taxonova.cli.config_builder import create_classification_config
 from taxonova.prediction.output_processing import TaxonomicConsistencyProcessor, PredictionOutputFormatter
 from taxonova.prediction.device_manager import DeviceManager
+from taxonova.utils.config import TaxonovaConfig
 
 logger = logging.getLogger(__name__)
 
@@ -23,8 +24,9 @@ def classification_mode(args):
     device = DeviceManager.get_device_for_classification(cpu_threads)
     
     try:
-        logger.info(f"Loading pre-trained model from {args.model_input}...")
-        model, taxonomy_info = HierarchicalModelFactory.load_model(args.model_input)
+        resolved_model_path = str(TaxonovaConfig.resolve_model_path(args.model_input))
+        logger.info(f"Loading pre-trained model from {resolved_model_path}...")
+        model, taxonomy_info = HierarchicalModelFactory.load_model(resolved_model_path)
         
         model = model.to(device)
         model.eval()
