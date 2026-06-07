@@ -40,7 +40,7 @@ GTDB directly. So the species names you get back are the genome-based names, not
 - Light on resources. It runs comfortably on a laptop; no GPU needed for
   classification.
 
-## Performance, honestly
+## Performance
 
 These numbers are from the manuscript (currently in revision). They are the
 species-level results across a broad benchmark of amplicon regions and lengths.
