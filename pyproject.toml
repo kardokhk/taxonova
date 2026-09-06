@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "taxonova"
-version = "26.6.0"
+version = "26.9.0"
 description = "Deep Learning-based Taxonomic Classification for Amplicon Sequences"
 readme = "README.md"
 requires-python = ">=3.8"
