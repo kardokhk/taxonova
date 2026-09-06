@@ -1,5 +1,10 @@
 # Changelog
 
+## 26.9.1
+
+Metadata only, no code change. Corrects the author's surname to Kakabra, which
+26.9.0 and earlier spelt "Kaka Bra".
+
 ## 26.9.0
 
 Two behaviour changes. Read the first one before rerunning an existing analysis.

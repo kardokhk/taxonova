@@ -253,7 +253,7 @@ There is a slightly fuller walkthrough in [QUICKSTART.md](QUICKSTART.md).
 
 If Taxonova is useful in your work, please cite the manuscript:
 
-> Kardokh Kaka Bra. Taxonova: hierarchical deep-learning taxonomic classification
+> Kardokh Kakabra. Taxonova: hierarchical deep-learning taxonomic classification
 > of microbial rRNA amplicons. Manuscript in revision.
 
 A formal citation with DOI will be added here once the paper is published.
@@ -264,7 +264,7 @@ MIT. See [LICENSE](LICENSE).
 
 ## Contact
 
-Kardokh Kaka Bra, kardokhkaka@gmail.com
+Kardokh Kakabra, kardokhkaka@gmail.com
 
 ## Acknowledgments
 
