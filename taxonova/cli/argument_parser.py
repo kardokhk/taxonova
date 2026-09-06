@@ -3,6 +3,9 @@ Command line argument parser for Taxonova.
 """
 import argparse
 
+from taxonova.core.thresholds import GRADED_PROFILE, GRADED_SPECIES
+
+
 def create_argument_parser():
     """Create and configure the argument parser for Taxonova."""
     parser = argparse.ArgumentParser(
@@ -252,11 +255,17 @@ def _add_classification_parser(subparsers):
                              help="Path to save classification results")
     classification_parser.add_argument("--cpu_threads", type=int, default=None,
                              help="Number of CPU threads to use for classification (default: 30)")
-    classification_parser.add_argument("--confidence_threshold", type=float, default=0.5,
-                             help="Confidence threshold for species classification (default: 0.7)")
+    classification_parser.add_argument(
+        "--confidence_threshold", type=float, default=GRADED_SPECIES,
+        help=("Species-rank confidence threshold (default: %.1f). The parent "
+              "gates scale with it in the recommended ratio, so this one "
+              "number sets the operating point at every rank."
+              % GRADED_SPECIES))
     for _lvl in ("domain", "phylum", "class", "order", "family", "genus"):
         classification_parser.add_argument(
             f"--{_lvl}_threshold", type=float, default=None,
-            help=f"Optional confidence threshold for {_lvl} (default: 0.5)")
+            help=(f"Confidence threshold for {_lvl}, overriding the scaled "
+                  f"default of {GRADED_PROFILE[_lvl]} at "
+                  f"--confidence_threshold {GRADED_SPECIES}"))
 
     _add_common_output_args(classification_parser)

@@ -5,6 +5,8 @@ import logging
 from typing import Dict, List, Tuple, Any
 from collections import defaultdict
 
+from taxonova.core.thresholds import GRADED_SPECIES, scaled_profile
+
 logger = logging.getLogger(__name__)
 
 class TaxonomicConsistencyProcessor:
@@ -195,20 +197,35 @@ class PredictionOutputFormatter:
             raise
     
     def _get_level_thresholds(self, args: Any) -> Dict[str, float]:
-        """Per-level thresholds default to 0.5; --<level>_threshold overrides.
+        """Per-rank gates for one run: the graded profile scaled by the
+        requested species confidence, with --<level>_threshold overriding any
+        rank explicitly.
 
-        Default lowered from 0.8 to 0.5 in tx_wip_02 after the threshold-sweep
-        diagnostic showed that 0.8 was rejecting confident-but-not-saturated
-        predictions on OOD samples (coral/emp500_plant/emp500_soil), causing
-        catastrophic recall collapse. 0.5 captures most of the OOD recovery
-        while maintaining noise filtering on in-distribution data. See
-        docs/threshold_sweep_results.md for the full evidence.
+        The recommended profile is 0.5 for domain through family, 0.7 for genus
+        and 0.8 for species. Asking for a single species confidence scales the
+        whole profile in that ratio, so the one number the user supplies means
+        the same thing at every rank. Previously the parent gates were pinned at
+        0.5 whatever was asked for, so `--confidence_threshold 0.8` still
+        accepted a genus label at 0.5, and because abstention propagates
+        downward a parent failing that fixed gate discarded an already-computed
+        species call. Reviewer 2 raised both halves of this against the hosted
+        service, where it is fixed; this brings the command-line tool into line,
+        and matches Methods, "Architecture".
+
+        Passing a rank explicitly opts out of the scaling for that rank, which
+        is how a run reproduces a fixed profile regardless of this default.
+
+        History: the flat 0.5 default arrived in tx_wip_02, when a threshold
+        sweep showed a flat 0.8 rejecting confident-but-not-saturated
+        predictions on OOD samples (coral / emp500_plant / emp500_soil) and
+        collapsing recall (docs/threshold_sweep_results.md). Scaling a graded
+        profile is not that flat 0.8: at the shipped default the parent ranks
+        still sit at 0.5, which is the value that evidence supports, and only
+        genus and species are raised.
         """
-        defaults = {"domain": 0.5, "phylum": 0.5, "class": 0.5,
-                    "order": 0.5, "family": 0.5, "genus": 0.5}
         result = {}
-        for lvl, dflt in defaults.items():
+        for lvl, gate in scaled_profile(args.confidence_threshold).items():
             override = getattr(args, f"{lvl}_threshold", None)
-            result[lvl] = dflt if override is None else override
+            result[lvl] = gate if override is None else override
         result["species"] = args.confidence_threshold
         return result
