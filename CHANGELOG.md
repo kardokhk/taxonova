@@ -1,5 +1,15 @@
 # Changelog
 
+## 26.9.2
+
+Documentation and metadata only, no code change. The README, the package summary
+and the command-line help no longer describe Taxonova as a hierarchical classifier:
+classifiers trained at each rank alone reached similar species-level accuracy, so
+the rank ordering is not presented as the source of its accuracy. The README is
+shorter and points to the web server first. QUICKSTART now gives the species
+threshold default as 0.8, as the software has used since 26.9.0, and the model
+tables name the whole-16S region and the GROND reference.
+
 ## 26.9.1
 
 Metadata only, no code change. Corrects the author's surname to Kakabra, which

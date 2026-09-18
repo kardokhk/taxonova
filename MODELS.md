@@ -9,11 +9,11 @@ it to `--model_input`. That is the whole workflow.
 | `gg2_v4_mrgroups_model.pt` | V4 amplicons | Greengenes2 |
 | `gg2_v3v4_mrgroups_model.pt` | V3-V4 amplicons | Greengenes2 |
 | `gg2_v5v7_mrgroups_model.pt` | V5-V7 amplicons | Greengenes2 |
-| `gg2_v1v9_mrgroups_model.pt` | V1-V9 / near-full-length 16S | Greengenes2 |
-| `gtdb_rrn_mrgroups_model.pt` | RRN, the full rRNA operon | GTDB |
+| `gg2_v1v9_mrgroups_model.pt` | whole 16S (V1-V9) | Greengenes2 |
+| `gtdb_rrn_mrgroups_model.pt` | RRN, the full rRNA operon | GROND, GTDB taxonomy |
 
 The four Greengenes2 models take their species nomenclature from GTDB by way of
-Greengenes2; the RRN model uses GTDB directly.
+Greengenes2; the RRN model is trained on GROND, which uses GTDB taxonomy.
 
 ## Where they live
 

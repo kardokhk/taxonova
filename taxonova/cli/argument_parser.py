@@ -10,10 +10,10 @@ def create_argument_parser():
     """Create and configure the argument parser for Taxonova."""
     parser = argparse.ArgumentParser(
         description="""
-Taxonova: Deep Learning-based Taxonomic Classification
+Taxonova: deep learning taxonomic classification of rRNA amplicon sequences
 
-A hierarchical deep learning tool for taxonomic classification of biological sequences.
-Supports training and classification modes using optimized hierarchical classification.
+Assigns a lineage from domain to species, with a confidence at each rank, and
+reports each sequence only down to the deepest rank that meets its threshold.
 
 Smart Full Data Training:
   Use --smart_full_data for optimal training on 100% of your data:

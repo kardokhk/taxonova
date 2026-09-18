@@ -3,69 +3,50 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![PyPI](https://img.shields.io/pypi/v/taxonova.svg)](https://pypi.org/project/taxonova/)
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
+[![Web server](https://img.shields.io/badge/web%20server-Hugging%20Face-orange.svg)](https://huggingface.co/spaces/claessonlab/Taxonova)
 
-Taxonova is a deep-learning classifier for the taxonomic assignment of microbial
-rRNA amplicons. It takes 16S rRNA amplicon reads, or full rRNA operons, and gives
-you a taxonomy down to species level when the sequence carries enough signal to
-support it.
+Taxonova is a deep learning classifier for the taxonomic assignment of microbial
+ribosomal RNA amplicon sequences, from single variable regions of the 16S rRNA gene
+to the full rRNA operon. For each sequence it reports a lineage from domain to
+species together with a confidence at each rank. When the confidence at a rank is
+below its threshold, Taxonova reports the lineage only down to the rank above, for
+example a genus without a species, rather than assigning an unsupported label. The
+thresholds therefore set the balance between assigning more sequences and making
+fewer incorrect assignments.
 
-The thing that makes it different from a stack of independent classifiers is that
-the taxonomy is built into the network. Instead of predicting seven ranks
-separately and hoping they agree, Taxonova runs a domain-to-species cascade where
-each rank is predicted in the context of its parents through cross-level attention.
-A genus call is informed by the order and family the model already settled on, a
-species call is informed by the genus, and so on down the tree. That keeps the
-output internally consistent and lets the model lean on the easier, higher ranks
-to anchor the harder, finer ones.
+Species names follow the Genome Taxonomy Database (GTDB): the 16S rRNA models are
+trained on Greengenes2, which takes its nomenclature from GTDB, and the full-operon
+model on GROND with GTDB taxonomy.
 
-It also knows when to stop. Short hypervariable regions (a 250 bp V4 read, say)
-often just do not contain enough information to separate two close relatives. When
-that happens Taxonova abstains at the species level and returns a genus-level call
-instead of guessing. Think of it as "genus known, species uncertain" rather than a
-confident-but-wrong species label. You can tune how cautious it is with confidence
-thresholds.
+## Web server
 
-Species labels are anchored in a whole-genome reference. The four amplicon models
-use Greengenes2, which takes its nomenclature from GTDB; the full-operon model uses
-GTDB directly. So the species names you get back are the genome-based names, not
-16S-only operational guesses.
+**The simplest way to use Taxonova is the web server, which needs no installation:**
 
-## Why you might want it
+**https://huggingface.co/spaces/claessonlab/Taxonova**
 
-- Hierarchical, species-level calls that stay internally consistent across ranks.
-- Calibrated abstention: it returns a genus call instead of a wrong species call
-  when the region cannot resolve the species.
-- Works across a wide span of amplicons, from short single-region reads to the
-  full rRNA operon.
-- Light on resources. It runs comfortably on a laptop; no GPU needed for
-  classification.
+Upload a FASTA file or paste sequences, select the amplicon region and, if needed, a
+confidence threshold. The web server screens each sequence with an rRNA gene filter
+before classification and returns the same results as the command-line tool. For
+large datasets, or to train a model on your own reference, install the package as
+described below.
 
 ## Performance
 
-These numbers are from the manuscript (currently in revision). They are the
-species-level results across a broad benchmark of amplicon regions and lengths.
-
-- Species-level F-measure of 0.76 to 1.00 (median 0.94) on short-read amplicons,
-  and 0.82 to 0.99 (median 0.97) on long-read, across amplicons spanning roughly
-  250 bp to 4,900 bp.
-- Roughly an order of magnitude fewer false-positive species calls than the
-  commonly used tools we compared against.
-- 5- to 40-fold lower abundance-estimation error, depending on the region.
-
-The abstention behaviour is a big part of why the false-positive rate is low: the
-model declines to make a species call it cannot back up, rather than inflating its
-apparent coverage.
-
-## Runtime and footprint
-
-Classification runs on a single CPU core at roughly 100 sequences per second,
-inside a roughly constant 0.82 GB memory footprint regardless of how many
-sequences you throw at it. No GPU is required. A GPU only helps if you are
-training your own model from scratch, and even then it is optional.
+In the accompanying manuscript (in revision), evaluated on physical and
+biome-simulated mock communities against seven published classifiers, Taxonova
+reached species-level F-measures of 0.76 to 1.00 (median 0.94) on short-read and
+0.82 to 0.99 (median 0.97) on long-read amplicons of 250 bp to 4,900 bp, and made a
+median of 7.2-fold fewer false-positive species assignments than the other
+classifiers. It classifies about 100 sequences per second on a single CPU core with
+a peak memory use of 0.82 GB; no GPU is used for classification.
 
 ## Installation
 
-Development install, straight from this repository:
+```bash
+pip install taxonova
+```
+
+or, from this repository:
 
 ```bash
 git clone https://github.com/kardokhk/taxonova.git
@@ -73,71 +54,33 @@ cd taxonova
 pip install -e .
 ```
 
-It is also on PyPI:
-
-```bash
-pip install taxonova
-```
-
-https://pypi.org/project/taxonova/
-
-And if you would rather not install anything at all, there is a hosted web app:
-
-https://huggingface.co/spaces/claessonlab/Taxonova
-
 ## Pretrained models
-
-There are five pretrained models, one per amplicon region or operon. Pick the one
-that matches how your reads were generated.
 
 | Model file | Region | Reference |
 | --- | --- | --- |
 | `gg2_v4_mrgroups_model.pt` | V4 | Greengenes2 |
 | `gg2_v3v4_mrgroups_model.pt` | V3-V4 | Greengenes2 |
 | `gg2_v5v7_mrgroups_model.pt` | V5-V7 | Greengenes2 |
-| `gg2_v1v9_mrgroups_model.pt` | V1-V9 (near-full 16S) | Greengenes2 |
-| `gtdb_rrn_mrgroups_model.pt` | RRN (full rRNA operon) | GTDB |
+| `gg2_v1v9_mrgroups_model.pt` | whole 16S (V1-V9) | Greengenes2 |
+| `gtdb_rrn_mrgroups_model.pt` | full rRNA operon (16S-ITS-23S) | GROND, GTDB taxonomy |
 
-Each checkpoint is around 235 to 246 MB, which is too big to sit in the git repo,
-so they are attached to the GitHub Release instead.
-
-The easy way is the built-in downloader. After installing the package you can run:
+The checkpoints (about 240 MB each) are attached to the
+[GitHub Release](https://github.com/kardokhk/taxonova/releases) and can be
+downloaded with the built-in tool:
 
 ```bash
-# interactive picker (also available straight after install as `taxonova-setup`)
-taxonova-setup
-
-# or grab specific models non-interactively
-taxonova download-models --models gg2_v4
-taxonova download-models --models all
-
-# see what is available and what is already downloaded
-taxonova download-models --list
+taxonova download-models --list            # available and downloaded models
+taxonova download-models --models gg2_v4   # one model; keys: gg2_v4, gg2_v3v4, gg2_v5v7, gg2_v1v9, gtdb_rrn
+taxonova download-models --models all      # all five
 ```
 
-The model keys are `gg2_v4`, `gg2_v3v4`, `gg2_v5v7`, `gg2_v1v9`, and `gtdb_rrn`.
-Downloads land in `~/.taxonova/models/` by default; set the `TAXONOVA_MODELS_DIR`
-environment variable to store them somewhere else. Once a model is in that
-directory you can pass just its filename (for example
-`gg2_v4_mrgroups_model.pt`) to `--model_input` and Taxonova will find it.
-
-The manual alternative still works: grab the `.pt` file you need directly from the
-Releases page and point `--model_input` at it.
-
-https://github.com/kardokhk/taxonova/releases
-
-The confidence calibration (tau-norm rescaling) is already baked into these
-checkpoints, so there is nothing extra to run. More detail in
-[MODELS.md](MODELS.md).
+Models are stored in `~/.taxonova/models/`, or in the directory given by the
+`TAXONOVA_MODELS_DIR` environment variable, and can then be referred to by file
+name. Confidence calibration is already applied in the released checkpoints. See
+[MODELS.md](MODELS.md) for details.
 
 ## Usage
 
-Taxonova has five modes: `training`, `classification`, `calibrate`, `fit-ood`, and
-`download-models`. For day-to-day use you only need `download-models` (once) and
-`classification`.
-
-### Classification
-
 ```bash
 taxonova classification \
     --input reads.fasta \
@@ -145,129 +88,49 @@ taxonova classification \
     --output predictions.tsv
 ```
 
-The flags that matter:
+| Option | Meaning |
+| --- | --- |
+| `--input` | query sequences in FASTA format |
+| `--model_input` | pretrained checkpoint (path or file name) |
+| `--output` | output table (TSV) |
+| `--confidence_threshold` | species threshold, default 0.8; the thresholds of the other ranks scale with it |
+| `--domain_threshold` ... `--genus_threshold` | set the threshold of a single rank explicitly |
+| `--cpu_threads` | number of CPU threads |
 
-- `--input` (required): your query sequences, in FASTA.
-- `--model_input` (required): a pretrained `.pt` checkpoint.
-- `--output` (required): where to write the TSV.
-- `--confidence_threshold` (default 0.5): the species-level confidence cutoff.
-  Calls below this are reported as `Unclassified` at species.
-- Per-rank overrides, all default to None (which falls back to 0.5 internally):
-  `--domain_threshold`, `--phylum_threshold`, `--class_threshold`,
-  `--order_threshold`, `--family_threshold`, `--genus_threshold`. The species cutoff
-  is controlled by `--confidence_threshold`.
-- `--cpu_threads`: number of CPU threads to use.
-- `--verbose`: chatty progress output.
+The default thresholds are 0.5 for domain to family, 0.7 for genus and 0.8 for
+species. Because the same threshold does not give the same abstention rate in every
+amplicon region or with every reference, we recommend choosing the threshold that
+gives the abstention rate a study requires on a held-out subset of the reference.
 
-You can pass either a full path to a `.pt` checkpoint or, if you fetched it with
-`taxonova download-models`, just the filename (Taxonova resolves it from
-`~/.taxonova/models/`, or `TAXONOVA_MODELS_DIR` if you set it).
+The output table has one row per sequence: `sequence_id`, then a label and a
+confidence for each of the seven ranks. The confidence at each rank is capped at
+that of the rank above. A rank whose confidence is below its threshold, and every
+rank below it, is reported as `Unclassified`.
 
-### Input and output
+Other modes are `training` (train a model on your own reference; `--smart_full_data`
+selects the number of epochs on a validation split and then retrains on all
+sequences), `calibrate` (temperature scaling) and `fit-ood` (out-of-distribution
+threshold). Run `taxonova <mode> --help` for all options, and see
+[QUICKSTART.md](QUICKSTART.md) for a short worked example.
 
-Input is plain FASTA. Headers can be just an ID, or an ID followed by a
-Greengenes/GTDB-style lineage string (`d__...; p__...; ...; s__...`) if you happen
-to have one, though for classification the lineage is ignored.
+## Benchmark
 
-Output is a tab-separated table, one row per input sequence. The first column is
-`sequence_id`, then for each of the seven ranks there is a label column and a
-confidence column:
-
-```
-sequence_id  domain  domain_confidence  phylum  phylum_confidence  ...  species  species_confidence
-```
-
-A couple of things to know about the confidences. They are forced to be
-monotonic down the tree, so a species confidence can never exceed its genus
-confidence, which can never exceed its family confidence, and so on, the way
-probabilities in a nested hierarchy have to behave. And uncertainty propagates
-downward: if a rank falls below its threshold it is written as `Unclassified`, and
-every rank below it is `Unclassified` too. That is the abstention mechanism in
-practice. A read that resolves cleanly to genus but not species will show real
-labels through `genus` and `Unclassified` at `species`.
-
-### Training your own model
-
-If you want to train on your own reference set, the simplest path is
-`--smart_full_data`. It does a two-stage run: first it scouts on a validation
-split to find a good number of epochs (with early stopping), then it retrains on
-100% of your data for that many epochs, so you do not waste reference sequences on
-a permanent holdout.
-
-```bash
-taxonova training \
-    --train_db reference.fasta \
-    --model_output my_model.pt \
-    --smart_full_data \
-    --verbose
-```
-
-The training FASTA should have lineage strings in the headers
-(`d__...; ...; s__...`). Useful knobs include `--epochs`, `--batch_size`,
-`--learning_rate`, `--kmer-length`, the per-rank loss weights
-(`--domain_weight` ... `--species_weight`), and length augmentation
-(`--length_aug_p`, `--length_aug_min`, `--length_aug_max`) for making a model
-robust to short reads. Run `taxonova training --help` for the full list.
-
-After training you can fit post-hoc calibration with `taxonova calibrate` (per-rank
-temperature scaling) and, if you care about out-of-distribution inputs, a per-input
-OOD threshold with `taxonova fit-ood`. The shipped pretrained models already have
-calibration applied, so you only need these if you are rolling your own.
-
-## Quick start
-
-The fastest way to see it work, with no downloads, is the offline smoke test using
-the tiny example files in `examples/`. Train a small throwaway model on the bundled
-reference, then classify the bundled queries:
-
-```bash
-# 1) train a tiny model on the example reference (a minute or two on CPU)
-taxonova training \
-    --train_db examples/tiny_db.fasta \
-    --model_output /tmp/tiny_model.pt \
-    --epochs 3 --batch_size 16 --learning_rate 0.01
-
-# 2) classify the example queries with it
-taxonova classification \
-    --input examples/tiny_test.fasta \
-    --model_input /tmp/tiny_model.pt \
-    --output /tmp/tiny_predictions.tsv
-```
-
-That model is too small to be accurate; it just proves the pipeline runs. For real
-work, download a pretrained model and classify with that:
-
-```bash
-# fetch the V4 model into ~/.taxonova/models/
-taxonova download-models --models gg2_v4
-
-taxonova classification \
-    --input reads.fasta \
-    --model_input gg2_v4_mrgroups_model.pt \
-    --output predictions.tsv
-```
-
-There is a slightly fuller walkthrough in [QUICKSTART.md](QUICKSTART.md).
+The evaluation framework used in the manuscript, Taxobench, is available at
+https://github.com/kardokhk/TaxoBench.
 
 ## Citation
 
-If Taxonova is useful in your work, please cite the manuscript:
+> Kakabra K, Patel S, Temko A, Claesson MJ. Taxonova: deep learning enables fast
+> and accurate microbiome species-level amplicon classification. Manuscript in
+> revision.
 
-> Kardokh Kakabra. Taxonova: hierarchical deep-learning taxonomic classification
-> of microbial rRNA amplicons. Manuscript in revision.
-
-A formal citation with DOI will be added here once the paper is published.
+A full citation will be added on publication.
 
 ## License
 
-MIT. See [LICENSE](LICENSE).
+MIT; see [LICENSE](LICENSE).
 
 ## Contact
 
-Kardokh Kakabra, kardokhkaka@gmail.com
-
-## Acknowledgments
-
-Taxonova builds directly on the genome-based taxonomies it is trained against:
-Greengenes2 (McDonald et al., 2023) for the amplicon models and GTDB (Parks et al.)
-for the full-operon model. Developed in the Claesson Lab.
+Kardokh Kakabra, kardokhkaka@gmail.com. Developed in the Claesson Lab, University
+College Cork and APC Microbiome Ireland.

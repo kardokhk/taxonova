@@ -73,9 +73,10 @@ species is the common and expected case for short regions.
 
 ## Tuning how cautious it is
 
-`--confidence_threshold` (default 0.5) sets the species cutoff. Raise it for fewer,
-higher-confidence species calls; lower it to let more through. You can also set
-per-rank cutoffs from domain through genus with `--domain_threshold` ...
+`--confidence_threshold` (default 0.8) sets the species cutoff, and the cutoffs of
+the other ranks scale with it (defaults 0.5 for domain to family, 0.7 for genus).
+Raise it for fewer, higher-confidence species calls; lower it to let more through.
+You can also set a single rank explicitly with `--domain_threshold` ...
 `--genus_threshold`.
 
 ```bash
@@ -83,7 +84,7 @@ taxonova classification \
     --input reads.fasta \
     --model_input gg2_v4_mrgroups_model.pt \
     --output predictions.tsv \
-    --confidence_threshold 0.7
+    --confidence_threshold 0.9
 ```
 
 Want more detail on training, modes, and the architecture? See the
