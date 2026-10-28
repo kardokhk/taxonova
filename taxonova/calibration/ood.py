@@ -26,10 +26,15 @@ as the q-quantile of ID phylum MSP. By construction, ~ (1 - q) of ID samples
 score ≥ τ ("ID-classified" → strict thresholds), and any input that scores
 below τ is treated as OOD ("OOD-classified" → relaxed thresholds).
 
-Defaults: score_rank = "phylum", id_quantile = 0.01, relaxed thresholds =
-0.0 across the board (matching the upper=0/species=0 setting that the
-diagnostic showed recovers ~30% F-score on OOD studies). All values are
-overridable via the `taxonova fit-ood` CLI.
+Defaults: score_rank = "phylum", id_quantile = 0.99 (fraction of ID kept as
+ID; see ID_QUANTILE_CONVENTION), relaxed thresholds = 0.0 across the board.
+All values are overridable via the `taxonova fit-ood` CLI.
+
+Change on fix/ood-threshold-gating: the "relaxed" thresholds no longer replace
+the user's thresholds. A flagged row is gated at the per-rank maximum of the
+two (`gating_thresholds`), so an OOD flag can only make a call more
+conservative. Relaxing to 0.0 silently overrode `--confidence_threshold` for
+about 99% of reads with the 26.9.x Greengenes2 checkpoints.
 """
 from __future__ import annotations
 
@@ -87,23 +92,65 @@ def is_ood(score, tau: float, score_method: str) -> bool:
     return score > tau  # low_is_id (e.g. energy)
 
 
+#: Meaning of `id_quantile` since the fix/ood-threshold-gating branch: the
+#: fraction of in-distribution (ID) samples that stay classified as ID. So
+#: id_quantile=0.99 flags about 1% of ID samples as OOD, whichever direction
+#: the score runs. Releases 26.9.x and earlier read it as the fraction to FLAG
+#: (so 0.99 flagged about 99% of ID reads for energy_phylum). Checkpoints whose
+#: ood_config carries this tag were fitted under the new meaning.
+ID_QUANTILE_CONVENTION = "id_coverage"
+
+#: Above this share of inputs flagged OOD in one run, the writer warns.
+OOD_FLAG_WARN_FRACTION = 0.20
+
+
+def _check_id_quantile(id_quantile: float) -> float:
+    q = float(id_quantile)
+    if not (0.5 < q < 1.0):
+        raise ValueError(
+            f"id_quantile must be in (0.5, 1) and is the fraction of in-distribution "
+            f"samples kept as in-distribution (0.99 flags about 1%); got {id_quantile}. "
+            f"Values below 0.5 would flag most in-distribution samples, which is what "
+            f"the old 'fraction to flag' reading of this option did."
+        )
+    return q
+
+
 def fit_ood_threshold_for_method(
     id_scores: torch.Tensor,
     id_quantile: float,
     score_method: str,
 ) -> float:
-    """Fit τ such that ~`id_quantile` of ID samples will be flagged OOD,
-    accounting for the score direction."""
+    """Fit tau so that about (1 - id_quantile) of ID samples are flagged OOD,
+    for either score direction.
+
+    high_is_id (MSP): flagged when score < tau, so tau is the
+    (1 - id_quantile) quantile. low_is_id (energy): flagged when score > tau,
+    so tau is the id_quantile quantile. Before this fix the two cases were
+    swapped relative to this definition, so `--id_quantile 0.99` with
+    energy_phylum put tau at the 1st percentile and flagged about 99%.
+    """
     if score_method not in SCORE_METHODS:
         raise ValueError(f"unknown score_method: {score_method}")
+    if id_scores.numel() == 0:
+        raise ValueError("id_scores is empty")
+    cov = _check_id_quantile(id_quantile)
     direction = SCORE_DIRECTION[score_method]
-    if direction == "high_is_id":
-        # Bottom tail of ID scores → flagged OOD. τ at id_quantile.
-        q = float(id_quantile)
-    else:
-        # Top tail of ID scores → flagged OOD. τ at 1-id_quantile.
-        q = 1.0 - float(id_quantile)
+    q = (1.0 - cov) if direction == "high_is_id" else cov
     return float(torch.quantile(id_scores.float(), q=q).item())
+
+
+def gating_thresholds(strict: Dict[str, float], relaxed: Dict[str, float]) -> Dict[str, float]:
+    """Thresholds for a row flagged OOD: per rank, the larger of the user's
+    (strict) gate and the checkpoint's OOD gate. An OOD flag can therefore make
+    a call more conservative or leave it unchanged, never relax it below what
+    the user asked for. With the shipped relaxed gates of 0.0 this is exactly
+    the user's thresholds."""
+    out = dict(strict)
+    for lvl, g in (relaxed or {}).items():
+        if lvl in out:
+            out[lvl] = max(float(out[lvl]), float(g))
+    return out
 
 
 @torch.no_grad()
@@ -144,19 +191,12 @@ def collect_msp(
 
 def fit_ood_threshold(
     id_scores: torch.Tensor,
-    id_quantile: float = 0.01,
+    id_quantile: float = 0.99,
 ) -> float:
-    """Return τ such that approximately (1 - id_quantile) fraction of ID
-    samples have score ≥ τ. Lower id_quantile → more permissive (only the
-    very-bottom tail of ID is flagged as suspicious; OOD samples must be
-    quite far below typical ID confidence to be relaxed).
-    """
-    if id_scores.numel() == 0:
-        raise ValueError("id_scores is empty")
-    if not (0.0 < id_quantile < 1.0):
-        raise ValueError(f"id_quantile must be in (0, 1), got {id_quantile}")
-    tau = torch.quantile(id_scores.float(), q=float(id_quantile)).item()
-    return float(tau)
+    """Phylum-MSP shortcut for `fit_ood_threshold_for_method`: tau such that
+    about `id_quantile` of ID samples have score >= tau (0.99 flags about 1%).
+    The default was 0.01 under the old 'fraction to flag' reading."""
+    return fit_ood_threshold_for_method(id_scores, id_quantile, "phylum_msp")
 
 
 def select_thresholds_for_row(
@@ -164,11 +204,13 @@ def select_thresholds_for_row(
     tau: float,
     strict: Dict[str, float],
     relaxed: Dict[str, float],
+    score_method: str = "phylum_msp",
 ) -> Dict[str, float]:
-    """Per-row threshold selection. Score < τ → relaxed (treat as OOD); else
-    strict. Used by `PredictionOutputFormatter.write_tsv_output` when an
-    `ood_config` is attached to the model checkpoint."""
-    return relaxed if score < tau else strict
+    """Per-row threshold selection. A row flagged OOD gets
+    `gating_thresholds(strict, relaxed)`, never anything below `strict`."""
+    if is_ood(score, tau, score_method):
+        return gating_thresholds(strict, relaxed)
+    return strict
 
 
 def summarize_id_scores(scores: torch.Tensor) -> Dict[str, float]:
