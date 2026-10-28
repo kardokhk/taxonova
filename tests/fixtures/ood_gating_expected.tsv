@@ -1,0 +1,9 @@
+sequence_id	domain	domain_confidence	phylum	phylum_confidence	class	class_confidence	order	order_confidence	family	family_confidence	genus	genus_confidence	species	species_confidence
+r0	d__T0	1.0000	p__T0	1.0000	c__T0	1.0000	o__T0	1.0000	f__T0	1.0000	g__T0	0.9500	s__T0	0.9000
+r1	d__T1	1.0000	p__T1	1.0000	c__T1	1.0000	o__T1	1.0000	f__T1	1.0000	g__T1	0.9500	s__T1	0.9000
+r2	d__T2	1.0000	p__T2	0.9900	c__T2	0.9800	o__T2	0.9700	f__T2	0.9600	g__T2	0.9000	Unclassified	0.7500
+r3	d__T3	1.0000	p__T3	0.9900	c__T3	0.9800	o__T3	0.9700	f__T3	0.9600	Unclassified	0.6500	Unclassified	0.6000
+r4	d__T4	1.0000	p__T4	0.9900	c__T4	0.9800	o__T4	0.9700	Unclassified	0.4500	Unclassified	0.4500	Unclassified	0.4500
+r5	d__T5	1.0000	p__T5	0.9000	c__T5	0.9000	o__T5	0.8500	f__T5	0.8000	g__T5	0.7500	Unclassified	0.7500
+r6	Unclassified	0.4000	Unclassified	0.4000	Unclassified	0.4000	Unclassified	0.4000	Unclassified	0.4000	Unclassified	0.4000	Unclassified	0.4000
+r7	d__T7	1.0000	p__T7	1.0000	c__T7	1.0000	o__T7	1.0000	f__T7	1.0000	g__T7	0.7000	Unclassified	0.7000

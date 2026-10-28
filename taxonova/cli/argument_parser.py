@@ -79,8 +79,13 @@ def _add_fit_ood_parser(subparsers):
                    help="OOD score function. phylum_msp = legacy max-softmax-prob at score_rank "
                         "(low = OOD). energy_phylum = -logsumexp(phylum_logits) per Liu 2020 "
                         "(high = OOD). tx_wip_04 iter-B.")
-    p.add_argument("--id_quantile", type=float, default=0.01,
-                   help="Fraction of ID samples allowed below tau (default: 0.01 = 99 percent of ID stay above tau)")
+    p.add_argument("--id_quantile", type=float, default=0.99,
+                   help="Fraction of held-out in-distribution samples kept as in-distribution, for either "
+                        "score method (default: 0.99, so about 1 percent are flagged OOD). Must be in (0.5, 1). "
+                        "Up to 26.9.2 this was read as the fraction to flag for energy_phylum.")
+    # Gates for rows flagged OOD. Since fix/ood-threshold-gating a flagged row is
+    # gated at max(requested, relaxed) per rank, so values below the requested
+    # thresholds (including the 0.0 defaults) have no effect.
     p.add_argument("--relaxed_domain_threshold", type=float, default=0.0)
     p.add_argument("--relaxed_phylum_threshold", type=float, default=0.0)
     p.add_argument("--relaxed_class_threshold",  type=float, default=0.0)

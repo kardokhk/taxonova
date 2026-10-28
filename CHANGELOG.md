@@ -1,5 +1,45 @@
 # Changelog
 
+## Unreleased (branch fix/ood-threshold-gating, not released)
+
+Fixes a defect in releases 26.9.0 to 26.9.2 that switched off the confidence
+thresholds for the Greengenes2 checkpoints (V4, V3-V4, V5-V7, whole 16S).
+
+### What was wrong
+
+1. `fit-ood --id_quantile 0.99 --score_method energy_phylum` placed tau at the
+   1st percentile of in-distribution energies, so about 99% of in-distribution
+   reads were flagged out-of-distribution (OOD). The phylum-MSP path read
+   `--id_quantile` the other way round (default 0.01 meant "flag 1%").
+2. A read flagged OOD was gated with the checkpoint's `relaxed_thresholds`,
+   which are 0.0 at every rank, instead of the requested thresholds. With
+   both defects, `--confidence_threshold` had no effect for about 99% of reads.
+
+### What changed
+
+- `--id_quantile` now means the fraction of held-out in-distribution samples
+  kept as in-distribution, for both score directions: 0.99 flags about 1%.
+  The default is 0.99 (was 0.01) and values outside (0.5, 1) are rejected.
+  New `ood_config` entries carry `id_quantile_convention: "id_coverage"`.
+- A read flagged OOD is gated at the per-rank maximum of the requested
+  threshold and the checkpoint's OOD threshold. An OOD flag can make a call
+  more conservative or leave it unchanged; it can no longer relax it. With the
+  shipped OOD thresholds of 0.0, output equals a run without `ood_config`.
+- The classification log reports the number and share of inputs flagged OOD,
+  warns when the share exceeds 20%, and warns when the checkpoint's tau was
+  fitted under the old convention.
+- Tests: `tests/test_ood_gating.py` (known-answer gating cases, the quantile
+  convention for both score directions, a regression fixture under
+  `tests/fixtures/`).
+
+### Effect on results
+
+Output from the Greengenes2 checkpoints changes at every threshold: reads whose
+confidence is below the requested gate are now reported as `Unclassified`, as
+the documentation describes. Abstention rises markedly, most at whole 16S,
+where the checkpoints' species confidences are low (tau-normalisation). Fixing
+the gate does not recalibrate those confidences; that needs new checkpoints.
+
 ## 26.9.2
 
 Documentation and metadata only, no code change. The README, the package summary
