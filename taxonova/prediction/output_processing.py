@@ -132,6 +132,10 @@ class PredictionOutputFormatter:
                 f.write("\t".join(header) + "\n")
 
                 strict_thresholds = self._get_level_thresholds(args)
+                if ood_config is not None:
+                    from taxonova.calibration.ood import gating_thresholds
+                    ood_row_thresholds = gating_thresholds(
+                        strict_thresholds, ood_config.get("relaxed_thresholds", {}))
 
                 for idx, seq in enumerate(sequences):
                     row = [seq[0]]
@@ -153,7 +157,11 @@ class PredictionOutputFormatter:
                             score = float(predictions['ood_score'][idx])
                             is_ood_row = _is_ood(score, ood_config["tau"], score_method)
                         if is_ood_row:
-                            thresholds = ood_config["relaxed_thresholds"]
+                            # fix/ood-threshold-gating: never gate an OOD row
+                            # below the user's thresholds. Releases 26.9.x
+                            # used ood_config["relaxed_thresholds"] (0.0 at
+                            # every rank) in place of them.
+                            thresholds = ood_row_thresholds
                             ood_n_relaxed += 1
                         else:
                             thresholds = strict_thresholds
@@ -184,18 +192,40 @@ class PredictionOutputFormatter:
                     f.write("\t".join(row) + "\n")
 
             if ood_config is not None:
-                total = ood_n_relaxed + ood_n_strict
-                pct = 100.0 * ood_n_relaxed / total if total else 0.0
-                method = ood_config.get("score_method", "phylum_msp")
-                logger.info(
-                    f"OOD-aware thresholding: {ood_n_relaxed}/{total} ({pct:.1f}%) inputs flagged OOD "
-                    f"(score_method={method}, τ={ood_config['tau']:.4f}) and used relaxed thresholds"
-                )
+                self._log_ood_summary(ood_config, ood_n_relaxed, ood_n_strict)
             logger.info(f"Successfully wrote classifications to {args.output}")
         except Exception as e:
             logger.error(f"Error writing classifications: {str(e)}")
             raise
     
+    @staticmethod
+    def _log_ood_summary(ood_config: Dict, n_flagged: int, n_strict: int) -> float:
+        """Log the fraction of inputs flagged OOD; warn above
+        OOD_FLAG_WARN_FRACTION or when the checkpoint's tau was fitted under the
+        pre-fix id_quantile reading. Returns the flagged fraction."""
+        from taxonova.calibration.ood import ID_QUANTILE_CONVENTION, OOD_FLAG_WARN_FRACTION
+        total = n_flagged + n_strict
+        frac = n_flagged / total if total else 0.0
+        method = ood_config.get("score_method", "phylum_msp")
+        logger.info(
+            f"OOD flag: {n_flagged}/{total} ({100.0 * frac:.1f}%) inputs flagged out-of-distribution "
+            f"(score_method={method}, tau={ood_config['tau']:.4f}); flagged inputs were gated at "
+            f"max(requested, checkpoint OOD) thresholds, never below the requested thresholds"
+        )
+        if ood_config.get("id_quantile_convention") != ID_QUANTILE_CONVENTION:
+            logger.warning(
+                "This checkpoint's OOD tau was fitted before the id_quantile fix (taxonova <= 26.9.2); "
+                "with energy_phylum and id_quantile=0.99 it flags about 99% of in-distribution reads. "
+                "Calls are unaffected (requested thresholds are applied), but the OOD flag is not meaningful."
+            )
+        if frac > OOD_FLAG_WARN_FRACTION:
+            logger.warning(
+                f"{100.0 * frac:.1f}% of inputs were flagged out-of-distribution "
+                f"(more than {100.0 * OOD_FLAG_WARN_FRACTION:.0f}%): the inputs may not match the "
+                f"model's amplicon region or reference, or tau is miscalibrated."
+            )
+        return frac
+
     def _get_level_thresholds(self, args: Any) -> Dict[str, float]:
         """Per-rank gates for one run: the graded profile scaled by the
         requested species confidence, with --<level>_threshold overriding any
