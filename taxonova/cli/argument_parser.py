@@ -41,7 +41,7 @@ def _add_download_models_parser(subparsers):
     download_parser = subparsers.add_parser(
         "download-models",
         help="Download pre-trained models from the GitHub release",
-        description="Download pre-trained Taxonova models. They are stored in ~/.taxonova/models/ by default.",
+        description="Download pre-trained Taxonova models. They are stored in $TAXONOVA_MODELS_DIR, or ~/.taxonova/models/ if it is unset.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     g = download_parser.add_argument_group("Download Options")
@@ -52,7 +52,7 @@ def _add_download_models_parser(subparsers):
     g.add_argument("--interactive", action="store_true", help="Interactive model selection")
     g.add_argument("--force", action="store_true", help="Re-download even if the model already exists")
     g.add_argument("--models-dir", type=str, metavar="PATH",
-                   help="Custom directory for storing models (default: ~/.taxonova/models/)")
+                   help="Custom directory for storing models (default: $TAXONOVA_MODELS_DIR, else ~/.taxonova/models/)")
     _add_common_output_args(download_parser)
 
 
