@@ -58,6 +58,9 @@ differ from 26.10.0 output; rerun them.
   and sha256 before using it; a file that does not match is reported and
   downloaded again. Downloads are written to a temporary file and moved into
   place only after the checksums pass.
+- `taxonova download-models` (and `taxonova-setup`) now store models in
+  `TAXONOVA_MODELS_DIR` when it is set, the directory `classification` already
+  searched; before, they always used `~/.taxonova/models/`.
 - Classifying with a v1.0.0 Greengenes2 checkpoint (file name and md5 match)
   prints a warning that names its replacement.
 - Tests: `tests/test_ood_gating.py` (gating cases, quantile convention, regression

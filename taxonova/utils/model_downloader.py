@@ -105,10 +105,13 @@ class ModelDownloader:
         Initialize the model downloader.
 
         Args:
-            models_dir: Directory to store models. Defaults to ~/.taxonova/models/
+            models_dir: Directory to store models. Defaults to $TAXONOVA_MODELS_DIR,
+                or ~/.taxonova/models/ when that is unset (the same directory
+                `classification` searches for a bare file name).
         """
         if models_dir is None:
-            self.models_dir = Path.home() / ".taxonova" / "models"
+            from taxonova.utils.config import TaxonovaConfig
+            self.models_dir = TaxonovaConfig.get_models_directory()
         else:
             self.models_dir = Path(models_dir)
 

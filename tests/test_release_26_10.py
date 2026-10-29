@@ -53,6 +53,11 @@ def test_rrn_asset_unchanged():
     assert info["md5"] == "6f5d4ef039888a33ad765ef41725b624"
 
 
+def test_default_models_dir_follows_env(tmp_path, monkeypatch):
+    monkeypatch.setenv("TAXONOVA_MODELS_DIR", str(tmp_path / "envdir"))
+    assert ModelDownloader().models_dir == tmp_path / "envdir"
+
+
 # --- downloader cache handling, against a local file:// source ------------
 
 def _fake_model(tmp_path, monkeypatch, payload=b"taxonova test checkpoint"):
