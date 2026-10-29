@@ -8,7 +8,7 @@ import torch
 from torch.utils.data import random_split
 
 from taxonova.calibration.ood import (
-    LEVELS, SCORE_METHODS, collect_msp, fit_ood_threshold,
+    ID_QUANTILE_CONVENTION, LEVELS, SCORE_METHODS, collect_msp,
     fit_ood_threshold_for_method, summarize_id_scores,
 )
 from taxonova.cli.data_loader import load_sequences
@@ -107,6 +107,7 @@ def fit_ood_mode(args):
         "relaxed_thresholds": relaxed,
         "strict_thresholds_default": strict,
         "id_quantile": float(args.id_quantile),
+        "id_quantile_convention": ID_QUANTILE_CONVENTION,
         "id_score_stats": stats,
     }
 
