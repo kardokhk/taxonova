@@ -53,7 +53,7 @@ taxonova download-models --models gg2_v4
 # then classify, passing just the filename
 taxonova classification \
     --input reads.fasta \
-    --model_input gg2_v4_mrgroups_model.pt \
+    --model_input gg2_v4_mrgroups_model_26.10.pt \
     --output predictions.tsv
 ```
 
@@ -82,7 +82,7 @@ You can also set a single rank explicitly with `--domain_threshold` ...
 ```bash
 taxonova classification \
     --input reads.fasta \
-    --model_input gg2_v4_mrgroups_model.pt \
+    --model_input gg2_v4_mrgroups_model_26.10.pt \
     --output predictions.tsv \
     --confidence_threshold 0.9
 ```

@@ -12,49 +12,89 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-# Model configurations for different V regions
+# Model configurations for different V regions.
+#
+# Release 26.10.0 replaced the four Greengenes2 checkpoints (see CHANGELOG.md).
+# They are attached to the v26.10.0 GitHub release under new file names, so a
+# checkpoint cached by 26.9.x (same key, old file name) is never mistaken for
+# the new one. The RRN checkpoint is unchanged and still comes from v1.0.0.
+_RELEASE_URL = "https://github.com/kardokhk/taxonova/releases/download"
+
 AVAILABLE_MODELS = {
     "gg2_v4": {
         "name": "Greengenes2 V4 Model",
         "description": "Greengenes2-trained model for the V4 region (~250 bp short amplicons)",
-        "filename": "gg2_v4_mrgroups_model.pt",
-        "url": "https://github.com/kardokhk/taxonova/releases/download/v1.0.0/gg2_v4_mrgroups_model.pt",
-        "md5": "debf38c7a0b2c2c8dcb3898949aa6a09",
-        "size_mb": "235MB"
+        "filename": "gg2_v4_mrgroups_model_26.10.pt",
+        "url": f"{_RELEASE_URL}/v26.10.0/gg2_v4_mrgroups_model_26.10.pt",
+        "md5": "bccf86c9086b68defe8bc8a2a3dff2b6",
+        "sha256": "c52aaafe2b9b79092171c11f67de469ac9d64f3e8fadac74e63e756792c0a3a3",
+        "size_mb": "234MB"
     },
     "gg2_v3v4": {
         "name": "Greengenes2 V3-V4 Model",
         "description": "Greengenes2-trained model for the V3-V4 region (standard Illumina MiSeq)",
-        "filename": "gg2_v3v4_mrgroups_model.pt",
-        "url": "https://github.com/kardokhk/taxonova/releases/download/v1.0.0/gg2_v3v4_mrgroups_model.pt",
-        "md5": "a40d3c29f78cf4d32dac22b9d3a4a6bd",
-        "size_mb": "246MB"
+        "filename": "gg2_v3v4_mrgroups_model_26.10.pt",
+        "url": f"{_RELEASE_URL}/v26.10.0/gg2_v3v4_mrgroups_model_26.10.pt",
+        "md5": "a5e584504627a8055afe25fd56893e37",
+        "sha256": "005677c10327b981847b9ec5c5c529828716d0d628706fa65e2f77222309e0aa",
+        "size_mb": "245MB"
     },
     "gg2_v5v7": {
         "name": "Greengenes2 V5-V7 Model",
         "description": "Greengenes2-trained model for the V5-V7 region",
-        "filename": "gg2_v5v7_mrgroups_model.pt",
-        "url": "https://github.com/kardokhk/taxonova/releases/download/v1.0.0/gg2_v5v7_mrgroups_model.pt",
-        "md5": "58a15ff11449d180c01fcacd193157de",
-        "size_mb": "237MB"
+        "filename": "gg2_v5v7_mrgroups_model_26.10.pt",
+        "url": f"{_RELEASE_URL}/v26.10.0/gg2_v5v7_mrgroups_model_26.10.pt",
+        "md5": "6de1add678c05fd0c5c3679ea4094d1d",
+        "sha256": "77f7a75bf38c4923422dadf88e971764a3ccf604b23c1c96b46c0b325a670385",
+        "size_mb": "235MB"
     },
     "gg2_v1v9": {
         "name": "Greengenes2 V1-V9 Model",
         "description": "Greengenes2-trained model for the near-full-length V1-V9 region",
-        "filename": "gg2_v1v9_mrgroups_model.pt",
-        "url": "https://github.com/kardokhk/taxonova/releases/download/v1.0.0/gg2_v1v9_mrgroups_model.pt",
-        "md5": "8cde17c801f3f044efd9cdc17d86401d",
-        "size_mb": "243MB"
+        "filename": "gg2_v1v9_mrgroups_model_26.10.pt",
+        "url": f"{_RELEASE_URL}/v26.10.0/gg2_v1v9_mrgroups_model_26.10.pt",
+        "md5": "103e508682ad0b948e9f8a993bb7be0a",
+        "sha256": "d2ec6d014cf771525887c136fa0591b09d5284db6035022bb60f7f96d2e453ca",
+        "size_mb": "242MB"
     },
     "gtdb_rrn": {
         "name": "GTDB Full rRNA Operon Model",
         "description": "GTDB-trained model for the full ribosomal RNA operon (RRN, long reads)",
         "filename": "gtdb_rrn_mrgroups_model.pt",
-        "url": "https://github.com/kardokhk/taxonova/releases/download/v1.0.0/gtdb_rrn_mrgroups_model.pt",
+        "url": f"{_RELEASE_URL}/v1.0.0/gtdb_rrn_mrgroups_model.pt",
         "md5": "6f5d4ef039888a33ad765ef41725b624",
         "size_mb": "232MB"
     }
 }
+
+#: The Greengenes2 checkpoints shipped with v1.0.0 and used by taxonova 26.6.0
+#: to 26.9.2: file name -> (model key, md5). Their confidences are
+#: tau-normalised, and under 26.9.x no confidence threshold was applied to
+#: them. Kept so that a run that loads one of them gets a warning.
+SUPERSEDED_MODEL_FILES = {
+    "gg2_v4_mrgroups_model.pt": ("gg2_v4", "debf38c7a0b2c2c8dcb3898949aa6a09"),
+    "gg2_v3v4_mrgroups_model.pt": ("gg2_v3v4", "a40d3c29f78cf4d32dac22b9d3a4a6bd"),
+    "gg2_v5v7_mrgroups_model.pt": ("gg2_v5v7", "58a15ff11449d180c01fcacd193157de"),
+    "gg2_v1v9_mrgroups_model.pt": ("gg2_v1v9", "8cde17c801f3f044efd9cdc17d86401d"),
+}
+
+
+def superseded_model_warning(model_path) -> Optional[str]:
+    """Return a warning text if `model_path` is a superseded v1.0.0 checkpoint
+    (file name and md5 both match); otherwise None."""
+    path = Path(str(model_path))
+    entry = SUPERSEDED_MODEL_FILES.get(path.name)
+    if entry is None or not path.is_file():
+        return None
+    key, old_md5 = entry
+    if ModelDownloader._file_digests(path)["md5"] != old_md5:
+        return None
+    return (
+        f"{path.name} is the v1.0.0 checkpoint, superseded in taxonova 26.10.0 by "
+        f"{AVAILABLE_MODELS[key]['filename']} (see CHANGELOG.md). Its confidences are "
+        f"tau-normalised, so most of its species calls fall below the documented thresholds. "
+        f"Fetch the current model with: taxonova download-models --models {key}"
+    )
 
 
 class ModelDownloader:
@@ -98,9 +138,22 @@ class ModelDownloader:
                 downloaded.append(model_key)
         return downloaded
 
+    def verify_model(self, model_key: str) -> bool:
+        """True if the cached file for `model_key` exists and matches its
+        published checksums (sha256 where listed, and md5)."""
+        model_path = self.get_model_path(model_key)
+        if not model_path.exists():
+            return False
+        return self._checksums_match(model_path, AVAILABLE_MODELS[model_key])
+
     def download_model(self, model_key: str, force: bool = False, show_progress: bool = True) -> Path:
         """
         Download a pre-trained model.
+
+        A file already in the models directory is used only if it matches the
+        published checksums. A file that does not match (an interrupted
+        download, a corrupted copy, or a different checkpoint saved under the
+        same name) is reported and downloaded again.
 
         Args:
             model_key: Key identifying the model to download
@@ -116,17 +169,23 @@ class ModelDownloader:
         model_info = AVAILABLE_MODELS[model_key]
         model_path = self.get_model_path(model_key)
 
-        # Check if already downloaded
         if model_path.exists() and not force:
-            logger.info(f"Model {model_key} already downloaded at {model_path}")
-            return model_path
+            if self._checksums_match(model_path, model_info):
+                logger.info(f"Model {model_key} already downloaded at {model_path} (checksum verified)")
+                return model_path
+            msg = (f"Cached file {model_path} does not match the published checksum for {model_key} "
+                   f"(incomplete, corrupted, or a different checkpoint); downloading it again.")
+            logger.warning(msg)
+            print(msg)
 
-        # Download the model
-        logger.info(f"Downloading {model_info['name']} ({model_info['size_mb']})...")
+        logger.info(f"Downloading {model_info['name']} ({model_info['size_mb']}) from {model_info['url']}")
         print(f"Downloading {model_info['name']} ({model_info['size_mb']})...")
 
+        # Download to a temporary name and move into place only after the
+        # checksum passes, so an interrupted download never leaves a file at
+        # model_path.
+        tmp_path = model_path.with_name(model_path.name + ".part")
         try:
-            # Create a progress callback if needed
             if show_progress:
                 def progress_hook(block_num, block_size, total_size):
                     downloaded = block_num * block_size
@@ -137,24 +196,22 @@ class ModelDownloader:
                         bar = '=' * filled + '-' * (bar_length - filled)
                         print(f'\r[{bar}] {percent:.1f}% ({downloaded / 1024 / 1024:.1f}MB)', end='', flush=True)
 
-                urllib.request.urlretrieve(model_info['url'], model_path, reporthook=progress_hook)
+                urllib.request.urlretrieve(model_info['url'], tmp_path, reporthook=progress_hook)
                 print()  # New line after progress bar
             else:
-                urllib.request.urlretrieve(model_info['url'], model_path)
+                urllib.request.urlretrieve(model_info['url'], tmp_path)
 
-            # Verify MD5 if available
-            if model_info.get('md5'):
-                if not self._verify_md5(model_path, model_info['md5']):
-                    model_path.unlink()
-                    raise RuntimeError(f"MD5 checksum verification failed for {model_key}")
+            if not self._checksums_match(tmp_path, model_info):
+                raise RuntimeError(f"checksum verification failed for {model_key} ({model_info['url']})")
+            os.replace(tmp_path, model_path)
 
             logger.info(f"Successfully downloaded {model_key} to {model_path}")
             print(f"Successfully downloaded {model_info['name']}")
             return model_path
 
         except Exception as e:
-            if model_path.exists():
-                model_path.unlink()
+            if tmp_path.exists():
+                tmp_path.unlink()
             logger.error(f"Failed to download {model_key}: {str(e)}")
             raise RuntimeError(f"Failed to download model {model_key}: {str(e)}")
 
@@ -178,13 +235,28 @@ class ModelDownloader:
                 results[model_key] = None
         return results
 
+    @staticmethod
+    def _file_digests(file_path: Path) -> Dict[str, str]:
+        """md5 and sha256 of a file, in one pass."""
+        md5_hash = hashlib.md5()
+        sha_hash = hashlib.sha256()
+        with open(file_path, "rb") as f:
+            for chunk in iter(lambda: f.read(1 << 20), b""):
+                md5_hash.update(chunk)
+                sha_hash.update(chunk)
+        return {"md5": md5_hash.hexdigest(), "sha256": sha_hash.hexdigest()}
+
+    def _checksums_match(self, file_path: Path, model_info: Dict) -> bool:
+        """True if every checksum listed for the model matches the file."""
+        expected = {k: model_info[k] for k in ("md5", "sha256") if model_info.get(k)}
+        if not expected:
+            return True
+        digests = self._file_digests(file_path)
+        return all(digests[k] == v for k, v in expected.items())
+
     def _verify_md5(self, file_path: Path, expected_md5: str) -> bool:
         """Verify MD5 checksum of a file."""
-        md5_hash = hashlib.md5()
-        with open(file_path, "rb") as f:
-            for chunk in iter(lambda: f.read(4096), b""):
-                md5_hash.update(chunk)
-        return md5_hash.hexdigest() == expected_md5
+        return self._file_digests(file_path)["md5"] == expected_md5
 
     def remove_model(self, model_key: str) -> bool:
         """Remove a downloaded model."""

@@ -1,0 +1,27 @@
+sequence_id	domain	domain_confidence	phylum	phylum_confidence	class	class_confidence	order	order_confidence	family	family_confidence	genus	genus_confidence	species	species_confidence
+389e84615a331f03eff669f843e85c61	Bacteria	1.0000	Pseudomonadota	1.0000	Gammaproteobacteria	1.0000	Enterobacterales_737866	1.0000	Enterobacteriaceae_A_725029	1.0000	Salmonella	0.9999	Salmonella bongori	0.9999
+95b52977ab0b2b2052246d3b32864e5c	Bacteria	1.0000	Bacillota_A_368345	1.0000	Clostridia_258483	0.9999	Clostridiales	0.9999	Clostridiaceae_222000	0.9993	Unknown	0.9352	Unknown	0.9352
+228545d63cb025ed7c8f841a8950a561	Bacteria	1.0000	Verrucomicrobiota	1.0000	Verrucomicrobiae	0.9998	Opitutales	0.9998	Coraliomargaritaceae	0.9995	Coraliomargarita_B_755746	0.9995	Coraliomargarita_B_755746 akajimensis	0.9995
+de3e33db87e543be90d93f6aab405740	Bacteria	1.0000	Bacillota_I	1.0000	Bacilli_A	0.9999	Paenibacillales	0.9999	Paenibacillaceae_367444	0.9997	Thermobacillus	0.9997	Thermobacillus xylanilyticus	0.9982
+3af25b68673d502d5c7f52276406485d	Bacteria	1.0000	Spirochaetota	1.0000	Spirochaetia	0.9994	DSM-16054	0.9994	Sediminispirochaetaceae	0.9994	Sediminispirochaeta	0.9994	Sediminispirochaeta smaragdinae	0.9966
+19a319c060b8603e22f340e45664e637	Archaea	1.0000	Halobacteriota	1.0000	Halobacteria	0.9996	Halobacteriales	0.9996	Natrialbaceae	0.9996	Natronococcus	0.9995	Natronococcus occultus	0.9995
+ffbc1d810391f41c33fcc3d445f6bf0e	Bacteria	1.0000	Deinococcota	0.9998	Deinococci	0.9998	Deinococcales	0.9998	Thermaceae_405955	0.9994	Allomeiothermus	0.9994	Allomeiothermus silvanus	0.9994
+650b0ff01a0107f5536b47bd91792dad	Bacteria	1.0000	Pseudomonadota	1.0000	Gammaproteobacteria	1.0000	Enterobacterales_737866	1.0000	Enterobacteriaceae_A_725029	1.0000	Salmonella	1.0000	Salmonella bongori	1.0000
+b1964c97ed54ecbc7eebaf7ff679fece	Bacteria	1.0000	Actinomycetota	1.0000	Coriobacteriia	0.9999	Coriobacteriales	0.9999	Atopobiaceae	0.9994	Olsenella_H_405123	0.9988	Olsenella uli	0.9453
+0bc111c72efc5f978cf05b6d793ee9ee	Archaea	1.0000	Halobacteriota	0.9998	Halobacteria	0.9998	Halobacteriales	0.9998	Natrialbaceae	0.9995	Natronobacterium	0.9990	Natronobacterium gregoryi	0.9990
+39edff3c30b6f0de2f4cc584a7107388	Bacteria	1.0000	Thermotogota	0.9995	Thermotogae	0.9990	Thermotogales	0.9990	Fervidobacteriaceae	0.9990	Fervidobacterium_A	0.9990	Fervidobacterium_A pennivorans	0.9971
+9c157df348c96823a332b90bf432104b	Bacteria	1.0000	Bacillota_I	1.0000	Bacilli_A	0.9999	Lactobacillales	0.9999	Streptococcaceae	0.9999	Streptococcus	0.9999	Streptococcus pyogenes	0.9999
+fa90a62d58630c603f470f6ba01e1d1f	Bacteria	1.0000	Acidobacteriota	1.0000	Terriglobia	1.0000	Terriglobales	0.9999	Acidobacteriaceae	0.9999	Terriglobus_A	0.9999	Terriglobus_A roseus_B	0.9999
+df0147bba1792d45c19dc455eab125ff	Bacteria	1.0000	Pseudomonadota	1.0000	Gammaproteobacteria	0.9991	Xanthomonadales	0.9991	Rhodanobacteraceae	0.9991	Frateuria_B_613055	0.9991	Frateuria aurantia	0.9991
+e0a4957ebe4be2fd177a8485d81dd025	Bacteria	1.0000	Bacillota_A_368345	1.0000	Clostridia_258483	0.9994	Acetivibrionales	0.9994	Acetivibrionaceae	0.9994	Hungateiclostridium	0.9994	Hungateiclostridium thermocellum	0.9983
+0fb93b84b3f73c629cdc0c19a2345116	Bacteria	1.0000	Actinomycetota	1.0000	Actinomycetes	0.9996	Streptosporangiales	0.9996	Streptosporangiaceae	0.9996	Nocardiopsis_D	0.9996	Nocardiopsis_D synnemataformans	0.9107
+8a974d384c4920ebd942863e42886ff5	Bacteria	1.0000	Bacillota_B_370539	0.9996	Desulfitobacteriia	0.9994	Desulfitobacteriales	0.9994	Desulfitobacteriaceae	0.9993	Desulfosporosinus	0.9993	Desulfosporosinus acidiphilus	0.9993
+38a516faab2584f2ad3671dbc19dc74d	Bacteria	1.0000	Pseudomonadota	1.0000	Alphaproteobacteria	0.9996	Caulobacterales	0.9996	Hyphomonadaceae	0.9996	Hirschia	0.9832	Hirschia baltica	0.9832
+fbb94993668841db303ddc146c0c6890	Bacteria	1.0000	Bacillota_B_370525	0.9985	Desulfotomaculia_370525	0.9985	Desulfotomaculales_370525	0.9985	Desulfallaceae	0.9985	Desulfoscipio_370355	0.9118	Desulfoscipio gibsoniae	0.9118
+5a89a46c49a7462d3eea4329b835e42c	Archaea	1.0000	Halobacteriota	1.0000	Halobacteria	0.9999	Halobacteriales	0.9999	Natrialbaceae	0.9998	Halovivax	0.9998	Halovivax ruber	0.9953
+fba6e896430502e423a49150229adc67	Bacteria	1.0000	Pseudomonadota	1.0000	Gammaproteobacteria	1.0000	Enterobacterales_737866	0.9998	Enterobacteriaceae_A_725029	0.9998	Escherichia	0.9998	Escherichia ruysiae	0.9658
+c68d273afbb68bbf70eed9f8d494ce85	Bacteria	1.0000	Bacillota_B_370539	0.9997	Desulfitobacteriia	0.9997	Desulfitobacteriales	0.9996	Desulfitobacteriaceae	0.9996	Desulfosporosinus	0.9996	Desulfosporosinus meridiei	0.9996
+0d2ae8b81c50cf91822b11667b7f739e	Bacteria	1.0000	Actinomycetota	1.0000	Actinomycetes	1.0000	Mycobacteriales	0.9997	Mycobacteriaceae	0.9997	Corynebacterium	0.9997	Unclassified	0.7293
+a0e0d8c35150b1c700d6d47d7031524d	Bacteria	1.0000	Pseudomonadota	1.0000	Gammaproteobacteria	0.9999	Pseudomonadales_A_650611	0.9999	Pseudomonadaceae	0.9999	Stutzerimonas_648792	0.9999	Unclassified	0.8418
+87e229f2d0e9516dd5825ffcaabecaeb	Bacteria	1.0000	Actinomycetota	1.0000	Actinomycetes	0.9996	Mycobacteriales	0.9996	Mycobacteriaceae	0.9994	Segniliparus	0.9994	Segniliparus rotundus	0.9994
+fccc3e409caec490ce85db1256101be4	Bacteria	1.0000	Bacteroidota	1.0000	Bacteroidia	0.9997	Cytophagales_B	0.9997	Cyclobacteriaceae	0.9997	Echinicola	0.9996	Echinicola vietnamensis	0.9996

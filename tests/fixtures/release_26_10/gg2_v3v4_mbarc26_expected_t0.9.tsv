@@ -1,0 +1,21 @@
+sequence_id	domain	domain_confidence	phylum	phylum_confidence	class	class_confidence	order	order_confidence	family	family_confidence	genus	genus_confidence	species	species_confidence
+875f9ef9a121a3002ea097444690a20a	Bacteria	1.0000	Bacillota_A_368345	1.0000	Clostridia_258483	0.9998	Clostridiales	0.9998	Clostridiaceae_222000	0.9966	Unclassified	0.4534	Unclassified	0.4534
+093a06e5d774b5249ea64b6df8cd8904	Bacteria	1.0000	Bacillota_A_368345	0.9960	Clostridia_258483	0.9960	Acetivibrionales	0.9949	Acetivibrionaceae	0.9938	Hungateiclostridium	0.9938	Hungateiclostridium thermocellum	0.9738
+0ea2977da42199e1413857906d854f9d	Bacteria	1.0000	Verrucomicrobiota	0.9996	Verrucomicrobiae	0.9996	Opitutales	0.9951	Coraliomargaritaceae	0.9792	Coraliomargarita_B_755746	0.9792	Coraliomargarita_B_755746 akajimensis	0.9792
+70530faa01a35148ae3c795471690509	Bacteria	1.0000	Actinomycetota	0.9999	Actinomycetes	0.9995	Mycobacteriales	0.9995	Mycobacteriaceae	0.9995	Corynebacterium	0.9991	Unclassified	0.5997
+415c37b3b9f0edbcb72db21c5a72cb32	Bacteria	1.0000	Bacillota_B_370539	0.9974	Desulfitobacteriia	0.9974	Desulfitobacteriales	0.9974	Desulfitobacteriaceae	0.9974	Desulfosporosinus	0.9974	Desulfosporosinus acidiphilus	0.9633
+b43273554fbcd3eb30982322361060ce	Bacteria	1.0000	Bacillota_B_370539	0.9947	Desulfitobacteriia	0.9947	Desulfitobacteriales	0.9947	Desulfitobacteriaceae	0.9947	Desulfosporosinus	0.9947	Desulfosporosinus meridiei	0.9694
+5b3059e36e69cdd9c3a1fd0e08d828e3	Bacteria	1.0000	Bacillota_B_370525	0.9618	Desulfotomaculia_370525	0.9618	Desulfotomaculales_370525	0.9618	Desulfallaceae	0.9618	Sporotomaculum_370354	0.9618	Sporotomaculum gibsoniae	0.9618
+7239155f6e45a4b99c0d087b971ea28b	Bacteria	1.0000	Bacteroidota	1.0000	Bacteroidia	0.9994	Cytophagales_B	0.9994	Cyclobacteriaceae	0.9994	Echinicola	0.9986	Echinicola vietnamensis	0.9827
+5345a2ce73ac4ca4152e02ff99b6cb9a	Bacteria	1.0000	Thermotogota	0.9959	Thermotogae	0.9959	Thermotogales	0.9959	Fervidobacteriaceae	0.9959	Fervidobacterium_A	0.9959	Unclassified	0.5258
+fa227bc5f8e0913de5b5b66110cd3bad	Bacteria	1.0000	Pseudomonadota	0.9989	Gammaproteobacteria	0.9984	Xanthomonadales	0.9984	Rhodanobacteraceae	0.9895	Frateuria_B_613055	0.9895	Frateuria aurantia	0.9895
+ad41cc2e1ee27e81d4b68cc70043d63b	Bacteria	1.0000	Deinococcota	0.9994	Deinococci	0.9994	Deinococcales	0.9994	Thermaceae_405955	0.9994	Allomeiothermus	0.9958	Allomeiothermus silvanus	0.9017
+fecce07d71fb6eedb08e113579bef409	Bacteria	1.0000	Actinomycetota	0.9999	Actinomycetes	0.9999	Streptosporangiales	0.9998	Streptosporangiaceae	0.9988	Nocardiopsis_D	0.9977	Unclassified	0.8739
+b7d5d6b5e962c6da0d39aaa50efbe93f	Bacteria	1.0000	Actinomycetota	0.9997	Coriobacteriia	0.9983	Coriobacteriales	0.9978	Atopobiaceae	0.9978	Olsenella_H_405123	0.9922	Olsenella uli	0.9800
+90f0c3ecf764dde04f7b4f431a27638a	Bacteria	1.0000	Pseudomonadota	1.0000	Gammaproteobacteria	0.9987	Pseudomonadales_A_650611	0.9987	Pseudomonadaceae	0.9987	Stutzerimonas_648792	0.9982	Unclassified	0.5177
+9163fdfb4c116b529b193ce19c99bcad	Bacteria	1.0000	Actinomycetota	0.9981	Actinomycetes	0.9981	Mycobacteriales	0.9981	Mycobacteriaceae	0.9981	Segniliparus	0.9981	Unclassified	0.8900
+a31da2304945a8b1eab9bbdeae054772	Bacteria	1.0000	Spirochaetota	0.9992	Spirochaetia	0.9954	DSM-16054	0.9892	Sediminispirochaetaceae	0.9892	Sediminispirochaeta	0.9892	Sediminispirochaeta smaragdinae	0.9873
+ee1e5d63d6d65ef90a246cad42652d5d	Bacteria	1.0000	Bacillota_I	0.9999	Bacilli_A	0.9998	Lactobacillales	0.9997	Streptococcaceae	0.9997	Streptococcus	0.9990	Streptococcus pyogenes	0.9988
+898ece2fdd90fcc09eca04fdd52fa8c3	Bacteria	1.0000	Acidobacteriota	0.9999	Terriglobia	0.9999	Terriglobales	0.9983	Acidobacteriaceae	0.9976	Terriglobus_A	0.9976	Unclassified	0.5031
+59379d81b505569f8a6ce120ba6e7340	Bacteria	1.0000	Bacillota_I	0.9991	Bacilli_A	0.9991	Paenibacillales	0.9991	Paenibacillaceae_367444	0.9991	Thermobacillus	0.9895	Thermobacillus xylanilyticus	0.9895
+5819295eed4504e39a6fdeaa97d01a71	Bacteria	1.0000	Pseudomonadota	0.9999	Gammaproteobacteria	0.9996	Enterobacterales_737866	0.9996	Enterobacteriaceae_A_725029	0.9989	Salmonella	0.9324	Salmonella bongori	0.9324

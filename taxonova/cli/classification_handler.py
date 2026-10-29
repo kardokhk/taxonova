@@ -2,6 +2,8 @@
 Classification mode handler for Taxonova.
 """
 import logging
+import sys
+
 import numpy as np
 
 from taxonova.data.fasta import read_fasta_file
@@ -12,6 +14,7 @@ from taxonova.cli.config_builder import create_classification_config
 from taxonova.prediction.output_processing import TaxonomicConsistencyProcessor, PredictionOutputFormatter
 from taxonova.prediction.device_manager import DeviceManager
 from taxonova.utils.config import TaxonovaConfig
+from taxonova.utils.model_downloader import superseded_model_warning
 
 logger = logging.getLogger(__name__)
 
@@ -25,6 +28,10 @@ def classification_mode(args):
     
     try:
         resolved_model_path = str(TaxonovaConfig.resolve_model_path(args.model_input))
+        superseded = superseded_model_warning(resolved_model_path)
+        if superseded:
+            logger.warning(superseded)
+            print(f"WARNING: {superseded}", file=sys.stderr)
         logger.info(f"Loading pre-trained model from {resolved_model_path}...")
         model, taxonomy_info = HierarchicalModelFactory.load_model(resolved_model_path)
         
