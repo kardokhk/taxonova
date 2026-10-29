@@ -32,13 +32,18 @@ described below.
 
 ## Performance
 
-In the accompanying manuscript (in revision), evaluated on physical and
-biome-simulated mock communities against seven published classifiers, Taxonova
-reached species-level F-measures of 0.76 to 1.00 (median 0.94) on short-read and
-0.82 to 0.99 (median 0.97) on long-read amplicons of 250 bp to 4,900 bp, and made a
-median of 7.2-fold fewer false-positive species assignments than the other
-classifiers. It classifies about 100 sequences per second on a single CPU core with
-a peak memory use of 0.82 GB; no GPU is used for classification.
+In the accompanying manuscript, evaluated on physical and biome-simulated mock
+communities against seven published classifiers, Taxonova reached species-level
+F-measures of 0.76 to 1.00 (median 0.94) on short-read and 0.82 to 0.99 (median
+0.97) on long-read amplicons of 250 bp to 4,900 bp. Those figures were obtained
+with the v1.0.0 checkpoints and the original Taxobench scoring rules. With the
+26.10.0 checkpoints and the documented thresholds, median species-level
+F-measures over the 13 mock communities per region are 0.836 to 0.961 at 0.5/0.7
+(CHANGELOG.md). Under the revised Taxobench scoring rules (v2), which do not count
+an abstention as a predicted taxon, Taxonova no longer has the lowest species
+false-positive rate of the eight classifiers. It classifies about 100 sequences
+per second on a single CPU core with a peak memory use of 0.82 GB; no GPU is used
+for classification.
 
 ## Installation
 
@@ -58,15 +63,15 @@ pip install -e .
 
 | Model file | Region | Reference |
 | --- | --- | --- |
-| `gg2_v4_mrgroups_model.pt` | V4 | Greengenes2 |
-| `gg2_v3v4_mrgroups_model.pt` | V3-V4 | Greengenes2 |
-| `gg2_v5v7_mrgroups_model.pt` | V5-V7 | Greengenes2 |
-| `gg2_v1v9_mrgroups_model.pt` | whole 16S (V1-V9) | Greengenes2 |
+| `gg2_v4_mrgroups_model_26.10.pt` | V4 | Greengenes2 |
+| `gg2_v3v4_mrgroups_model_26.10.pt` | V3-V4 | Greengenes2 |
+| `gg2_v5v7_mrgroups_model_26.10.pt` | V5-V7 | Greengenes2 |
+| `gg2_v1v9_mrgroups_model_26.10.pt` | whole 16S (V1-V9) | Greengenes2 |
 | `gtdb_rrn_mrgroups_model.pt` | full rRNA operon (16S-ITS-23S) | GROND, GTDB taxonomy |
 
 The checkpoints (about 240 MB each) are attached to the
-[GitHub Release](https://github.com/kardokhk/taxonova/releases) and can be
-downloaded with the built-in tool:
+[GitHub releases](https://github.com/kardokhk/taxonova/releases) (Greengenes2:
+v26.10.0; RRN: v1.0.0) and can be downloaded with the built-in tool:
 
 ```bash
 taxonova download-models --list            # available and downloaded models
@@ -76,15 +81,20 @@ taxonova download-models --models all      # all five
 
 Models are stored in `~/.taxonova/models/`, or in the directory given by the
 `TAXONOVA_MODELS_DIR` environment variable, and can then be referred to by file
-name. Confidence calibration is already applied in the released checkpoints. See
-[MODELS.md](MODELS.md) for details.
+name. The downloader verifies each file's checksums.
+
+**Upgrading from 26.9.x or earlier:** releases 1.0.0 to 26.9.2 applied no
+confidence thresholds to the Greengenes2 checkpoints, and 26.10.0 replaces those
+checkpoints. Download the new ones and rerun earlier Greengenes2 analyses; see
+[CHANGELOG.md](CHANGELOG.md) for how output changes and [MODELS.md](MODELS.md)
+for how the checkpoints were made.
 
 ## Usage
 
 ```bash
 taxonova classification \
     --input reads.fasta \
-    --model_input gg2_v4_mrgroups_model.pt \
+    --model_input gg2_v4_mrgroups_model_26.10.pt \
     --output predictions.tsv
 ```
 

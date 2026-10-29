@@ -1,0 +1,20 @@
+sequence_id	domain	domain_confidence	phylum	phylum_confidence	class	class_confidence	order	order_confidence	family	family_confidence	genus	genus_confidence	species	species_confidence
+0b98716b934038dec18ad1ebac65f9a6	Bacteria	1.0000	Pseudomonadota	0.9993	Gammaproteobacteria	0.9993	Enterobacterales_737866	0.9993	Enterobacteriaceae_A_725029	0.9993	Salmonella	0.9959	Salmonella bongori	0.9959
+adc85db882252687cab9a68feb943662	Bacteria	1.0000	Bacillota_A_368345	1.0000	Clostridia_258483	0.9999	Clostridiales	0.9999	Clostridiaceae_222000	0.9996	Unclassified	0.7290	Unclassified	0.7290
+4ab171ebedc9c5efcb05579682fa45e1	Bacteria	1.0000	Verrucomicrobiota	1.0000	Verrucomicrobiae	0.9997	Opitutales	0.9997	Coraliomargaritaceae	0.9997	Coraliomargarita_B_755746	0.9997	Coraliomargarita_B_755746 akajimensis	0.9997
+de66515e79b23000018d0741e770f3c9	Bacteria	1.0000	Bacillota_I	1.0000	Bacilli_A	1.0000	Paenibacillales	1.0000	Paenibacillaceae_367444	0.9997	Thermobacillus	0.9997	Thermobacillus xylanilyticus	0.9997
+a815387c350ae166c171beac2eb0f5d0	Bacteria	1.0000	Spirochaetota	1.0000	Spirochaetia	0.9992	DSM-16054	0.9980	Sediminispirochaetaceae	0.9980	Sediminispirochaeta	0.9980	[Sediminispirochaeta bajacaliforniensis|Sediminispirochaeta smaragdinae]	0.9980
+cdb0642616e37363c0f806bb733e3e25	Bacteria	1.0000	Deinococcota	0.9986	Deinococci	0.9986	Deinococcales	0.9986	Thermaceae_405955	0.9986	Allomeiothermus	0.9986	Allomeiothermus silvanus	0.9986
+92ea2efdc6022909ff6fedd7793d89d9	Bacteria	1.0000	Actinomycetota	1.0000	Coriobacteriia	0.9999	Coriobacteriales	0.9998	Atopobiaceae	0.9983	Olsenella_H_405123	0.9983	Olsenella uli	0.9983
+bd555db92e641c4efbc2682303dc061a	Bacteria	1.0000	Thermotogota	0.9992	Thermotogae	0.9992	Thermotogales	0.9992	Fervidobacteriaceae	0.9992	Fervidobacterium_A	0.9992	[Fervidobacterium_A changbaicum|Fervidobacterium_A pennivorans]	0.9992
+59e4e8f3f242339b4cf5781b37d3594d	Bacteria	1.0000	Bacillota_I	1.0000	Bacilli_A	0.9999	Lactobacillales	0.9966	Streptococcaceae	0.9966	Streptococcus	0.9966	Unclassified	0.7838
+91a623f12ee32d9194e05467a12bf8d9	Bacteria	1.0000	Acidobacteriota	1.0000	Terriglobia	0.9997	Terriglobales	0.9997	Acidobacteriaceae	0.9997	Terriglobus_A	0.9984	Terriglobus_A roseus_B	0.9984
+99d036662b063df42ed9adb2d5cfac02	Bacteria	1.0000	Pseudomonadota	0.9999	Gammaproteobacteria	0.9998	Xanthomonadales	0.9998	Rhodanobacteraceae	0.9998	Frateuria_B_613055	0.9986	Frateuria aurantia	0.9986
+a62a452acfd5c114f6c3c3656db5c48b	Bacteria	1.0000	Bacillota_A_368345	1.0000	Clostridia_258483	0.9999	Acetivibrionales	0.9996	Acetivibrionaceae	0.9969	Hungateiclostridium	0.9969	Hungateiclostridium thermocellum	0.9969
+ea0b057a6266018fcc8bdaecc1814e65	Bacteria	1.0000	Bacillota_B_370539	0.9998	Desulfitobacteriia	0.9998	Desulfitobacteriales	0.9998	Desulfitobacteriaceae	0.9997	Desulfosporosinus	0.9997	Desulfosporosinus acidiphilus	0.9997
+f544b02bd6870c67e51ef898b845390e	Bacteria	1.0000	Bacillota_B_370539	0.9998	Desulfitobacteriia	0.9998	Desulfitobacteriales	0.9997	Desulfitobacteriaceae	0.9992	Desulfosporosinus	0.9992	Desulfosporosinus meridiei	0.9992
+27611026a24e2354f7bbdebd8d7d80bc	Bacteria	1.0000	Pseudomonadota	0.9996	Gammaproteobacteria	0.9996	Pseudomonadales_A_650611	0.9996	Pseudomonadaceae	0.9958	Stutzerimonas_648792	0.9958	[Stutzerimonas balearica|Stutzerimonas kunmingensis]	0.9910
+872d88100879cf2da4252d06804c9d04	Bacteria	1.0000	Actinomycetota	1.0000	Actinomycetes	0.9999	Mycobacteriales	0.9998	Mycobacteriaceae	0.9908	Segniliparus	0.9908	[Segniliparus rotundus|Segniliparus rugosus]	0.9908
+274fe7a95fbc7beb6d5f8fadd54308f7	Bacteria	1.0000	Bacteroidota	1.0000	Bacteroidia	0.9999	Cytophagales_B	0.9999	Cyclobacteriaceae	0.9999	Echinicola	0.9999	Echinicola vietnamensis	0.9996
+54e920928fd0ce9dd763bf0ae9f1f331	Bacteria	1.0000	Pseudomonadota	0.8898	Gammaproteobacteria	0.8898	Enterobacterales_737866	0.8898	Enterobacteriaceae_A_725029	0.8898	Escherichia	0.8898	Unclassified	0.5867
+24b956a748c4ed67dac7102851ae6c70	Bacteria	1.0000	Actinomycetota	1.0000	Actinomycetes	1.0000	Mycobacteriales	1.0000	Mycobacteriaceae	0.9999	Corynebacterium	0.9989	Corynebacterium deserti	0.9836

@@ -1,44 +1,93 @@
 # Changelog
 
-## Unreleased (branch fix/ood-threshold-gating, not released)
+## 26.10.0
 
-Fixes a defect in releases 26.9.0 to 26.9.2 that switched off the confidence
-thresholds for the Greengenes2 checkpoints (V4, V3-V4, V5-V7, whole 16S).
+**Releases 26.9.0 to 26.9.2 applied no confidence thresholds to the four
+Greengenes2 checkpoints (V4, V3-V4, V5-V7, whole 16S).** For about 98 to 100% of
+reads `--confidence_threshold` and the per-rank thresholds had no effect, and
+Taxonova named a species for almost every read. The same code path is present in
+1.0.0 and 26.6.0, which used the same checkpoints. The RRN checkpoint carries no
+OOD configuration and was not affected.
+
+This release fixes the code and replaces the four Greengenes2 checkpoints.
+Results produced with the Greengenes2 checkpoints under any earlier release
+differ from 26.10.0 output; rerun them.
 
 ### What was wrong
 
-1. `fit-ood --id_quantile 0.99 --score_method energy_phylum` placed tau at the
+1. The Greengenes2 checkpoints carry an out-of-distribution (OOD) detector
+   (`ood_config`). A read flagged OOD was gated with the checkpoint's
+   `relaxed_thresholds`, which are 0.0 at every rank, instead of the requested
+   thresholds.
+2. `fit-ood --id_quantile 0.99 --score_method energy_phylum` placed tau at the
    1st percentile of in-distribution energies, so about 99% of in-distribution
-   reads were flagged out-of-distribution (OOD). The phylum-MSP path read
-   `--id_quantile` the other way round (default 0.01 meant "flag 1%").
-2. A read flagged OOD was gated with the checkpoint's `relaxed_thresholds`,
-   which are 0.0 at every rank, instead of the requested thresholds. With
-   both defects, `--confidence_threshold` had no effect for about 99% of reads.
+   reads were flagged OOD. The phylum-MSP path read `--id_quantile` the other way
+   round (default 0.01 meant "flag 1%"). Together with (1), almost every read was
+   classified with every threshold at 0.0.
+3. Fixing (1) and (2) alone does not give usable output from the v1.0.0
+   checkpoints: their confidences were rescaled by tau-normalisation, so most
+   species confidences sit below the documented thresholds (whole 16S: median
+   species abstention 99% at 0.5/0.7 on the Taxobench mock communities).
 
 ### What changed
 
-- `--id_quantile` now means the fraction of held-out in-distribution samples
-  kept as in-distribution, for both score directions: 0.99 flags about 1%.
-  The default is 0.99 (was 0.01) and values outside (0.5, 1) are rejected.
-  New `ood_config` entries carry `id_quantile_convention: "id_coverage"`.
-- A read flagged OOD is gated at the per-rank maximum of the requested
-  threshold and the checkpoint's OOD threshold. An OOD flag can make a call
-  more conservative or leave it unchanged; it can no longer relax it. With the
-  shipped OOD thresholds of 0.0, output equals a run without `ood_config`.
-- The classification log reports the number and share of inputs flagged OOD,
-  warns when the share exceeds 20%, and warns when the checkpoint's tau was
-  fitted under the old convention.
-- Tests: `tests/test_ood_gating.py` (known-answer gating cases, the quantile
-  convention for both score directions, a regression fixture under
-  `tests/fixtures/`).
+- Code: a read flagged OOD is gated at the per-rank maximum of the requested
+  threshold and the checkpoint's OOD threshold, so an OOD flag can no longer
+  relax a call. `--id_quantile` now means the fraction of held-out
+  in-distribution samples kept as in-distribution, for both score directions
+  (default 0.99, about 1% flagged; values outside (0.5, 1) are rejected; new
+  `ood_config` entries carry `id_quantile_convention: "id_coverage"`). The
+  classification log reports the share of inputs flagged OOD and warns above 20%
+  or when tau was fitted under the old convention.
+- New Greengenes2 checkpoints, attached to the v26.10.0 GitHub release under new
+  file names (`gg2_<region>_mrgroups_model_26.10.pt`), so files cached by 26.9.x
+  are never reused by mistake:
+  - V1-V9 and V5-V7: the released networks with tau-normalisation (tau 0.5)
+    undone exactly (re-applying it reproduces the released weights to 1.2e-7).
+  - V4 and V3-V4: tau-normalisation at tau 1.0 cannot be undone, so these were
+    retrained on the same reference with the same recipe, without
+    tau-normalisation and without the OOD gate (seeds 1005 and 1006, chosen by
+    lowest final training loss, a rule fixed before any evaluation).
+  - The OOD gate is dropped: none of the four checkpoints carries `ood_config`,
+    as for RRN. On leave-out tests a stricter OOD gate lowered the rate at which
+    novel species were named by at most 0.5 percentage points.
+  - The RRN checkpoint is unchanged (v1.0.0 asset).
+- Default thresholds are unchanged: 0.5 for domain to family, 0.7 for genus and
+  0.8 for species, scaled by `--confidence_threshold`.
+- `taxonova download-models` verifies a cached file against the published md5
+  and sha256 before using it; a file that does not match is reported and
+  downloaded again. Downloads are written to a temporary file and moved into
+  place only after the checksums pass.
+- Classifying with a v1.0.0 Greengenes2 checkpoint (file name and md5 match)
+  prints a warning that names its replacement.
+- Tests: `tests/test_ood_gating.py` (gating cases, quantile convention, regression
+  fixture) and `tests/test_release_26_10.py` (downloader checksums and cache
+  handling, threshold 0.9 known-answer gating, and, when the 26.10 checkpoints
+  are available, a regression of real classifications at 0.9).
 
-### Effect on results
+### Expected changes in output
 
-Output from the Greengenes2 checkpoints changes at every threshold: reads whose
-confidence is below the requested gate are now reported as `Unclassified`, as
-the documentation describes. Abstention rises markedly, most at whole 16S,
-where the checkpoints' species confidences are low (tau-normalisation). Fixing
-the gate does not recalibrate those confidences; that needs new checkpoints.
+More reads stop above species, as the documentation describes. Median
+species-level F-measure over the 13 Taxobench mock communities per region
+(Taxobench evaluator v1 rules, corrected gutmock V5-V7 ground truth), with median
+species abstention:
+
+| region | 26.9.2 (no thresholds in effect) | v1.0.0 checkpoints, fixed code, 0.5/0.7 | 26.10.0, 0.5/0.7 | 26.10.0, default (0.8) |
+| --- | --- | --- | --- | --- |
+| whole 16S (V1-V9) | 0.962, 0% | 0.028, 99% | 0.961, 4.1% | 0.945, 7.2% |
+| V5-V7 | 0.953, 0% | 0.672, 49% | 0.940, 4.3% | 0.940, 4.3% |
+| V4 | 0.988, 0% | 0.636, 50% | 0.957, 5.3% | 0.945, 8.7% |
+| V3-V4 | 0.863, 0% | 0.724, 40% | 0.836, 19.5% | 0.797, 26.7% |
+
+"0.5/0.7" is 0.5 for domain to genus and 0.7 for species, the thresholds of the
+published benchmark runs. Species precision rises or holds and recall falls; at
+V3-V4 about one read in five now stops above species at 0.5/0.7. On the
+vaginal mock community at V5-V7, 26.10.0 names 7 of 12 sequences at species and
+abstains on 5 (F 0.737). On leave-out tests, where the query species is absent
+from the reference, the new checkpoints name a (necessarily wrong) species for
+more novel queries than the tau-normalised ones: 0.14 at whole 16S and 0.18 at
+V5-V7 at 0.5/0.7, against 0.02 and 0.00 before; at the default 0.8 these are
+0.11 and 0.14.
 
 ## 26.9.2
 
