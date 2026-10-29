@@ -39,9 +39,7 @@ F-measures of 0.76 to 1.00 (median 0.94) on short-read and 0.82 to 0.99 (median
 with the v1.0.0 checkpoints and the original Taxobench scoring rules. With the
 26.10.0 checkpoints and the documented thresholds, median species-level
 F-measures over the 13 mock communities per region are 0.836 to 0.961 at 0.5/0.7
-(CHANGELOG.md). Under the revised Taxobench scoring rules (v2), which do not count
-an abstention as a predicted taxon, Taxonova no longer has the lowest species
-false-positive rate of the eight classifiers. It classifies about 100 sequences
+(CHANGELOG.md). It classifies about 100 sequences
 per second on a single CPU core with a peak memory use of 0.82 GB; no GPU is used
 for classification.
 
@@ -131,10 +129,9 @@ https://github.com/kardokhk/TaxoBench.
 ## Citation
 
 > Kakabra K, Patel S, Temko A, Claesson MJ. Taxonova: deep learning enables fast
-> and accurate microbiome species-level amplicon classification. Manuscript in
-> revision.
-
-A full citation will be added on publication.
+> and confidence-aware microbiome species-level amplicon classification. PLoS
+> Comput Biol. 2026. doi:10.1371/journal.pcbi.1014912 (accepted; volume and
+> pages on publication).
 
 ## License
 
