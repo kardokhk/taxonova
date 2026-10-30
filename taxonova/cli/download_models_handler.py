@@ -45,7 +45,7 @@ def download_models_mode(args):
         print("\nPlease specify models to download using --models, --interactive, or --list\n")
         print("Examples:")
         print("  taxonova download-models --interactive")
-        print("  taxonova download-models --models gg2_v3v4 gg2_v4")
+        print("  taxonova download-models --models v3v4 v4")
         print("  taxonova download-models --models all")
         print("  taxonova download-models --list")
         return
@@ -110,5 +110,5 @@ def _list_models(downloader: ModelDownloader, verbose: bool = False):
     if len(downloaded) == 0:
         print("To download models, run:")
         print("  taxonova download-models --interactive")
-        print("  taxonova download-models --models gg2_v3v4 gg2_v4")
+        print("  taxonova download-models --models v3v4 v4")
         print("  taxonova download-models --models all\n")

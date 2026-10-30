@@ -1,6 +1,60 @@
 # Changelog
 
-## 26.10.0
+All notable changes to Taxonova are recorded here. The format follows
+[Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions use calendar
+versioning, `YY.MM.MICRO`: the year and month of the release, then a counter
+for further releases in the same month. Model files carry their own version
+(see [docs/models.md](docs/models.md)).
+
+## [Unreleased]
+
+## [26.10.1] - 2026-10-30
+
+Usability release. Classification output is unchanged: for the same model and
+thresholds, every table is byte-identical to 26.10.0.
+
+### Added
+
+- `taxonova classify INPUT`: a shorter command. The model is chosen with
+  `--model` (default `v4`) and downloaded the first time it is used; the output
+  goes to `<input name>.taxonova.tsv` in the current directory, with the run
+  log beside it (`--no-log` to skip). Short options `-m`, `-o`, `-c`
+  (`--confidence`), `-t` (`--threads`) and `--<rank>-threshold`.
+- `taxonova models` lists the models and which ones are downloaded;
+  `taxonova models download <id ...|all>` downloads them.
+- `taxonova --version`. Running `taxonova` with no arguments prints the help.
+- Short model ids: `v4`, `v3v4`, `v5v7`, `16s` (whole 16S, V1-V9) and `operon`
+  (16S-ITS-23S). The model files have readable names, for example
+  `taxonova-V4-greengenes2-26.10.pt`; they are the same files as before (same
+  checksums), and the earlier keys and file names still work (see
+  [docs/models.md](docs/models.md#earlier-names)).
+- `taxonova.models`: a small, stable Python interface to the model registry
+  (`list_models`, `get_model`, `ensure_model`, `models_dir`), used by the web
+  app and TaxoBench.
+- `taxonova.classify(...)` returns the classification as a pandas DataFrame
+  with the same columns as the command line.
+- Models are downloaded from GitHub and, if that fails, from a mirror on
+  Hugging Face (`claessonlab/taxonova-models`). Every download is checked
+  against the published sha256 (and md5); the operon model now has a sha256.
+- FASTA input may be gzip-compressed (`.gz`).
+- Documentation in `docs/`, a citation file (`CITATION.cff`), issue templates,
+  continuous integration on Python 3.9 to 3.12 and a release workflow.
+
+### Changed
+
+- `classification --model_input` also accepts a model id, and then downloads
+  the model if needed. Paths and file names behave as before.
+- `download-models --models` also accepts the new ids.
+- The download progress line is refreshed at most twice a second, and only on
+  an interactive terminal; before, a log or batch job received a line for every
+  8 KB.
+- The source distribution contains only the files listed in `MANIFEST.in`;
+  before, untracked files under `tests/` could be included.
+- Python 3.9 or later is required (3.8 is no longer tested).
+- The README is shorter. Benchmark figures are in the paper, and the history
+  of the Greengenes2 checkpoints is below.
+
+## [26.10.0] - 2026-10-29
 
 **Releases 26.9.0 to 26.9.2 applied no confidence thresholds to the four
 Greengenes2 checkpoints (V4, V3-V4, V5-V7, whole 16S).** For about 98 to 100% of
@@ -92,7 +146,7 @@ more novel queries than the tau-normalised ones: 0.14 at whole 16S and 0.18 at
 V5-V7 at 0.5/0.7, against 0.02 and 0.00 before; at the default 0.8 these are
 0.11 and 0.14.
 
-## 26.9.2
+## [26.9.2] - 2026-09-18
 
 Documentation and metadata only, no code change. The README, the package summary
 and the command-line help no longer describe Taxonova as a hierarchical classifier:
@@ -102,12 +156,12 @@ shorter and points to the web server first. QUICKSTART now gives the species
 threshold default as 0.8, as the software has used since 26.9.0, and the model
 tables name the whole-16S region and the GROND reference.
 
-## 26.9.1
+## [26.9.1] - 2026-09-06
 
 Metadata only, no code change. Corrects the author's surname to Kakabra, which
 26.9.0 and earlier spelt "Kaka Bra".
 
-## 26.9.0
+## [26.9.0] - 2026-09-06
 
 Two behaviour changes. Read the first one before rerunning an existing analysis.
 
@@ -156,7 +210,7 @@ epoch, so the retained initialisation is effectively zero and the averages are
 unaffected. The fix matters when training on a small reference, which is the
 case a user building a model from their own curated database will hit.
 
-## 26.6.0
+## [26.6.0] - 2026-06-06
 
 Not previously recorded here.
 
@@ -164,7 +218,7 @@ Not previously recorded here.
 - PEP 621 packaging: metadata moved into `pyproject.toml`.
 
 
-## 1.0.0
+## [1.0.0] - 2026-06-06
 
 The first public release, and the canonical version that matches the manuscript.
 
