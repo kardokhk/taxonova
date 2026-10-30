@@ -58,6 +58,9 @@ jobs:
 
   pypi:
     needs: build
+    # Off until PyPI Trusted Publishing is set up (docs/releasing.md); then set
+    # the repository variable PYPI_TRUSTED_PUBLISHING to true.
+    if: vars.PYPI_TRUSTED_PUBLISHING == 'true'
     runs-on: ubuntu-latest
     environment:
       name: pypi

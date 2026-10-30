@@ -23,6 +23,8 @@ class SequenceProcessor:
         self._mapping[ord('C')] = 1
         self._mapping[ord('G')] = 2
         self._mapping[ord('T')] = 3
+        # RNA input: U is read as T, so RNA and DNA spellings of a read give the same result.
+        self._mapping[ord('U')] = 3
 
     def generate_kmer_frequencies(self, sequence: str) -> np.ndarray:
         seq = sequence.upper()

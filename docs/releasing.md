@@ -131,6 +131,10 @@ On pypi.org, signed in as an owner of the `taxonova` project:
    environment named `pypi` and add yourself under "Required reviewers". This
    is required, not optional: it is what makes the PyPI upload wait until the
    model files are online (section 4).
+4. Under "Secrets and variables", "Actions", "Variables", add the repository
+   variable `PYPI_TRUSTED_PUBLISHING` with the value `true`. Until it is set,
+   the `pypi` job is skipped (not failed) and the package is uploaded by hand
+   as shown above.
 
 After this, no PyPI token is needed. The workflow skips files that are already
 on PyPI, so a version uploaded by hand does not make it fail.
