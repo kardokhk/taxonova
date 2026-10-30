@@ -25,6 +25,7 @@ loading PyTorch.
 import hashlib
 import os
 import sys
+import tempfile
 import time
 import urllib.request
 from dataclasses import dataclass, field
@@ -48,13 +49,19 @@ MODELS_DIR_ENV = "TAXONOVA_MODELS_DIR"
 
 _GITHUB = "https://github.com/kardokhk/taxonova/releases/download"
 _HF = "https://huggingface.co/claessonlab/taxonova-models/resolve/main"
-#: GitHub release that carries the five checkpoints under their current names.
-_RELEASE_TAG = "v26.10.1"
 
 
-def _urls(filename: str) -> Tuple[str, ...]:
-    """Download locations for a checkpoint, in the order they are tried."""
-    return (f"{_GITHUB}/{_RELEASE_TAG}/{filename}", f"{_HF}/{filename}")
+def _urls(filename: str, tag: str) -> Tuple[str, ...]:
+    """Download locations for a checkpoint, in the order they are tried.
+
+    ``tag`` is the GitHub release that carries the file, which is the release
+    of the package version that first published it under this name (for
+    example ``"v26.10.1"``). Each model passes its own tag, so a model added
+    in a later release does not move the address of the earlier ones.
+    """
+    if not tag or not tag.startswith("v"):
+        raise ValueError(f"release tag must look like 'vYY.MM.MICRO', got {tag!r}")
+    return (f"{_GITHUB}/{tag}/{filename}", f"{_HF}/{filename}")
 
 
 @dataclass(frozen=True)
@@ -104,7 +111,7 @@ _REGISTRY: List[ModelSpec] = [
         taxonomy="GTDB, through Greengenes2",
         model_version="26.10",
         filename="taxonova-V4-greengenes2-26.10.pt",
-        urls=_urls("taxonova-V4-greengenes2-26.10.pt"),
+        urls=_urls("taxonova-V4-greengenes2-26.10.pt", tag="v26.10.1"),
         sha256="c52aaafe2b9b79092171c11f67de469ac9d64f3e8fadac74e63e756792c0a3a3",
         md5="bccf86c9086b68defe8bc8a2a3dff2b6",
         size_mb=234,
@@ -120,7 +127,7 @@ _REGISTRY: List[ModelSpec] = [
         taxonomy="GTDB, through Greengenes2",
         model_version="26.10",
         filename="taxonova-V3V4-greengenes2-26.10.pt",
-        urls=_urls("taxonova-V3V4-greengenes2-26.10.pt"),
+        urls=_urls("taxonova-V3V4-greengenes2-26.10.pt", tag="v26.10.1"),
         sha256="005677c10327b981847b9ec5c5c529828716d0d628706fa65e2f77222309e0aa",
         md5="a5e584504627a8055afe25fd56893e37",
         size_mb=245,
@@ -136,7 +143,7 @@ _REGISTRY: List[ModelSpec] = [
         taxonomy="GTDB, through Greengenes2",
         model_version="26.10",
         filename="taxonova-V5V7-greengenes2-26.10.pt",
-        urls=_urls("taxonova-V5V7-greengenes2-26.10.pt"),
+        urls=_urls("taxonova-V5V7-greengenes2-26.10.pt", tag="v26.10.1"),
         sha256="77f7a75bf38c4923422dadf88e971764a3ccf604b23c1c96b46c0b325a670385",
         md5="6de1add678c05fd0c5c3679ea4094d1d",
         size_mb=235,
@@ -152,7 +159,7 @@ _REGISTRY: List[ModelSpec] = [
         taxonomy="GTDB, through Greengenes2",
         model_version="26.10",
         filename="taxonova-16S-greengenes2-26.10.pt",
-        urls=_urls("taxonova-16S-greengenes2-26.10.pt"),
+        urls=_urls("taxonova-16S-greengenes2-26.10.pt", tag="v26.10.1"),
         sha256="d2ec6d014cf771525887c136fa0591b09d5284db6035022bb60f7f96d2e453ca",
         md5="103e508682ad0b948e9f8a993bb7be0a",
         size_mb=242,
@@ -168,7 +175,7 @@ _REGISTRY: List[ModelSpec] = [
         taxonomy="GTDB R207",
         model_version="1.0",
         filename="taxonova-operon-grond-1.0.pt",
-        urls=_urls("taxonova-operon-grond-1.0.pt"),
+        urls=_urls("taxonova-operon-grond-1.0.pt", tag="v26.10.1"),
         sha256="9ac36fea212edd569198027c9e6fb182199bb316acacad188d758929c9408289",
         md5="6f5d4ef039888a33ad765ef41725b624",
         size_mb=231,
@@ -343,24 +350,35 @@ def _fetch(url: str, dest: Path, quiet: bool, timeout: float = 60.0) -> None:
 
 def _download(spec: ModelSpec, directory: Path, quiet: bool) -> Path:
     """Fetch ``spec`` into ``directory`` from the first URL that gives a file
-    with the right checksums. Each attempt writes ``<file>.part`` and moves it
-    into place only after verification, so a failure never leaves a partial
-    file under the model's name."""
+    with the right checksums.
+
+    Each attempt writes to its own temporary ``<file>.<random>.part`` and moves
+    it into place only after verification, so a failure never leaves a partial
+    file under the model's name, and several jobs that start at the same time
+    (for example an array job on a cluster) do not overwrite each other. If
+    another process finishes first, its verified copy is used.
+    """
     directory.mkdir(parents=True, exist_ok=True)
     target = directory / spec.filename
-    part = directory / (spec.filename + ".part")
     errors = []
     for url in spec.urls:
         host = urlparse(url).netloc or url
         _say(f"Downloading model {spec.id} ({spec.size_mb} MB) from {host} to {directory}", quiet)
+        fd, part_name = tempfile.mkstemp(dir=str(directory), prefix=spec.filename + ".", suffix=".part")
+        os.close(fd)
+        part = Path(part_name)
         try:
             _fetch(url, part, quiet)
             if not verify(part, spec, full=True):
                 raise ValueError("checksum does not match the published sha256/md5")
+            os.chmod(part, 0o644)
             os.replace(part, target)
             _say(f"Model {spec.id} saved as {target}", quiet)
             return target
-        except Exception as exc:  # try the next location
+        except Exception as exc:  # another process may have finished; else try the next location
+            done = find_cached(spec, directory, check=True)
+            if done is not None:
+                return done
             errors.append(f"{url}: {exc}")
             _say(f"  could not use {host}: {exc}", quiet)
         finally:
