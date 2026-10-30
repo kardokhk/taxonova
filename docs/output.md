@@ -21,7 +21,9 @@ name and separates groups in the Greengenes2 tree that share a GTDB name.
 
 The `taxonova classify` and `taxonova classification` commands and the Python
 function `taxonova.classify` give the same table for the same model and
-thresholds. The web app gives the same rows too, except that it first screens
+thresholds. On a different processor, a confidence can differ in the fourth
+decimal because of floating-point rounding; labels are the same. The web app
+gives the same rows too, except that it first screens
 each sequence for rRNA and reports a sequence that fails the screen as
 `Unclassified` at every rank.
 
