@@ -1,124 +1,45 @@
 # Python
 __pycache__/
 *.py[cod]
-*$py.class
 *.so
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-pip-wheel-metadata/
-share/python-wheels/
 *.egg-info/
-.installed.cfg
 *.egg
-MANIFEST
-
-# PyInstaller
-*.manifest
-*.spec
+.eggs/
+build/
+dist/
+pip-wheel-metadata/
 
 # Virtual environments
+.venv/
 venv/
 env/
-ENV/
-env.bak/
-venv.bak/
-test_env/
-testpypi_env/
-verify_env/
 
-# IDEs
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-.DS_Store
-
-# Jupyter Notebook
-.ipynb_checkpoints
-
-# PyPI
-.pypirc
-.pypirc.template
-dist/
-build/
-
-# Testing
+# Tests and tools
+.pytest_cache/
 .tox/
 .coverage
 .coverage.*
-.cache
-nosetests.xml
 coverage.xml
-*.cover
 .hypothesis/
-.pytest_cache/
-test_*.py
-build_and_test.sh
 
-# Logs
-*.log
+# Run output written into the working directory
 output/
 logs/
+*.log
+*.taxonova.tsv
 
-# Models and databases (large files - should be downloaded separately)
-models/*.pt
-database/*.fasta
+# Models (downloaded on first use; never committed)
+*.pt
+*.pt.part
 
-# Sample input/output data
-input/
-output/
-
-# Binary and compiled scripts
-bin/
-
-# Internal documentation (not needed on GitHub)
-IMPLEMENTATION_SUMMARY.md
-READY_TO_PUBLISH.md
-PUBLISHING.md
-MODEL_HOSTING.md
-.pypirc.template
-
-# User-specific
-.env
-.env.local
-*.local
-
-# MacOS
+# Editors and operating systems
+.vscode/
+.idea/
+*.swp
+*~
 .DS_Store
-.AppleDouble
-.LSOverride
 
-# Thumbnails
-._*
-
-# Files that might appear in the root of a volume
-.DocumentRevisions-V100
-.fseventsd
-.Spotlight-V100
-.TemporaryItems
-.Trashes
-.VolumeIcon.icns
-.com.apple.timemachine.donotpresent
-
-# Directories potentially created on remote AFP share
-.AppleDB
-.AppleDesktop
-Network Trash Folder
-Temporary Items
-.apdisk
-
-Network Trash Folder
-Temporary Items
-.apdisk
+# Local helper scripts and credentials
+bin/
+.env
+.pypirc
