@@ -18,7 +18,7 @@ and, if you can, a few sequences that show the problem.
    them; set `TAXONOVA_TEST_MODELS_DIR` to a directory that holds them to run
    those too.
 4. Describe the change in `CHANGELOG.md` under "Unreleased".
-5. Open a pull request. The tests run automatically on Python 3.9 to 3.12.
+5. Open a pull request. The tests run automatically on Python 3.10 to 3.12.
 
 A change that alters the classification output for an existing model needs a
 note in the changelog that says how the output changes and why.

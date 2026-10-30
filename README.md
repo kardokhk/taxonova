@@ -15,7 +15,7 @@ it is confident about.
 **No installation:** upload a FASTA file to the
 [web app](https://huggingface.co/spaces/claessonlab/Taxonova).
 
-**Command line** (Python 3.9 or later):
+**Command line** (Python 3.10 or later):
 
 ```bash
 pip install taxonova
