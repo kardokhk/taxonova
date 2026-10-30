@@ -106,40 +106,16 @@ def _download(ids, directory, force=False):
 
 
 def _list(directory, show_all=False):
-    """Stable models first; preview models in their own section below, so
-    that a preview is never mistaken for an evaluated model; deprecated
-    models only with --all."""
-    specs = registry.list_models(include_hidden=True)
-    sections = [("stable", None),
-                ("preview", "Preview models (released for use; evaluation not complete, "
-                            "see docs/models.md#preview-models):")]
-    if show_all:
-        sections.append(("deprecated", "Deprecated models (kept to rerun earlier analyses):"))
-    header = ("id", "amplicon", "reference", "size", "downloaded")
-    tables = []
-    for status, title in sections:
-        rows = []
-        for spec in (s for s in specs if s.status == status):
-            cached = registry.find_cached(spec, directory, check=False)
-            version = spec.reference_version
-            ref = spec.reference
-            if version:  # "SILVA 138.2", "GROND (GTDB R207)"
-                ref += f" ({version})" if " " in version else f" {version}"
-            rows.append((spec.id, spec.region, ref, f"{spec.size_mb} MB", "yes" if cached else "no"))
-        if rows:
-            tables.append((title, rows))
-    # One set of column widths, so the sections line up.
-    widths = [max(len(r[i]) for r in [header] + [row for _, rows in tables for row in rows])
-              for i in range(len(header))]
-
-    def line(cells):
-        return "  ".join(cell.ljust(w) for cell, w in zip(cells, widths)).rstrip()
-
-    print(line(header))
-    for title, rows in tables:
-        if title:
-            print(f"\n{title}")
-        for row in rows:
-            print(line(row))
+    specs = registry.list_models(include_hidden=show_all)
+    rows = [("id", "amplicon", "reference", "size", "downloaded")]
+    for spec in specs:
+        cached = registry.find_cached(spec, directory, check=False)
+        ref = f"{spec.reference} ({spec.reference_version})" if spec.reference_version else spec.reference
+        if spec.status != "stable":
+            ref += f" [{spec.status}]"
+        rows.append((spec.id, spec.region, ref, f"{spec.size_mb} MB", "yes" if cached else "no"))
+    widths = [max(len(r[i]) for r in rows) for i in range(len(rows[0]))]
+    for row in rows:
+        print("  ".join(cell.ljust(w) for cell, w in zip(row, widths)).rstrip())
     print(f"\nModels directory: {directory}")
     print("Use a model:  taxonova classify reads.fasta --model <id>   (downloads it on first use)")

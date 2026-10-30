@@ -8,7 +8,7 @@ Quick use from Python::
 See https://github.com/kardokhk/taxonova for documentation.
 """
 
-__version__ = "26.10.2"
+__version__ = "26.10.1"
 
 __all__ = ["__version__", "classify"]
 
