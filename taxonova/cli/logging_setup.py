@@ -28,6 +28,8 @@ def setup_logging(output_dir: str = "output", mode: str = "training", verbose: b
     if log_file is None:
         console = logging.StreamHandler()
         console.setLevel(logging.DEBUG if verbose else logging.WARNING)
+        if not verbose:  # plain console messages when there is no log file
+            console.setFormatter(logging.Formatter("%(levelname)s: %(message)s"))
         handlers = [console]
     else:
         Path(log_file).parent.mkdir(parents=True, exist_ok=True)

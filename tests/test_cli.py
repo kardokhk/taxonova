@@ -115,3 +115,29 @@ def test_classify_errors_are_short(tmp_path, repo_env):
     (tmp_path / "q.fasta").write_text(">a\nACGT\n")
     r = _run(["classify", "q.fasta", "-m", "silva"], repo_env, tmp_path)
     assert r.returncode != 0 and "Unknown model 'silva'" in r.stderr and "Traceback" not in r.stderr
+
+
+def test_failed_start_keeps_earlier_log(tmp_path, repo_env):
+    """A mistyped model or input exits before the log is opened, so the log of
+    an earlier run with the same output name is not replaced."""
+    (tmp_path / "q.fasta").write_text(">a\nACGT\n")
+    log = tmp_path / "q.taxonova.log"
+    log.write_text("log of an earlier successful run\n")
+    r = _run(["classify", "q.fasta", "-m", "v4-silva"], repo_env, tmp_path)
+    assert r.returncode != 0 and "Unknown model" in r.stderr
+    assert log.read_text() == "log of an earlier successful run\n"
+    r = _run(["classify", "missing.fasta"], repo_env, tmp_path)
+    assert r.returncode != 0
+    assert not (tmp_path / "missing.taxonova.log").exists()
+
+
+def test_api_checks_input_before_model(monkeypatch, tmp_path):
+    import taxonova
+    from taxonova import models
+
+    def no_download(*args, **kwargs):
+        raise AssertionError("the model was resolved before the input was checked")
+
+    monkeypatch.setattr(models, "ensure_model", no_download)
+    with pytest.raises(FileNotFoundError):
+        taxonova.classify(str(tmp_path / "missing.fasta"), model="v4")

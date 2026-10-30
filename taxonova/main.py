@@ -37,8 +37,12 @@ def main(argv=None):
 
     from taxonova.cli.logging_setup import setup_logging
     if args.mode == "classify":
-        from taxonova.cli.classify_handler import prepare_classify_args, log_path_for
+        from taxonova.cli.classify_handler import (prepare_classify_args, log_path_for,
+                                                   resolve_classify_model)
         prepare_classify_args(args)
+        # Before the log is opened, so a failed start does not replace the log
+        # of an earlier run that wrote the same table.
+        resolve_classify_model(args)
         log_file = setup_logging(mode=args.mode, verbose=args.verbose,
                                  log_file=None if args.no_log else str(log_path_for(args.output)))
     else:
@@ -50,7 +54,15 @@ def main(argv=None):
 
     if args.mode == "classify":
         from taxonova.cli.classify_handler import classify_mode
-        classify_mode(args)
+        try:
+            classify_mode(args)
+        except SystemExit as exc:
+            if exc.code not in (0, None):
+                logger.error(f"Run failed: {exc.code}")
+            raise
+        except BaseException as exc:
+            logger.error(f"Run failed: {type(exc).__name__}: {exc}")
+            raise
     elif args.mode == "training":
         from taxonova.cli.training_handler import training_mode
         training_mode(args)
