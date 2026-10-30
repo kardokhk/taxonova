@@ -8,6 +8,17 @@ for further releases in the same month. Model files carry their own version
 
 ## [Unreleased]
 
+## [26.10.3] - 2026-10-30
+
+Withdraws 26.10.2. Code, models and output are the same as 26.10.1.
+
+### Removed
+
+- The four preview models added in 26.10.2 (`v4-rdp`, `v3v4-rdp`, `v5v7-rdp`,
+  `v3v4-silva`). Their species-level performance needs more evaluation before
+  they are offered; SILVA and RDP models remain in preparation. Use 26.10.3,
+  not 26.10.2.
+
 ## [26.10.1] - 2026-10-30
 
 Usability release. Classification output is unchanged: for the same model and
