@@ -66,8 +66,9 @@ class ModelSpec:
     by default, ``"preview"`` for models that can be used by id but are not
     yet listed (for example a new reference under evaluation), and
     ``"deprecated"`` for models kept only so that old analyses can be rerun.
-    ``aliases`` are other names that resolve to this model; aliases ending in
-    ``.pt`` are earlier file names of the same bytes.
+    ``aliases`` are other names that resolve to this model (matched without
+    regard to case); aliases ending in ``.pt`` are earlier file names of the
+    same bytes.
     """
 
     id: str
@@ -107,7 +108,7 @@ _REGISTRY: List[ModelSpec] = [
         sha256="c52aaafe2b9b79092171c11f67de469ac9d64f3e8fadac74e63e756792c0a3a3",
         md5="bccf86c9086b68defe8bc8a2a3dff2b6",
         size_mb=234,
-        aliases=("gg2_v4", "V4", "gg2_v4_mrgroups_model_26.10.pt"),
+        aliases=("gg2_v4", "gg2_v4_mrgroups_model_26.10.pt"),
         description="Short amplicons of the 16S V4 region (about 250 bp).",
     ),
     ModelSpec(
@@ -171,7 +172,7 @@ _REGISTRY: List[ModelSpec] = [
         sha256="9ac36fea212edd569198027c9e6fb182199bb316acacad188d758929c9408289",
         md5="6f5d4ef039888a33ad765ef41725b624",
         size_mb=231,
-        aliases=("gtdb_rrn", "rrn", "RRN", "gtdb_rrn_mrgroups_model.pt"),
+        aliases=("gtdb_rrn", "rrn", "gtdb_rrn_mrgroups_model.pt"),
         description="Long reads that span the rRNA operon, 16S-ITS-23S (about 4,500 bp).",
     ),
 ]
