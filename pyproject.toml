@@ -7,7 +7,7 @@ name = "taxonova"
 version = "26.10.1"
 description = "Taxonomic classification of 16S rRNA and rRNA operon amplicon sequences with confidence-aware deep learning models"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 license = { text = "MIT" }
 authors = [{ name = "Kardokh Kakabra", email = "kardokhkaka@gmail.com" }]
 keywords = ["bioinformatics", "taxonomy", "classification", "deep-learning", "amplicon", "16S", "rRNA", "microbiome", "metagenomics"]
@@ -17,7 +17,6 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Bio-Informatics",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3 :: Only",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",

@@ -44,7 +44,7 @@ thresholds, every table is byte-identical to 26.10.0.
   sequence give the same result. Before, every k-mer containing `U` was
   ignored.
 - Documentation in `docs/`, a citation file (`CITATION.cff`), issue templates,
-  continuous integration on Python 3.9 to 3.12 and a release workflow.
+  continuous integration on Python 3.10 to 3.12 and a release workflow.
 
 ### Changed
 
@@ -58,7 +58,8 @@ thresholds, every table is byte-identical to 26.10.0.
   loaded, and the help text of `calibrate` and `fit-ood` is plainer.
 - The source distribution contains only the files listed in `MANIFEST.in`;
   before, untracked files under `tests/` could be included.
-- Python 3.9 or later is required (3.8 is no longer tested).
+- Python 3.10 or later is required. Python 3.8 and 3.9 have reached end of life
+  and are no longer tested; taxonova 26.10.0 still installs on them.
 - The README is shorter. Benchmark figures are in the paper, and the history
   of the Greengenes2 checkpoints is below.
 
