@@ -40,6 +40,9 @@ thresholds, every table is byte-identical to 26.10.0.
   each downloads to its own temporary file, and the first verified copy is
   used.
 - FASTA input may be gzip-compressed (`.gz`).
+- RNA input is accepted: `U` is read as `T`, so the RNA and DNA spellings of a
+  sequence give the same result. Before, every k-mer containing `U` was
+  ignored.
 - Documentation in `docs/`, a citation file (`CITATION.cff`), issue templates,
   continuous integration on Python 3.9 to 3.12 and a release workflow.
 

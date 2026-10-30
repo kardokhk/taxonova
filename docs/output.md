@@ -19,10 +19,11 @@ such as `Prevotella sp002251435`. Some Greengenes2 names also end in a number,
 for example `Pseudomonadales_A_641035`. The number is part of the Greengenes2
 name and separates groups in the Greengenes2 tree that share a GTDB name.
 
-The `taxonova classification` command, the Python function
-`taxonova.classify` give the same table for the same model and thresholds. The
-web app gives the same rows too, except that it first drops sequences that do
-not look like rRNA.
+The `taxonova classify` and `taxonova classification` commands and the Python
+function `taxonova.classify` give the same table for the same model and
+thresholds. The web app gives the same rows too, except that it first screens
+each sequence for rRNA and reports a sequence that fails the screen as
+`Unclassified` at every rank.
 
 ## Unclassified
 
@@ -36,7 +37,7 @@ have identical sequences.
 The confidence is printed even for `Unclassified` ranks, so you can see how
 close a call was.
 
-`Unknown` (rare) means the reference itself had no name at that rank for the
+`Unknown` means the reference itself had no name at that rank for the
 predicted lineage.
 
 ## Confidence capping
