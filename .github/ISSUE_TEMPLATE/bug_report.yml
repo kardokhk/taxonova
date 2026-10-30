@@ -1,0 +1,41 @@
+name: Bug report
+description: Something does not work, or the output looks wrong.
+labels: ["bug"]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you expected, and what happened instead. Paste the error message if there is one.
+    validations:
+      required: true
+  - type: textarea
+    id: command
+    attributes:
+      label: Command or code
+      description: The exact command (or Python code) you ran.
+      render: shell
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Taxonova version
+      description: Output of `taxonova --version`, or "web app".
+    validations:
+      required: true
+  - type: input
+    id: model
+    attributes:
+      label: Model
+      description: For example v4, v3v4, 16s, or the path to your own model.
+  - type: input
+    id: system
+    attributes:
+      label: Operating system and Python version
+      placeholder: Ubuntu 22.04, Python 3.11
+  - type: textarea
+    id: data
+    attributes:
+      label: Example input
+      description: If you can, attach a few sequences that show the problem (a small FASTA file).

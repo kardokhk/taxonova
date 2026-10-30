@@ -1,0 +1,43 @@
+cff-version: 1.2.0
+message: "If you use Taxonova, please cite the paper below."
+title: "Taxonova"
+type: software
+version: "26.10.1"
+date-released: "2026-10-30"
+license: MIT
+repository-code: "https://github.com/kardokhk/taxonova"
+url: "https://github.com/kardokhk/taxonova"
+authors:
+  - family-names: Kakabra
+    given-names: Kardokh
+    orcid: "https://orcid.org/0009-0000-4403-8607"
+    affiliation: "School of Microbiology and APC Microbiome Ireland, University College Cork"
+keywords:
+  - bioinformatics
+  - taxonomy
+  - 16S rRNA
+  - amplicon
+  - microbiome
+  - deep learning
+preferred-citation:
+  type: article
+  title: "Taxonova: Deep learning enables fast and confidence-aware microbiome species-level amplicon classification"
+  authors:
+    - family-names: Kakabra
+      given-names: Kardokh
+      orcid: "https://orcid.org/0009-0000-4403-8607"
+    - family-names: Patel
+      given-names: Shriram
+    - family-names: Temko
+      given-names: Andriy
+    - family-names: Claesson
+      given-names: Marcus J.
+      orcid: "https://orcid.org/0000-0002-5712-0623"
+  journal: "PLOS Computational Biology"
+  year: 2026
+  month: 10
+  volume: 22
+  issue: 10
+  start: e1014912
+  doi: "10.1371/journal.pcbi.1014912"
+  url: "https://doi.org/10.1371/journal.pcbi.1014912"

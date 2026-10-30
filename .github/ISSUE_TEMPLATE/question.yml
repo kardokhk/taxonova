@@ -1,0 +1,16 @@
+name: Question
+description: Ask how to do something with Taxonova.
+labels: ["question"]
+body:
+  - type: textarea
+    id: question
+    attributes:
+      label: Question
+      description: Please check the documentation first (https://github.com/kardokhk/taxonova/tree/main/docs).
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Taxonova version
+      description: Output of `taxonova --version`, or "web app".
