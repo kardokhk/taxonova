@@ -9,13 +9,14 @@ Public API (kept small and stable)::
     from taxonova.models import ModelSpec, list_models, get_model, ensure_model, models_dir
 
     list_models()                 # stable models, in display order
+    list_models(include_hidden=True)  # also preview (and deprecated) models; check spec.status
     get_model("v3v4")             # ModelSpec; also accepts aliases and old names
     ensure_model("v4")            # pathlib.Path to a verified local copy (downloads once)
     models_dir()                  # $TAXONOVA_MODELS_DIR, else ~/.taxonova/models
 
 Model ids follow ``<region>[-<reference>]``. The reference suffix is left out
-for the default reference of a region (Greengenes2 for the 16S regions), so a
-SILVA V4 model would be ``v4-silva``. The number at the end of a file name is
+for the default reference of a region (Greengenes2 for the 16S regions), so
+the SILVA V3-V4 model is ``v3v4-silva``. The number at the end of a file name is
 the version of the model (when the checkpoint was made), not the version of
 the package. See docs/models.md for how a model is added.
 
@@ -69,10 +70,12 @@ class ModelSpec:
     """One pretrained model.
 
     ``urls`` are tried in order; a download is accepted only if its sha256
-    (and md5, where listed) match. ``status`` is ``"stable"`` for models shown
-    by default, ``"preview"`` for models that can be used by id but are not
-    yet listed (for example a new reference under evaluation), and
-    ``"deprecated"`` for models kept only so that old analyses can be rerun.
+    (and md5, where listed) match. ``status`` is ``"stable"`` for models
+    returned by :func:`list_models` by default, ``"preview"`` for models that
+    are released and can be used by id but whose evaluation is not complete
+    (for example a new reference; ``taxonova models`` lists them in a separate
+    section), and ``"deprecated"`` for models kept only so that old analyses
+    can be rerun.
     ``aliases`` are other names that resolve to this model (matched without
     regard to case); aliases ending in ``.pt`` are earlier file names of the
     same bytes.
@@ -182,6 +185,72 @@ _REGISTRY: List[ModelSpec] = [
         aliases=("gtdb_rrn", "rrn", "gtdb_rrn_mrgroups_model.pt"),
         description="Long reads that span the rRNA operon, 16S-ITS-23S (about 4,500 bp).",
     ),
+    # Preview models (released in 26.10.2): SILVA 138.2 and RDP 19 references.
+    # Evaluation and model cards: docs/models.md#preview-models.
+    ModelSpec(
+        id="v4-rdp",
+        name="16S V4, RDP",
+        region="16S V4",
+        reference="RDP",
+        reference_version="19",
+        taxonomy="RDP training set 19",
+        model_version="26.10",
+        filename="taxonova-V4-rdp-26.10.pt",
+        urls=_urls("taxonova-V4-rdp-26.10.pt", tag="v26.10.2"),
+        sha256="785a94a6dc710a4feb277ac291ff7d1640ed9e4d86feaf7ace61b3d152135efd",
+        md5="f3974e9a0c0b0aa0a4c2a03af4a3a80a",
+        size_mb=205,
+        status="preview",
+        description="Short amplicons of the 16S V4 region (515F/806R), RDP names.",
+    ),
+    ModelSpec(
+        id="v3v4-silva",
+        name="16S V3-V4, SILVA",
+        region="16S V3-V4",
+        reference="SILVA",
+        reference_version="138.2",
+        taxonomy="SILVA 138.2",
+        model_version="26.10",
+        filename="taxonova-V3V4-silva-26.10.pt",
+        urls=_urls("taxonova-V3V4-silva-26.10.pt", tag="v26.10.2"),
+        sha256="929a56bf14ed2937e5571b933459cab07d3231a73c76901367406c595b59f94d",
+        md5="93f65881154b927a99277d25e6be6e15",
+        size_mb=207,
+        status="preview",
+        description="Amplicons of the 16S V3-V4 region (341F/805R), SILVA names.",
+    ),
+    ModelSpec(
+        id="v3v4-rdp",
+        name="16S V3-V4, RDP",
+        region="16S V3-V4",
+        reference="RDP",
+        reference_version="19",
+        taxonomy="RDP training set 19",
+        model_version="26.10",
+        filename="taxonova-V3V4-rdp-26.10.pt",
+        urls=_urls("taxonova-V3V4-rdp-26.10.pt", tag="v26.10.2"),
+        sha256="199e653704a47a32b5b49ba7d4db5a6129d41ffcf75bcb39abed29b0f5d1e36e",
+        md5="53de1b25c6837b560361cb879d3ab59d",
+        size_mb=207,
+        status="preview",
+        description="Amplicons of the 16S V3-V4 region (341F/805R), RDP names.",
+    ),
+    ModelSpec(
+        id="v5v7-rdp",
+        name="16S V5-V7, RDP",
+        region="16S V5-V7",
+        reference="RDP",
+        reference_version="19",
+        taxonomy="RDP training set 19",
+        model_version="26.10",
+        filename="taxonova-V5V7-rdp-26.10.pt",
+        urls=_urls("taxonova-V5V7-rdp-26.10.pt", tag="v26.10.2"),
+        sha256="b0b936cc93726bec605d41f375321d0dfaaa27a7db03378d275ef10ffb52d8f8",
+        md5="6e72ceadec08776bce539f167d53b755",
+        size_mb=208,
+        status="preview",
+        description="Amplicons of the 16S V5-V7 region (799F/1193R), RDP names.",
+    ),
 ]
 
 #: Greengenes2 checkpoints of release v1.0.0, used by taxonova 1.0.0 to 26.9.2:
@@ -212,8 +281,13 @@ def _visible(spec: ModelSpec, include_hidden: bool) -> bool:
 
 
 def list_models(include_hidden: bool = False) -> List[ModelSpec]:
-    """Models in display order. Preview and deprecated models are listed only
-    with ``include_hidden=True``."""
+    """Models in display order.
+
+    By default only ``stable`` models, so that code that loops over the
+    result (``taxonova models download all``, the web app's build check)
+    gets the evaluated models only. With ``include_hidden=True``, preview and
+    deprecated models follow; use ``spec.status`` to label or filter them.
+    Every model can be used by id whatever its status."""
     return [s for s in _REGISTRY if _visible(s, include_hidden)]
 
 
@@ -241,6 +315,9 @@ def get_model(name: str) -> ModelSpec:
     if spec is not None:
         return spec
     ids = ", ".join(s.id for s in list_models())
+    preview = [s.id for s in _REGISTRY if s.status == "preview"]
+    if preview:
+        ids += f"; preview: {', '.join(preview)}"
     hint = ""
     if Path(str(name)).name in SUPERSEDED_MODEL_FILES:
         new_id = SUPERSEDED_MODEL_FILES[Path(str(name)).name][0]
@@ -419,8 +496,9 @@ def ensure_model(name_or_alias_or_path, models_dir=None, quiet: bool = False, fo
     spec = _lookup(raw)
     if spec is not None:
         if spec.status == "preview":
-            _say(f"Note: model {spec.id} is a preview; its files and results may change "
-                 f"before it is marked stable.", quiet)
+            _say(f"Note: model {spec.id} ({spec.reference} {spec.reference_version}) is a preview: "
+                 f"names follow {spec.reference}, and species calls on sequences unlike the "
+                 f"reference are less reliable. See docs/models.md (preview models).", quiet)
         elif spec.status == "deprecated":
             _say(f"Note: model {spec.id} is deprecated and kept only to rerun earlier analyses.", quiet)
         if not force:

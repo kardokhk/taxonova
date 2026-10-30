@@ -57,8 +57,8 @@ def _add_classify_parser(subparsers):
     )
     p.add_argument("input", metavar="INPUT", help="query sequences in FASTA format (plain or .gz)")
     p.add_argument("-m", "--model", default=None, metavar="MODEL",
-                   help="model id (v4, v3v4, v5v7, 16s, operon; see 'taxonova models') or the path "
-                        "to a .pt checkpoint (default: v4)")
+                   help="model id (v4, v3v4, v5v7, 16s, operon; preview: v4-rdp, v3v4-silva, v3v4-rdp, "
+                        "v5v7-rdp; see 'taxonova models') or the path to a .pt checkpoint (default: v4)")
     p.add_argument("-o", "--output", default=None, metavar="OUT",
                    help="output table (default: <input name>.taxonova.tsv in the current directory)")
     p.add_argument("-c", "--confidence", "--confidence_threshold", dest="confidence_threshold",
@@ -94,12 +94,14 @@ def _add_models_parser(subparsers):
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     p.add_argument("--all", dest="show_all", action="store_true", default=False,
-                   help="also list preview and deprecated models")
+                   help="also list deprecated models (preview models are always listed, "
+                        "in their own section)")
     p.add_argument("--models-dir", default=None, metavar="PATH",
                    help="where models are stored (default: $TAXONOVA_MODELS_DIR, else ~/.taxonova/models)")
     sub = p.add_subparsers(dest="models_action", metavar="ACTION")
     d = sub.add_parser("download", help="download models: one or more ids, or 'all'")
-    d.add_argument("ids", nargs="+", metavar="ID", help="model ids, or 'all'")
+    d.add_argument("ids", nargs="+", metavar="ID",
+                   help="model ids, or 'all' (the stable models; name preview models by id)")
     d.add_argument("--force", action="store_true", default=False,
                    help="download again even if a verified copy exists")
     d.add_argument("--models-dir", dest="download_models_dir", default=None, metavar="PATH",

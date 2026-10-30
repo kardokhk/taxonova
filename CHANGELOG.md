@@ -8,6 +8,39 @@ for further releases in the same month. Model files carry their own version
 
 ## [Unreleased]
 
+## [26.10.2] - 2026-10-30
+
+Four preview models for two further references, SILVA 138.2 and RDP 19.
+Output of the existing models is unchanged: for the same model and
+thresholds, every table is byte-identical to 26.10.1.
+
+### Added
+
+- Preview models, chosen with `--model` like the others:
+  `v4-rdp` (16S V4, RDP 19), `v3v4-rdp` (16S V3-V4, RDP 19),
+  `v5v7-rdp` (16S V5-V7, RDP 19) and `v3v4-silva` (16S V3-V4, SILVA 138.2).
+  Their output uses the names of their reference, not GTDB names. They are
+  marked `preview` because their evaluation is not complete (no real-world
+  data, no test on taxa absent from the reference, thresholds not fitted);
+  species calls on sequences unlike the reference are less reliable. The
+  model cards in [docs/models.md](docs/models.md#preview-models) give the
+  data source, training and results. Ids without a suffix (`v4`, `v3v4`,
+  `v5v7`, `16s`) remain the Greengenes2 models.
+- `docs/models.md`: a section on the reference databases.
+
+### Changed
+
+- `taxonova models` lists preview models by default, in a separate section
+  below the stable models, and shows each reference with its version
+  (`Greengenes2 2024.09`, `SILVA 138.2`, `RDP 19`). `--all` now adds only
+  deprecated models (there are none at present).
+- Using a preview model prints a one-line note that names its reference.
+- The message for an unknown model id also lists the preview ids.
+- `list_models()` is unchanged: it returns the stable models; with
+  `include_hidden=True` the preview models follow, and `ModelSpec.status`
+  tells them apart. `taxonova models download all` downloads the stable
+  models only; preview models are downloaded by id or on first use.
+
 ## [26.10.1] - 2026-10-30
 
 Usability release. Classification output is unchanged: for the same model and
