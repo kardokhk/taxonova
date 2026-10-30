@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Classify sequences without installing anything
+    url: https://huggingface.co/spaces/claessonlab/Taxonova
+    about: The Taxonova web app runs the same models in the browser.
+  - name: Documentation
+    url: https://github.com/kardokhk/taxonova/tree/main/docs
+    about: Models, output columns, thresholds, the Python interface and training your own model.
