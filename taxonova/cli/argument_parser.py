@@ -6,29 +6,33 @@ import argparse
 from taxonova.core.thresholds import GRADED_PROFILE, GRADED_SPECIES
 
 
+RANKS = ("domain", "phylum", "class", "order", "family", "genus")
+
+
 def create_argument_parser():
     """Create and configure the argument parser for Taxonova."""
+    from taxonova import __version__
+
     parser = argparse.ArgumentParser(
-        description="""
-Taxonova: deep learning taxonomic classification of rRNA amplicon sequences
-
-Assigns a lineage from domain to species, with a confidence at each rank, and
-reports each sequence only down to the deepest rank that meets its threshold.
-
-Smart Full Data Training:
-  Use --smart_full_data for optimal training on 100% of your data:
-    1. Scouts with early stopping to find optimal stopping point
-    2. Retrains on 100% of data using those optimal epochs
-  
-  Example: taxonova training --train_db data.fasta --smart_full_data --verbose
-        """,
-        formatter_class=argparse.RawDescriptionHelpFormatter
+        prog="taxonova",
+        description=(
+            "Taxonova: taxonomic classification of 16S rRNA and rRNA operon amplicon sequences.\n\n"
+            "Classify sequences (the model is downloaded on first use):\n"
+            "  taxonova classify reads.fasta --model v4\n\n"
+            "List the pretrained models:\n"
+            "  taxonova models\n\n"
+            "Documentation: https://github.com/kardokhk/taxonova#readme"
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    
-    subparsers = parser.add_subparsers(dest="mode", title="Operation Modes", required=True)
+    parser.add_argument("--version", action="version", version=f"taxonova {__version__}")
 
-    _add_training_parser(subparsers)
+    subparsers = parser.add_subparsers(dest="mode", title="commands", metavar="COMMAND", required=True)
+
+    _add_classify_parser(subparsers)
+    _add_models_parser(subparsers)
     _add_classification_parser(subparsers)
+    _add_training_parser(subparsers)
     _add_calibration_parser(subparsers)
     _add_fit_ood_parser(subparsers)
     _add_download_models_parser(subparsers)
@@ -36,18 +40,85 @@ Smart Full Data Training:
     return parser
 
 
+def _add_classify_parser(subparsers):
+    """`taxonova classify INPUT [-m MODEL] [-o OUT] ...`: the short path."""
+    p = subparsers.add_parser(
+        "classify",
+        help="Classify sequences with a pretrained model (downloaded on first use)",
+        description=(
+            "Classify the sequences in a FASTA file. The model is downloaded the first time it\n"
+            "is used. Output is a tab-separated table with a label and a confidence for each\n"
+            "rank from domain to species.\n\n"
+            "Examples:\n"
+            "  taxonova classify reads.fasta --model v4\n"
+            "  taxonova classify reads.fasta -m v3v4 -o out.tsv --confidence 0.7 --threads 8"
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    p.add_argument("input", metavar="INPUT", help="query sequences in FASTA format (plain or .gz)")
+    p.add_argument("-m", "--model", default=None, metavar="MODEL",
+                   help="model id (v4, v3v4, v5v7, 16s, operon; see 'taxonova models') or the path "
+                        "to a .pt checkpoint (default: v4)")
+    p.add_argument("-o", "--output", default=None, metavar="OUT",
+                   help="output table (default: <input name>.taxonova.tsv in the current directory)")
+    p.add_argument("-c", "--confidence", "--confidence_threshold", dest="confidence_threshold",
+                   type=float, default=GRADED_SPECIES, metavar="X",
+                   help=("species confidence threshold (default: %.1f); the thresholds of the other "
+                         "ranks scale with it" % GRADED_SPECIES))
+    p.add_argument("-t", "--threads", "--cpu_threads", dest="cpu_threads", type=int, default=None,
+                   metavar="N", help="CPU threads (default: 2)")
+    g = p.add_argument_group("per-rank thresholds (override the scaled defaults)")
+    for lvl in RANKS:
+        g.add_argument(f"--{lvl}-threshold", f"--{lvl}_threshold", dest=f"{lvl}_threshold",
+                       type=float, default=None, metavar="X",
+                       help=f"{lvl} threshold (default: {GRADED_PROFILE[lvl]} at --confidence {GRADED_SPECIES})")
+    p.add_argument("--models-dir", default=None, metavar="PATH",
+                   help="where models are stored (default: $TAXONOVA_MODELS_DIR, else ~/.taxonova/models)")
+    p.add_argument("--no-log", action="store_true", default=False,
+                   help="do not write the run log (<output name>.log) next to the output table")
+    _add_common_output_args(p)
+
+
+def _add_models_parser(subparsers):
+    """`taxonova models` (list) and `taxonova models download IDS|all`."""
+    p = subparsers.add_parser(
+        "models",
+        help="List the pretrained models, or download them",
+        description=(
+            "List the pretrained models and whether they are downloaded, or download them.\n\n"
+            "Examples:\n"
+            "  taxonova models\n"
+            "  taxonova models download v4 16s\n"
+            "  taxonova models download all"
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    p.add_argument("--all", dest="show_all", action="store_true", default=False,
+                   help="also list preview and deprecated models")
+    p.add_argument("--models-dir", default=None, metavar="PATH",
+                   help="where models are stored (default: $TAXONOVA_MODELS_DIR, else ~/.taxonova/models)")
+    sub = p.add_subparsers(dest="models_action", metavar="ACTION")
+    d = sub.add_parser("download", help="download models: one or more ids, or 'all'")
+    d.add_argument("ids", nargs="+", metavar="ID", help="model ids, or 'all'")
+    d.add_argument("--force", action="store_true", default=False,
+                   help="download again even if a verified copy exists")
+    d.add_argument("--models-dir", dest="download_models_dir", default=None, metavar="PATH",
+                   help="where models are stored (default: $TAXONOVA_MODELS_DIR, else ~/.taxonova/models)")
+    sub.add_parser("list", help="list models (the default)")
+
+
 def _add_download_models_parser(subparsers):
     """Add the download-models mode parser."""
     download_parser = subparsers.add_parser(
         "download-models",
-        help="Download pre-trained models from the GitHub release",
+        help="Download models (earlier form of 'taxonova models download')",
         description="Download pre-trained Taxonova models. They are stored in $TAXONOVA_MODELS_DIR, or ~/.taxonova/models/ if it is unset.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     g = download_parser.add_argument_group("Download Options")
     g.add_argument("--models", type=str, nargs="+", metavar="MODEL",
-                   choices=["gg2_v4", "gg2_v3v4", "gg2_v5v7", "gg2_v1v9", "gtdb_rrn", "all"],
-                   help="Model(s) to download: gg2_v4, gg2_v3v4, gg2_v5v7, gg2_v1v9, gtdb_rrn, or 'all'")
+                   help="Model(s) to download: model ids (v4, v3v4, v5v7, 16s, operon), the earlier "
+                        "keys (gg2_v4, gg2_v3v4, gg2_v5v7, gg2_v1v9, gtdb_rrn), or 'all'")
     g.add_argument("--list", action="store_true", help="List available models and their download status")
     g.add_argument("--interactive", action="store_true", help="Interactive model selection")
     g.add_argument("--force", action="store_true", help="Re-download even if the model already exists")
@@ -250,16 +321,17 @@ def _add_training_parser(subparsers):
 
 def _add_classification_parser(subparsers):
     """Add classification mode parser."""
-    classification_parser = subparsers.add_parser("classification", 
-                                                help="Run classifications using a trained model")
+    classification_parser = subparsers.add_parser(
+        "classification",
+        help="Classify with a model file or id (earlier form of 'classify'; same output)")
     classification_parser.add_argument("--input", type=str, required=True,
                              help="Path to input FASTA file for classification")
     classification_parser.add_argument("--model_input", type=str, required=True,
-                             help="Path to input model file for classification")
+                             help="Model id (see 'taxonova models') or path to a .pt model file")
     classification_parser.add_argument("--output", type=str, required=True,
                              help="Path to save classification results")
     classification_parser.add_argument("--cpu_threads", type=int, default=None,
-                             help="Number of CPU threads to use for classification (default: 30)")
+                             help="Number of CPU threads to use for classification (default: 2)")
     classification_parser.add_argument(
         "--confidence_threshold", type=float, default=GRADED_SPECIES,
         help=("Species-rank confidence threshold (default: %.1f). The parent "

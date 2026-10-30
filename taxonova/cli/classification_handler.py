@@ -14,7 +14,7 @@ from taxonova.cli.config_builder import create_classification_config
 from taxonova.prediction.output_processing import TaxonomicConsistencyProcessor, PredictionOutputFormatter
 from taxonova.prediction.device_manager import DeviceManager
 from taxonova.utils.config import TaxonovaConfig
-from taxonova.utils.model_downloader import superseded_model_warning
+from taxonova.models import ensure_model, superseded_model_warning
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +27,7 @@ def classification_mode(args):
     device = DeviceManager.get_device_for_classification(cpu_threads)
     
     try:
-        resolved_model_path = str(TaxonovaConfig.resolve_model_path(args.model_input))
+        resolved_model_path = str(_resolve_model(args.model_input))
         superseded = superseded_model_warning(resolved_model_path)
         if superseded:
             logger.warning(superseded)
@@ -110,6 +110,20 @@ def classification_mode(args):
     formatted_predictions = formatter.format_predictions(predictions)
     
     formatter.write_tsv_output(args, formatted_predictions, sequences)
+
+def _resolve_model(model_input):
+    """An existing file is used as it is (as before 26.10.1). Otherwise a model
+    id, alias or registry file name is fetched through the registry (verified,
+    downloaded on first use); anything else falls back to the earlier lookup
+    so the error is the same as before."""
+    from pathlib import Path
+    if Path(model_input).is_file():
+        return TaxonovaConfig.resolve_model_path(model_input)
+    try:
+        return ensure_model(model_input)
+    except (KeyError, FileNotFoundError):
+        return TaxonovaConfig.resolve_model_path(model_input)
+
 
 def _initialize_sequence_processor(taxonomy_info):
     """Initialize sequence processor based on model configuration."""

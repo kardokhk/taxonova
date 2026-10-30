@@ -72,6 +72,14 @@ def parse_taxonomy(header: str, expect_taxonomy: bool = True) -> Dict[str, str]:
         
     return taxonomy
 
+def _open_text(file_path):
+    """Open a FASTA file for reading as text; gzip-compressed if it ends in .gz."""
+    if str(file_path).lower().endswith(".gz"):
+        import gzip
+        return gzip.open(file_path, "rt")
+    return open(file_path, "r")
+
+
 def read_fasta_file(file_path: str, expect_taxonomy: bool = True) -> List[Tuple[str, str, Dict[str, str]]]:
 
     sequences = []
@@ -80,7 +88,8 @@ def read_fasta_file(file_path: str, expect_taxonomy: bool = True) -> List[Tuple[
     current_header = None
     
     try:
-        with open(file_path, 'r') as f:
+        opener = _open_text(file_path)
+        with opener as f:
             for line in f:
                 line = line.strip()
                 if not line:
