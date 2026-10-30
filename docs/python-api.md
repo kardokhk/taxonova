@@ -57,7 +57,7 @@ path = ensure_model("v3v4")      # pathlib.Path to a verified local copy; downlo
 
 | function | returns |
 | --- | --- |
-| `list_models(include_hidden=False)` | list of `ModelSpec` in display order; preview and deprecated models only with `include_hidden=True` |
+| `list_models(include_hidden=False)` | list of `ModelSpec` in display order: the stable models; with `include_hidden=True`, preview and deprecated models follow (tell them apart by `status`) |
 | `get_model(name)` | the `ModelSpec`; raises `KeyError` that lists the valid ids |
 | `ensure_model(name_or_path, models_dir=None, quiet=False)` | path to a local copy, downloaded and verified if needed |
 | `models_dir()` | `$TAXONOVA_MODELS_DIR`, else `~/.taxonova/models` |
@@ -66,6 +66,17 @@ A `ModelSpec` has the fields `id`, `name`, `region`, `reference`,
 `reference_version`, `taxonomy`, `model_version`, `filename`, `urls`, `sha256`,
 `md5`, `size_mb`, `status` (`"stable"`, `"preview"` or `"deprecated"`),
 `aliases` and `description`.
+
+To show every model a user can choose, with preview models labelled (as the
+web app does):
+
+```python
+for spec in list_models(include_hidden=True):
+    if spec.status == "deprecated":
+        continue
+    label = f"{spec.region}, {spec.reference} {spec.reference_version}"
+    print(spec.id, label + (" (preview)" if spec.status == "preview" else ""))
+```
 
 These names are kept stable across releases. Code written for taxonova 26.10.0
 that imports `taxonova.utils.model_downloader` (`AVAILABLE_MODELS`,

@@ -35,8 +35,11 @@ to `reads.taxonova.tsv`.
 | `16s` | whole 16S gene (V1-V9) | Greengenes2 |
 | `operon` | rRNA operon (16S-ITS-23S) | GROND |
 
-Species names follow GTDB. SILVA and RDP models are in preparation.
-Run `taxonova models` to see which models are downloaded.
+Species names follow GTDB. Other references, as preview models: RDP 19
+(`v4-rdp`, `v3v4-rdp`, `v5v7-rdp`) and SILVA 138.2 (`v3v4-silva`), for example
+`--model v3v4-silva`; their output uses that reference's names
+([model cards](https://github.com/kardokhk/taxonova/blob/main/docs/models.md#preview-models)).
+Run `taxonova models` to see all models and which are downloaded.
 
 ## Output
 
