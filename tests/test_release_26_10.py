@@ -1,4 +1,4 @@
-"""Tests for release 26.10.0: model downloader checksums and cache handling,
+"""Tests for release 26.10.0: the Greengenes2 model keys and checksums,
 threshold 0.9 gating without an OOD configuration, and (when the 26.10
 checkpoints are present) a regression of real classifications at 0.9.
 
@@ -12,7 +12,6 @@ profile for 0.9 (0.5625 domain to family, 0.7875 genus, 0.9 species).
 Run from the repository root:
     python -m pytest tests/test_release_26_10.py
 """
-import hashlib
 import os
 import subprocess
 import sys
@@ -25,9 +24,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from taxonova.core.thresholds import scaled_profile  # noqa: E402
 from taxonova.prediction.output_processing import PredictionOutputFormatter  # noqa: E402
-from taxonova.utils import model_downloader as md  # noqa: E402
+from taxonova import models  # noqa: E402
 from taxonova.utils.model_downloader import (  # noqa: E402
-    AVAILABLE_MODELS, SUPERSEDED_MODEL_FILES, ModelDownloader, superseded_model_warning,
+    AVAILABLE_MODELS, SUPERSEDED_MODEL_FILES, ModelDownloader,
 )
 
 LEVELS = ["domain", "phylum", "class", "order", "family", "genus", "species"]
@@ -36,90 +35,30 @@ GG2 = ["gg2_v4", "gg2_v3v4", "gg2_v5v7", "gg2_v1v9"]
 
 
 # --- model table ----------------------------------------------------------
+# Download and cache handling is tested in test_models_registry.py.
 
-def test_gg2_assets_are_new_names_on_new_tag():
+def test_gg2_keys_resolve_to_the_26_10_checkpoints():
     for key in GG2:
         info = AVAILABLE_MODELS[key]
-        assert info["filename"] == f"{key}_mrgroups_model_26.10.pt"
-        assert info["url"].endswith(f"/v26.10.0/{info['filename']}")
+        spec = models.get_model(key)
+        assert info["filename"] == spec.filename and spec.model_version == "26.10"
+        # the 26.10.0 asset name is an alias of the same bytes
+        assert f"{key}_mrgroups_model_26.10.pt" in spec.legacy_filenames
         assert len(info["md5"]) == 32 and len(info["sha256"]) == 64
-        # the cached 26.9.x file name can never be reused for the new checkpoint
+        # the file name cached by 26.9.x can never be taken for the new checkpoint
         assert info["filename"] not in SUPERSEDED_MODEL_FILES
+        assert not any(n in SUPERSEDED_MODEL_FILES for n in spec.legacy_filenames)
 
 
 def test_rrn_asset_unchanged():
     info = AVAILABLE_MODELS["gtdb_rrn"]
-    assert info["url"].endswith("/v1.0.0/gtdb_rrn_mrgroups_model.pt")
     assert info["md5"] == "6f5d4ef039888a33ad765ef41725b624"
+    assert "gtdb_rrn_mrgroups_model.pt" in models.get_model("gtdb_rrn").legacy_filenames
 
 
 def test_default_models_dir_follows_env(tmp_path, monkeypatch):
     monkeypatch.setenv("TAXONOVA_MODELS_DIR", str(tmp_path / "envdir"))
     assert ModelDownloader().models_dir == tmp_path / "envdir"
-
-
-# --- downloader cache handling, against a local file:// source ------------
-
-def _fake_model(tmp_path, monkeypatch, payload=b"taxonova test checkpoint"):
-    src = tmp_path / "src" / "fake.pt"
-    src.parent.mkdir()
-    src.write_bytes(payload)
-    info = {
-        "name": "fake", "description": "", "filename": "fake_26.10.pt",
-        "url": src.as_uri(), "size_mb": "0MB",
-        "md5": hashlib.md5(payload).hexdigest(),
-        "sha256": hashlib.sha256(payload).hexdigest(),
-    }
-    monkeypatch.setitem(md.AVAILABLE_MODELS, "fake", info)
-    return ModelDownloader(models_dir=tmp_path / "models"), info
-
-
-def test_download_from_file_url_and_reuse(tmp_path, monkeypatch, capsys):
-    dl, info = _fake_model(tmp_path, monkeypatch)
-    path = dl.download_model("fake", show_progress=False)
-    assert path.name == "fake_26.10.pt" and dl.verify_model("fake")
-    assert not (path.parent / "fake_26.10.pt.part").exists()
-    mtime = path.stat().st_mtime_ns
-    capsys.readouterr()
-    assert dl.download_model("fake", show_progress=False) == path
-    assert path.stat().st_mtime_ns == mtime  # verified cache, not re-downloaded
-    assert "Downloading" not in capsys.readouterr().out
-
-
-def test_mismatched_cache_is_reported_and_redownloaded(tmp_path, monkeypatch, capsys):
-    dl, info = _fake_model(tmp_path, monkeypatch)
-    cached = dl.get_model_path("fake")
-    cached.write_bytes(b"an older checkpoint under the same name")
-    assert not dl.verify_model("fake")
-    dl.download_model("fake", show_progress=False)
-    out = capsys.readouterr().out
-    assert "does not match the published checksum" in out
-    assert dl.verify_model("fake")
-
-
-def test_sha256_mismatch_alone_rejects(tmp_path, monkeypatch):
-    dl, info = _fake_model(tmp_path, monkeypatch)
-    monkeypatch.setitem(info, "sha256", "0" * 64)
-    with pytest.raises(RuntimeError, match="checksum verification failed"):
-        dl.download_model("fake", show_progress=False)
-    assert not dl.get_model_path("fake").exists()
-    assert not (dl.models_dir / "fake_26.10.pt.part").exists()
-
-
-def test_superseded_warning_needs_name_and_md5(tmp_path, monkeypatch):
-    payload = b"pretend v1.0.0 checkpoint"
-    name = "gg2_v4_mrgroups_model.pt"
-    monkeypatch.setitem(md.SUPERSEDED_MODEL_FILES, name,
-                        ("gg2_v4", hashlib.md5(payload).hexdigest()))
-    old = tmp_path / name
-    old.write_bytes(payload)
-    msg = superseded_model_warning(old)
-    assert msg and "gg2_v4_mrgroups_model_26.10.pt" in msg
-    other = tmp_path / "x" / name  # same name, different content: no warning
-    other.parent.mkdir()
-    other.write_bytes(b"a 26.10 candidate copied under the old name")
-    assert superseded_model_warning(other) is None
-    assert superseded_model_warning(tmp_path / "gg2_v4_mrgroups_model_26.10.pt") is None
 
 
 # --- threshold 0.9 known answer, checkpoint without ood_config ------------
