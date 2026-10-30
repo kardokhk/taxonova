@@ -31,7 +31,8 @@ def classification_mode(args):
         superseded = superseded_model_warning(resolved_model_path)
         if superseded:
             logger.warning(superseded)
-            print(f"WARNING: {superseded}", file=sys.stderr)
+            if not _console_shows_warnings():
+                print(f"WARNING: {superseded}", file=sys.stderr)
         logger.info(f"Loading pre-trained model from {resolved_model_path}...")
         model, taxonomy_info = HierarchicalModelFactory.load_model(resolved_model_path)
         
@@ -77,6 +78,7 @@ def classification_mode(args):
             args.ood_config = ood_config
 
         predictor = HierarchicalModelFactory.create_predictor(model, dataset, config, device)
+        predictor.config.show_progress = not getattr(args, "quiet", False)
 
         # tx_wip_04 iter-B: when a non-default score method (e.g.
         # energy_phylum) is in the checkpoint, tell the predictor to compute
@@ -110,6 +112,13 @@ def classification_mode(args):
     formatted_predictions = formatter.format_predictions(predictions)
     
     formatter.write_tsv_output(args, formatted_predictions, sequences)
+
+def _console_shows_warnings():
+    """True if the root logger already writes warnings to the console (as with
+    --no-log or --verbose), so a message logged as a warning is not printed twice."""
+    return any(type(h) is logging.StreamHandler and h.level <= logging.WARNING
+               for h in logging.getLogger().handlers)
+
 
 def _resolve_model(model_input):
     """An existing file is used as it is (as before 26.10.1). Otherwise a model

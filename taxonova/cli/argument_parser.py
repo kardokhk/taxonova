@@ -131,7 +131,7 @@ def _add_fit_ood_parser(subparsers):
     """Add fit-ood mode parser (post-hoc per-input OOD-aware thresholding)."""
     p = subparsers.add_parser(
         "fit-ood",
-        help="Fit a per-input OOD-detection threshold τ on a held-out split and embed it in the checkpoint",
+        help="Fit an out-of-distribution gate to a trained model (advanced)",
     )
     p.add_argument("--model_input", type=str, required=True)
     p.add_argument("--train_db", type=str, required=True)
@@ -173,7 +173,7 @@ def _add_calibration_parser(subparsers):
     """Add calibration mode parser (post-hoc per-rank temperature scaling)."""
     p = subparsers.add_parser(
         "calibrate",
-        help="Fit per-rank temperatures on a held-out split and embed them in the checkpoint",
+        help="Calibrate the confidences of a trained model (advanced)",
     )
     p.add_argument("--model_input", type=str, required=True,
                    help="Path to the trained .pt model to calibrate")
@@ -199,7 +199,7 @@ def _add_calibration_parser(subparsers):
 
 def _add_common_output_args(parser):
     """Add common output control arguments."""
-    output_group = parser.add_argument_group("Output Control")
+    output_group = parser.add_argument_group("Output control")
     output_group.add_argument("--show-resource-usage", action="store_true", default=False,
                            help="Display memory usage and execution time statistics")
     output_group.add_argument("--verbose", action="store_true", default=False,

@@ -45,7 +45,7 @@ def test_classify_equals_classification_equals_26_10_0(model_id, case, checkpoin
 
 
 @pytest.mark.models
-def test_python_api_matches_cli(checkpoint, tmp_path, monkeypatch):
+def test_python_api_matches_cli(checkpoint, tmp_path, monkeypatch, capfd):
     import pandas as pd
     import taxonova
 
@@ -73,7 +73,10 @@ def test_python_api_matches_cli(checkpoint, tmp_path, monkeypatch):
         else:
             records[name] += line.strip()
     first = dict(list(records.items())[:5])
+    capfd.readouterr()
     df5 = taxonova.classify(first, model="v4", confidence=0.7, threads=8, domain_threshold=0.5,
                             phylum_threshold=0.5, class_threshold=0.5, order_threshold=0.5,
-                            family_threshold=0.5, genus_threshold=0.5)
+                            family_threshold=0.5, genus_threshold=0.5, quiet=True)
+    err = capfd.readouterr().err
+    assert "Classifying" not in err and "weights_only" not in err
     assert df5.equals(df[df["sequence_id"].isin(first)].reset_index(drop=True))

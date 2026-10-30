@@ -3,6 +3,7 @@ Model factory for creating hierarchical models and components.
 """
 import torch
 import logging
+import warnings
 from pathlib import Path
 from typing import List, Tuple, Dict, Optional
 from collections import defaultdict
@@ -14,6 +15,14 @@ from taxonova.prediction.predictor import HierarchicalPredictor
 from taxonova.data.dataset import TaxonomyDataset
 from taxonova.model.model_saver import save_model
 from taxonova.model.model_config import ModelConfig
+
+
+def _torch_load(*args, **kwargs):
+    """torch.load without the FutureWarning that torch 2.4 and 2.5 print about
+    the weights_only default (the checkpoints are Taxonova's own)."""
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=FutureWarning, message=".*weights_only.*")
+        return torch.load(*args, **kwargs)
 
 logger = logging.getLogger(__name__)
 
@@ -114,7 +123,7 @@ class HierarchicalModelFactory:
             path = Path(path)
             
             try:
-                unified_data = torch.load(path, map_location=torch.device('cpu'))
+                unified_data = _torch_load(path, map_location=torch.device('cpu'))
                 
                 if 'model_state_dict' in unified_data and 'taxonomy_info' in unified_data:
                     taxonomy_info = unified_data['taxonomy_info']
@@ -194,12 +203,12 @@ class HierarchicalModelFactory:
             taxonomy_path = path.parent / f"{path.stem}.taxonomy.pt"
             if not taxonomy_path.exists():
                 raise FileNotFoundError(f"Taxonomy information not found at {taxonomy_path}")
-            taxonomy_info = torch.load(taxonomy_path, map_location=torch.device('cpu'))
+            taxonomy_info = _torch_load(taxonomy_path, map_location=torch.device('cpu'))
             
             hierarchy_path = path.parent / f"{path.stem}.hierarchy.pt"
             if hierarchy_path.exists():
                 logger.info(f"Loading taxonomy hierarchy from {hierarchy_path}")
-                hierarchy_data = torch.load(hierarchy_path, map_location=torch.device('cpu'))
+                hierarchy_data = _torch_load(hierarchy_path, map_location=torch.device('cpu'))
                 
                 from taxonova.utils.taxonomy_hierarchy import TaxonomyHierarchy
                 taxonomy_hierarchy = TaxonomyHierarchy()
@@ -235,7 +244,7 @@ class HierarchicalModelFactory:
                 dropout=0.3
             )
             
-            model.load_state_dict(torch.load(path, map_location=torch.device('cpu')))
+            model.load_state_dict(_torch_load(path, map_location=torch.device('cpu')))
             
             if 'level_order' not in taxonomy_info:
                 taxonomy_info['level_order'] = ["domain", "phylum", "class", "order", "family", "genus", "species"]

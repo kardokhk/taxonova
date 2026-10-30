@@ -76,7 +76,8 @@ class HierarchicalPredictor:
         ood_scores = [] if ood_score_method else None
 
         with torch.no_grad():
-            pred_pbar = tqdm(eval_loader, desc="Classifying", leave=False, unit="batch")
+            pred_pbar = tqdm(eval_loader, desc="Classifying", leave=False, unit="batch",
+                             disable=not getattr(self.config, "show_progress", True))
             for batch in pred_pbar:
                 (features, _), _ = batch
                 features = features.to(self.device)
