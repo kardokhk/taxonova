@@ -284,3 +284,56 @@ def test_model_downloader_shim(tmp_path, monkeypatch, source):
     old.write_bytes(b"x")
     assert dl.get_model_path("gg2_v4") == old and "gg2_v4" in dl.list_downloaded_models()
     assert md.superseded_model_warning is models.superseded_model_warning
+
+
+# --- release tags and parallel downloads -----------------------------------
+
+def test_every_github_url_names_its_release_tag():
+    for spec in models.list_models(include_hidden=True):
+        github = [u for u in spec.urls if u.startswith(models._GITHUB)]
+        assert len(github) == 1, spec.id
+        tag, name = github[0][len(models._GITHUB) + 1:].split("/")
+        assert tag.startswith("v") and tag.count(".") == 2, (spec.id, tag)
+        assert name == spec.filename
+    with pytest.raises(ValueError):
+        models._urls("x.pt", tag="")
+
+
+class _SlowHandler(_QuietHandler):
+    """Serves files in small pieces, so that parallel downloads overlap."""
+
+    def copyfile(self, source, outputfile):
+        import time
+        for chunk in iter(lambda: source.read(2500), b""):
+            outputfile.write(chunk)
+            outputfile.flush()
+            time.sleep(0.01)
+
+
+def test_parallel_downloads_into_one_directory(monkeypatch, tmp_path, source):
+    handler = functools.partial(_SlowHandler, directory=str(source))
+    server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), handler)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    try:
+        url = f"http://127.0.0.1:{server.server_address[1]}/taxonova-fake-0.pt"
+        _install(monkeypatch, _fake([url]))
+        dest = tmp_path / "shared"
+        results, errors = [], []
+
+        def job():
+            try:
+                results.append(ensure_model("fake", models_dir=dest, quiet=True))
+            except Exception as exc:  # pragma: no cover - the failure being tested
+                errors.append(exc)
+
+        threads = [threading.Thread(target=job) for _ in range(4)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+    finally:
+        server.shutdown()
+        server.server_close()
+    assert errors == []
+    assert len(results) == 4 and all(p.read_bytes() == PAYLOAD for p in results)
+    assert not list(dest.glob("*.part"))
