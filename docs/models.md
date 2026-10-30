@@ -110,15 +110,16 @@ The same values are in `taxonova/models.py`, which the downloader reads.
 ## How the models were made
 
 The five stable models use the architecture and training recipe described in
-the [paper](https://doi.org/10.1371/journal.pcbi.1014912). The preview models
-are described in the next section. The four 16S models are
-trained on Greengenes2 release 2024.09, which takes its species names from GTDB.
+the [paper](https://doi.org/10.1371/journal.pcbi.1014912). The four
+Greengenes2 models are trained on Greengenes2 release 2024.09, which takes its
+species names from GTDB.
 The operon model is trained on GROND, built for GTDB release 207. The history
 of the 26.10 checkpoints, and how output changed when they replaced those of
 v1.0.0, is in the
 [changelog](https://github.com/kardokhk/taxonova/blob/main/CHANGELOG.md#26100---2026-10-29).
 You do not need to calibrate the pretrained models; `taxonova calibrate` and
-`taxonova fit-ood` are for models you train yourself.
+`taxonova fit-ood` are for models you train yourself. The preview models are
+described in the next section.
 
 ## Preview models
 
