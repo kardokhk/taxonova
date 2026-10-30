@@ -36,6 +36,9 @@ thresholds, every table is byte-identical to 26.10.0.
 - Models are downloaded from GitHub and, if that fails, from a mirror on
   Hugging Face (`claessonlab/taxonova-models`). Every download is checked
   against the published sha256 (and md5); the operon model now has a sha256.
+  Several jobs that start at the same time can share one models directory:
+  each downloads to its own temporary file, and the first verified copy is
+  used.
 - FASTA input may be gzip-compressed (`.gz`).
 - Documentation in `docs/`, a citation file (`CITATION.cff`), issue templates,
   continuous integration on Python 3.9 to 3.12 and a release workflow.
@@ -48,6 +51,8 @@ thresholds, every table is byte-identical to 26.10.0.
 - The download progress line is refreshed at most twice a second, and only on
   an interactive terminal; before, a log or batch job received a line for every
   8 KB.
+- The torch warning about `weights_only` is no longer printed when a model is
+  loaded, and the help text of `calibrate` and `fit-ood` is plainer.
 - The source distribution contains only the files listed in `MANIFEST.in`;
   before, untracked files under `tests/` could be included.
 - Python 3.9 or later is required (3.8 is no longer tested).
