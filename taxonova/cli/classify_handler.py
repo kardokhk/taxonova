@@ -40,10 +40,13 @@ def prepare_classify_args(args):
     return args
 
 
-def classify_mode(args):
-    """Resolve the model (download if needed), then classify."""
-    from taxonova.cli.classification_handler import classification_mode
+def resolve_classify_model(args):
+    """Check the input and resolve the model (downloading it on first use).
 
+    Called before the run log is opened, so a mistyped input or model id
+    exits with a message and leaves the log of an earlier run untouched.
+    Sets ``args.model_input``.
+    """
     if not Path(args.input).is_file():
         sys.exit(f"taxonova: input file not found: {args.input}")
 
@@ -57,9 +60,17 @@ def classify_mode(args):
         spec = registry.get_model(DEFAULT_MODEL)
         print(f"Using model {spec.id} ({spec.region}, {spec.reference}). For other regions use "
               f"--model; see 'taxonova models'.", file=sys.stderr)
-
     args.model_input = str(model_path)
-    logger.info(f"Model {model} resolved to {model_path}")
+    return args
+
+
+def classify_mode(args):
+    """Resolve the model (if not done yet), then classify."""
+    from taxonova.cli.classification_handler import classification_mode
+
+    if not getattr(args, "model_input", None):
+        resolve_classify_model(args)
+    logger.info(f"Model {args.model or DEFAULT_MODEL} resolved to {args.model_input}")
     classification_mode(args)
     print(f"Results written to {args.output}", file=sys.stderr)
 

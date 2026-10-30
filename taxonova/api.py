@@ -67,14 +67,17 @@ def classify(sequences_or_fasta_path, model="v4", confidence=0.8, threads=None, 
     from taxonova.models import ensure_model
     from taxonova.cli.classification_handler import classification_mode
 
+    src = sequences_or_fasta_path
+    is_path = isinstance(src, (str, os.PathLike)) and not (isinstance(src, str) and src.lstrip().startswith(">"))
+    # Check the input before the model, so a mistyped path fails before a download.
+    if is_path and not Path(src).is_file():
+        raise FileNotFoundError(f"FASTA file not found: {src}")
+
     model_path = ensure_model(model, models_dir=models_dir, quiet=quiet)
 
     with tempfile.TemporaryDirectory(prefix="taxonova-") as tmp:
-        src = sequences_or_fasta_path
-        if isinstance(src, (str, os.PathLike)) and not (isinstance(src, str) and src.lstrip().startswith(">")):
+        if is_path:
             fasta = Path(src)
-            if not fasta.is_file():
-                raise FileNotFoundError(f"FASTA file not found: {fasta}")
         else:
             fasta = Path(tmp) / "input.fasta"
             if isinstance(src, str):
@@ -88,7 +91,7 @@ def classify(sequences_or_fasta_path, model="v4", confidence=0.8, threads=None, 
             domain_threshold=domain_threshold, phylum_threshold=phylum_threshold,
             class_threshold=class_threshold, order_threshold=order_threshold,
             family_threshold=family_threshold, genus_threshold=genus_threshold,
-            show_resource_usage=False, verbose=False,
+            show_resource_usage=False, verbose=False, quiet=bool(quiet),
         )
         classification_mode(args)
         dtypes = {"sequence_id": str}
