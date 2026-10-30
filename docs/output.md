@@ -15,11 +15,14 @@ sequence, in input order:
 Confidences are printed with four decimals. Names follow GTDB, the taxonomy of
 all current models (see [models.md](models.md)). GTDB uses suffixes such as
 `_A` for genera split from a historical genus and placeholder species names
-such as `Prevotella sp002251435`.
+such as `Prevotella sp002251435`. Some Greengenes2 names also end in a number,
+for example `Pseudomonadales_A_641035`. The number is part of the Greengenes2
+name and separates groups in the Greengenes2 tree that share a GTDB name.
 
 The `taxonova classification` command, the Python function
-`taxonova.classify` and the web app give the same table for the same model and
-thresholds.
+`taxonova.classify` give the same table for the same model and thresholds. The
+web app gives the same rows too, except that it first drops sequences that do
+not look like rRNA.
 
 ## Unclassified
 
@@ -88,6 +91,9 @@ cut-off also clears the ranks below it, as Taxonova does.
 
 ## Run log
 
-Next to the table, `taxonova classify` writes `<name>.taxonova.log` with the
-package version, the model file and the full command-line settings. Keep it
-with the results, or use `--no-log` to skip it.
+Next to the table, `taxonova classify` writes a log with the package version,
+the model file and the full command-line settings. Its name is the output name
+with `.tsv` replaced by `.log`: `reads.taxonova.log` for the default output
+`reads.taxonova.tsv`, and `results.log` for `-o results.tsv`. Keep it with the
+results, or use `--no-log` to skip it. A run that stops before classification
+starts (input not found, unknown model) does not write or replace a log.

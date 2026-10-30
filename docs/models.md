@@ -62,23 +62,12 @@ The same values are in `taxonova/models.py`, which the downloader reads.
 All five models use the architecture and training recipe described in the
 [paper](https://doi.org/10.1371/journal.pcbi.1014912). The four 16S models are
 trained on Greengenes2 release 2024.09, which takes its species names from GTDB.
-The operon model is trained on GROND, built for GTDB release 207.
-
-Model version 26.10 of the four Greengenes2 models replaced the v1.0.0
-checkpoints in taxonova 26.10.0:
-
-| model | how the 26.10 checkpoint was made |
-| --- | --- |
-| `16s`, `v5v7` | the v1.0.0 networks with tau-normalisation (tau 0.5) undone exactly |
-| `v4`, `v3v4` | retrained on the same reference with the same recipe, without tau-normalisation or an out-of-distribution gate (seeds 1005 and 1006) |
-
-None of the five models carries temperature scaling or an out-of-distribution
-(`ood_config`) gate. Their confidences are the network's softmax outputs,
-capped at the confidence of the rank above, and the thresholds you ask for are
-applied to every sequence. You do not need to run `taxonova calibrate` or
-`taxonova fit-ood` on them; those commands are for models you train yourself.
-The reasons for the 26.10 replacement, and how output changed, are in the
+The operon model is trained on GROND, built for GTDB release 207. The history
+of the 26.10 checkpoints, and how output changed when they replaced those of
+v1.0.0, is in the
 [changelog](https://github.com/kardokhk/taxonova/blob/main/CHANGELOG.md#26100---2026-10-29).
+You do not need to calibrate the pretrained models; `taxonova calibrate` and
+`taxonova fit-ood` are for models you train yourself.
 
 ## Earlier names
 
@@ -133,10 +122,11 @@ For maintainers. A new model (for example `v4-silva`) is added in one place,
 2. Name the file `taxonova-<REGION>-<reference>-<YY.MM>.pt` and compute its
    checksums: `sha256sum`, `md5sum`.
 3. Add a `ModelSpec` to `_REGISTRY` in `taxonova/models.py` with
-   `status="preview"`, the file name, `urls=_urls(filename)`, the checksums,
+   `status="preview"`, the file name, `urls=_urls(filename, tag="vYY.MM.MICRO")`
+   with the tag of the release that will carry the file, the checksums,
    the size in MB, the reference and its version, and a one-line description.
-4. Upload the file to the GitHub release of the package version that adds it
-   and to the Hugging Face mirror `claessonlab/taxonova-models` (see
+4. Upload the file to the GitHub release named by that tag (the release of
+   the package version that adds the model) and to the Hugging Face mirror `claessonlab/taxonova-models` (see
    [releasing.md](releasing.md)), and add it to the mirror's model card.
 5. Add a line to this page and to the changelog. When the model has been
    evaluated, change its status to `stable` in a later release; it then appears
