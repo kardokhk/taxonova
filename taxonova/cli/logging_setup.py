@@ -8,17 +8,31 @@ import warnings
 
 logger = logging.getLogger(__name__)
 
-def setup_logging(output_dir: str = "output", mode: str = "training", verbose: bool = False) -> str:
+_NO_LOG = object()
 
-    Path(output_dir).mkdir(exist_ok=True)
-    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-    log_file = f"{output_dir}/taxonova_{mode}_{timestamp}.log"
-    
+
+def setup_logging(output_dir: str = "output", mode: str = "training", verbose: bool = False,
+                  log_file=_NO_LOG) -> str:
+    """Configure logging. By default the log goes to
+    `<output_dir>/taxonova_<mode>_<timestamp>.log` (the behaviour of every
+    command before 26.10.1). `log_file` names the file instead; `None` writes
+    no log file, only warnings to the console."""
+    if log_file is _NO_LOG:
+        Path(output_dir).mkdir(exist_ok=True)
+        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        log_file = f"{output_dir}/taxonova_{mode}_{timestamp}.log"
+
     for handler in logging.root.handlers[:]:
         logging.root.removeHandler(handler)
-    
-    handlers = [logging.FileHandler(log_file)]
-    if verbose:
+
+    if log_file is None:
+        console = logging.StreamHandler()
+        console.setLevel(logging.DEBUG if verbose else logging.WARNING)
+        handlers = [console]
+    else:
+        Path(log_file).parent.mkdir(parents=True, exist_ok=True)
+        handlers = [logging.FileHandler(log_file, mode="w")]
+    if verbose and log_file is not None:
         handlers.append(logging.StreamHandler())
     
     log_level = logging.DEBUG if verbose else logging.INFO
