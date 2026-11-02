@@ -54,3 +54,19 @@ def test_operating_point_and_centroids_keep_weights_only_loading(tmp_path):
     data = torch.load(dst, map_location="cpu", weights_only=True)
     assert data["operating_point"]["thresholds"]["genus"] == 0.56
     assert data["species_centroids"]["labels"] == ["a", "b"]
+
+
+# Hidden-1024 V4-V5 checkpoints (Greengenes2, SILVA) and the RDP V4-V5 checkpoint: weights-only load (integration).
+V4V5_DIR = Path(__import__("os").environ.get(
+    "TAXONOVA_V4V5_MODELS_DIR",
+    "/mnt/tier2/project/p201509/work/post/taxonova/wip/2026-11-01-dev-targets/v4v5/models/final"))
+
+
+@pytest.mark.parametrize("rel", ["gg2/taxonova-V4V5-gg2-dev-s5001.pt", "silva/taxonova-V4V5-silva-dev-s3001.pt",
+                                 "rdp/taxonova-V4V5-rdp-dev-s4001.pt"])
+def test_v4v5_checkpoint_loads_weights_only(rel):
+    p = V4V5_DIR / rel
+    if not p.exists():
+        pytest.skip(f"{p} not present")
+    data = torch.load(p, map_location="cpu", weights_only=True)
+    assert "model_state_dict" in data and "region_metadata" in data
