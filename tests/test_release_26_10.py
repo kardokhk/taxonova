@@ -89,7 +89,7 @@ def test_threshold_09_gates_without_ood_config(tmp_path):
     out = tmp_path / "out.tsv"
     args = _args(out, 0.9)
     assert getattr(args, "ood_config", None) is None
-    PredictionOutputFormatter(LEVELS).write_tsv_output(args, preds, [(i, "ACGT") for i in ids])
+    PredictionOutputFormatter(LEVELS).write_tsv_output(args, preds, [(i, "ACGT" * 63) for i in ids])  # >= 100 valid bases (26.11 low-information rule)
     rows = {r.split("\t")[0]: r.split("\t")[1::2] for r in out.read_text().splitlines()[1:]}
     depth = {i: sum(lab != "Unclassified" for lab in rows[i]) for i in ids}
     assert depth == {"r_species": 7, "r_genus_only": 6, "r_family": 5, "r_order": 4, "r_capped": 6}

@@ -177,6 +177,16 @@ class HierarchicalModelFactory:
                 model.set_temperatures(temperatures)
                 logger.info(f"Applied calibrated temperatures: {temperatures}")
 
+            if unified_data.get('species_centroids') is not None:
+                taxonomy_info['species_centroids'] = unified_data['species_centroids']
+            operating_point = unified_data.get('operating_point')
+            if operating_point:
+                from taxonova.core.operating_point import validate
+                taxonomy_info['operating_point'] = validate(operating_point)
+                logger.info(f"Loaded operating point: {taxonomy_info['operating_point'].get('method', '')} "
+                            f"thresholds={taxonomy_info['operating_point']['thresholds']} "
+                            f"species_gate={taxonomy_info['operating_point'].get('species_gate')}")
+
             ood_config = unified_data.get('ood_config')
             if ood_config:
                 taxonomy_info['ood_config'] = ood_config

@@ -122,6 +122,7 @@ def classification_mode(args):
             taxonomy_hierarchy=taxonomy_hierarchy
         )
         
+        _resolve_operating_point(args, taxonomy_info)
         config = create_classification_config(args, taxonomy_info)
 
         # tx_wip_03 iter-2: if the checkpoint was post-hoc fit with OOD-aware
@@ -139,6 +140,10 @@ def classification_mode(args):
         # the per-row OOD score during forward and stash it on the predictions
         # dict. Phylum-MSP needs no precomputation since it equals the
         # existing phylum_confidence.
+        gate = getattr(args, "species_gate", None)
+        if gate is not None:
+            predictor.config.species_gate_statistic = gate["statistic"]
+            logger.info(f"Species gate: {gate['statistic']} <= {gate['max']:.4f} (else no species call)")
         if ood_config:
             score_method = ood_config.get("score_method", "phylum_msp")
             if score_method != "phylum_msp":
@@ -181,9 +186,42 @@ def classification_mode(args):
         consistency_processor = TaxonomicConsistencyProcessor(dataset, predictor.level_order)
         predictions = consistency_processor.apply_consistency(predictions, sequences)
     
+    gate = getattr(args, "species_gate", None)
+    from taxonova.core.gate_stats import FEATURE_STATISTICS, centroid_distance
+    if gate is not None and gate["statistic"] in FEATURE_STATISTICS:
+        predictions['species_gate_stat'] = centroid_distance(
+            predictor.last_species_features, predictions['predictions']['species'],
+            taxonomy_info['species_centroids'], gate["statistic"]).tolist()
+
     formatted_predictions = formatter.format_predictions(predictions)
     
     formatter.write_tsv_output(args, formatted_predictions, sequences)
+
+def _resolve_operating_point(args, taxonomy_info):
+    """Per-rank thresholds for this run: the user's if any was given, else the checkpoint's calibrated operating
+    point, else the graded default. Sets args.level_thresholds, args.threshold_source, args.species_gate and, for
+    consumers of the single number, args.confidence_threshold (the species gate actually applied)."""
+    from taxonova.core.operating_point import resolve_thresholds
+    entry = taxonomy_info.get('operating_point')
+    thresholds, source = resolve_thresholds(args, entry)
+    args.level_thresholds = thresholds
+    args.threshold_source = source
+    # The abstention gate belongs to the calibrated operating point; it is used whenever the checkpoint has one,
+    # also with user thresholds, because it can only remove species calls.
+    args.species_gate = entry.get('species_gate') if entry else None
+    from taxonova.core.gate_stats import FEATURE_STATISTICS
+    if args.species_gate and args.species_gate["statistic"] in FEATURE_STATISTICS \
+            and taxonomy_info.get('species_centroids') is None:
+        raise ValueError(f"operating point gate {args.species_gate['statistic']} needs the checkpoint's "
+                         f"species_centroids table, which is missing")
+    args.operating_point_entry = entry
+    if getattr(args, 'confidence_threshold', None) is None:
+        sp = thresholds['species']
+        args.confidence_threshold = sp if sp != float('inf') else 1.0
+    shown = {k: (None if v == float('inf') else round(v, 4)) for k, v in thresholds.items()}
+    logger.info(f"Thresholds ({source}): {shown}")
+    return thresholds
+
 
 def _console_shows_warnings():
     """True if the root logger already writes warnings to the console (as with

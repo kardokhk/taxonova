@@ -26,6 +26,8 @@ class TaxonomicConsistencyProcessor:
             consistent_predictions['ood_score'] = predictions['ood_score']
         if 'no_signal' in predictions:
             consistent_predictions['no_signal'] = predictions['no_signal']
+        if 'species_gate_stat' in predictions:
+            consistent_predictions['species_gate_stat'] = predictions['species_gate_stat']
 
         for level in self.level_order:
             consistent_predictions['predictions'][level] = []
@@ -116,6 +118,8 @@ class PredictionOutputFormatter:
             result['ood_score'] = predictions['ood_score']
         if 'no_signal' in predictions:
             result['no_signal'] = predictions['no_signal']
+        if 'species_gate_stat' in predictions:
+            result['species_gate_stat'] = predictions['species_gate_stat']
 
         for level in self.level_order:
             result[f'{level}_predictions'] = predictions['predictions'][level]
@@ -149,10 +153,15 @@ class PredictionOutputFormatter:
                 f.write("\t".join(header) + "\n")
 
                 strict_thresholds = self._get_level_thresholds(args)
-                if ood_config is not None:
-                    from taxonova.calibration.ood import gating_thresholds
-                    ood_row_thresholds = gating_thresholds(
-                        strict_thresholds, ood_config.get("relaxed_thresholds", {}))
+                from taxonova.core.operating_point import (gate_passes, low_information,
+                                                           low_information_limits, row_thresholds)
+                min_valid, max_amb = low_information_limits(getattr(args, "operating_point_entry", None))
+                n_low_info = 0
+                species_gate = getattr(args, "species_gate", None)
+                gate_stats = predictions.get("species_gate_stat")
+                if species_gate is not None and gate_stats is None:
+                    raise ValueError("species gate configured but the predictor returned no gate statistic")
+                n_gated = 0
 
                 for idx, seq in enumerate(sequences):
                     row = [seq[0]]
@@ -178,13 +187,22 @@ class PredictionOutputFormatter:
                             # below the user's thresholds. Releases 26.9.x
                             # used ood_config["relaxed_thresholds"] (0.0 at
                             # every rank) in place of them.
-                            thresholds = ood_row_thresholds
+                            ood_extra = ood_config.get("relaxed_thresholds", {})
                             ood_n_relaxed += 1
                         else:
-                            thresholds = strict_thresholds
+                            ood_extra = None
                             ood_n_strict += 1
                     else:
-                        thresholds = strict_thresholds
+                        ood_extra = None
+                    sp_label = predictions['predictions']['species'][idx]
+                    # an empty / 'unknown' species label is no species call: nothing for the gate to withhold
+                    gate_ok = (species_gate is None or sp_label in ("", None, "unknown", "Unknown")
+                               or gate_passes(species_gate, gate_stats[idx]))
+                    n_gated += 0 if gate_ok else 1
+                    # one place computes the row's gates, elementwise never below strict_thresholds
+                    low_info = low_information(seq[1], min_valid, max_amb) if len(seq) > 1 else True
+                    n_low_info += int(low_info)
+                    thresholds = row_thresholds(strict_thresholds, ood_extra, gate_ok, low_info)
 
                     no_signal = predictions.get('no_signal')
                     if no_signal is not None and no_signal[idx]:
@@ -193,7 +211,7 @@ class PredictionOutputFormatter:
                         continue
 
                     parent_conf = 1.0
-                    abstained = False
+                    parent_called = True
                     for level in self.level_order:
                         raw_confidence = predictions['confidence'].get(level, [0.0] * len(sequences))[idx]
                         try:
@@ -205,11 +223,12 @@ class PredictionOutputFormatter:
                         parent_conf = confidence
                         threshold = thresholds.get(level, args.confidence_threshold)
 
-                        # Abstention propagates: once a rank is Unclassified,
-                        # so is every rank below it, whatever its own gate.
-                        if abstained or confidence < threshold:
-                            abstained = True
+                        # Abstention propagates downward whatever the thresholds: with calibrated gates a child
+                        # rank's threshold can be below its parent's (genus 0.38 under family 0.5), and the capped
+                        # confidence alone would then name a genus under an unclassified family.
+                        if not parent_called or confidence < threshold:
                             row.extend(["Unclassified", f"{confidence:.4f}"])
+                            parent_called = False
                         else:
                             label = predictions['predictions'][level][idx]
                             if not label or label == "unknown":
@@ -220,6 +239,12 @@ class PredictionOutputFormatter:
 
             if ood_config is not None:
                 self._log_ood_summary(ood_config, ood_n_relaxed, ood_n_strict)
+            if n_low_info:
+                logger.warning(f"{n_low_info}/{len(sequences)} inputs have fewer than {min_valid} valid bases or "
+                               f"more than {100 * max_amb:.0f}% ambiguous characters: no call at any rank")
+            if species_gate is not None:
+                logger.info(f"Species gate ({species_gate['statistic']}): species call withheld for "
+                            f"{n_gated}/{len(sequences)} inputs")
             logger.info(f"Successfully wrote classifications to {args.output}")
         except Exception as e:
             logger.error(f"Error writing classifications: {str(e)}")
@@ -280,6 +305,9 @@ class PredictionOutputFormatter:
         still sit at 0.5, which is the value that evidence supports, and only
         genus and species are raised.
         """
+        resolved = getattr(args, "level_thresholds", None)
+        if resolved:
+            return dict(resolved)
         result = {}
         for lvl, gate in scaled_profile(args.confidence_threshold).items():
             override = getattr(args, f"{lvl}_threshold", None)

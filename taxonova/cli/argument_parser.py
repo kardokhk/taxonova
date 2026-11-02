@@ -62,9 +62,10 @@ def _add_classify_parser(subparsers):
     p.add_argument("-o", "--output", default=None, metavar="OUT",
                    help="output table (default: <input name>.taxonova.tsv in the current directory)")
     p.add_argument("-c", "--confidence", "--confidence_threshold", dest="confidence_threshold",
-                   type=float, default=GRADED_SPECIES, metavar="X",
-                   help=("species confidence threshold (default: %.1f); the thresholds of the other "
-                         "ranks scale with it" % GRADED_SPECIES))
+                   type=float, default=None, metavar="X",
+                   help=("species confidence threshold; the thresholds of the other ranks scale with it "
+                         "(default: the model's calibrated operating point if it has one, else %.1f)"
+                         % GRADED_SPECIES))
     p.add_argument("--strand", choices=("plus", "both"), default="plus",
                    help="plus: reads are in the model's orientation (default; a sample is checked and a "
                         "warning given if many look reversed). both: classify each read in the orientation "
@@ -339,8 +340,9 @@ def _add_classification_parser(subparsers):
     classification_parser.add_argument("--strand", choices=("plus", "both"), default="plus",
                              help="plus (default) or both: see 'taxonova classify --help'")
     classification_parser.add_argument(
-        "--confidence_threshold", type=float, default=GRADED_SPECIES,
-        help=("Species-rank confidence threshold (default: %.1f). The parent "
+        "--confidence_threshold", type=float, default=None,
+        help=("Species-rank confidence threshold (default: the model's "
+              "calibrated operating point if it has one, else %.1f). The parent "
               "gates scale with it in the recommended ratio, so this one "
               "number sets the operating point at every rank."
               % GRADED_SPECIES))
