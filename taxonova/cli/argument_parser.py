@@ -331,6 +331,11 @@ def _add_label_rules_arg(parser):
         help=("species rank: no group spanning several genera, species must belong to the genus call "
               "(the genus is never rewritten from the species), no placeholder name as species; "
               "replaces the species-to-genus consistency rewrite"))
+    parser.add_argument(
+        "--genus-token-check", "--genus_token_check", dest="genus_token_check", choices=("auto", "on", "off"),
+        default="auto",
+        help=("with --label-rules: whether a species name must carry its genus call's name (auto: the model's "
+              "setting, off for Greengenes2 models that keep renamed species under the old genus)"))
 
 
 def _add_classification_parser(subparsers):

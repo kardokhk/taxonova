@@ -190,8 +190,9 @@ def classification_mode(args):
         if taxonomy_hierarchy is None:
             logger.warning("No hierarchy data found. --label-rules not applied.")
         else:
-            from taxonova.labels import apply_to_predictions, ref_from_hierarchy
-            predictions, reasons = apply_to_predictions(predictions, ref_from_hierarchy(taxonomy_hierarchy))
+            from taxonova.labels import apply_to_predictions, ref_from_hierarchy, rule_options
+            opts = rule_options(taxonomy_info.get('label_rules'), getattr(args, "genus_token_check", "auto"))
+            predictions, reasons = apply_to_predictions(predictions, ref_from_hierarchy(taxonomy_hierarchy), **opts)
             logger.info("Label rules (species rank): " + ", ".join(f"{k} {v}" for k, v in sorted(reasons.items())))
     
     gate = getattr(args, "species_gate", None)

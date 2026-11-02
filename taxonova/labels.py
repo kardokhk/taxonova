@@ -488,6 +488,35 @@ def ref_from_hierarchy(hierarchy) -> RefTaxonomy:
     return RefTaxonomy(lineages)
 
 
+RULE_KEYS = ("genus_token", "genus_synonyms")
+
+
+def rule_options(entry=None, override: str = "auto") -> dict:
+    """Keyword options of the species rule from a checkpoint's ``label_rules`` entry
+    (``{"genus_token": bool, "genus_synonyms": {genus: [alias, ...]}}``; both optional) and the command-line
+    ``--genus-token-check`` value (``auto`` keeps the checkpoint's choice, ``on`` / ``off`` override it).
+    No entry means the genus-token check is on. A malformed entry raises ValueError."""
+    out = {"genus_token": True, "genus_synonyms": None}
+    if entry is not None:
+        if not isinstance(entry, dict) or set(entry) - set(RULE_KEYS):
+            raise ValueError(f"label_rules must be a dict with keys {RULE_KEYS}: {entry!r}")
+        if "genus_token" in entry:
+            if not isinstance(entry["genus_token"], bool):
+                raise ValueError("label_rules.genus_token must be true or false")
+            out["genus_token"] = entry["genus_token"]
+        syn = entry.get("genus_synonyms")
+        if syn is not None:
+            if not isinstance(syn, dict) or not all(isinstance(k, str) and isinstance(v, (list, tuple, set))
+                                                    and all(isinstance(a, str) for a in v) for k, v in syn.items()):
+                raise ValueError("label_rules.genus_synonyms must map a genus name to a list of names")
+            out["genus_synonyms"] = {k: set(v) for k, v in syn.items()}
+    if override not in ("auto", "on", "off"):
+        raise ValueError(f"--genus-token-check must be auto, on or off, not {override!r}")
+    if override != "auto":
+        out["genus_token"] = override == "on"
+    return out
+
+
 def apply_to_predictions(predictions: dict, ref: RefTaxonomy, genus_token: bool = True,
                          genus_synonyms: Optional[Mapping[str, Iterable[str]]] = None) -> Tuple[dict, Counter]:
     """Species rule on a predictor output dict ({'predictions': {level: [labels]}, 'confidence': {level: [..]}}),

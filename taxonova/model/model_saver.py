@@ -81,17 +81,27 @@ def save_model(model: torch.nn.Module, path: str, dataset: Optional[TaxonomyData
         raise
 
 
-def set_operating_point(src, entry, dst, species_centroids=None):
+def set_operating_point(src, entry, dst, species_centroids=None, label_rules=None):
     """Copy checkpoint `src` to `dst` with a validated `operating_point` entry (core/operating_point.py).
 
     The weights, encoders and every other key are copied unchanged; `entry` replaces any earlier operating point.
+    `label_rules` (optional) is the species-rule entry read by `taxonova.labels.rule_options`, for example
+    ``{"genus_token": False}`` for Greengenes2.
     """
     from taxonova.core.operating_point import KEY, validate
     validate(entry)                                   # refuse a malformed entry before writing anything
+    if label_rules is not None:
+        from taxonova.labels import rule_options
+        rule_options(label_rules)                     # refuse a malformed entry before writing anything
     data = torch.load(src, map_location="cpu", weights_only=False)
     if "model_state_dict" not in data or "taxonomy_info" not in data:
         raise ValueError(f"{src} is not a unified Taxonova checkpoint")
     data[KEY] = entry
+    if label_rules is not None:
+        rules = dict(label_rules)
+        if rules.get("genus_synonyms") is not None:      # plain lists, so weights_only=True can read them
+            rules["genus_synonyms"] = {g: sorted(a) for g, a in rules["genus_synonyms"].items()}
+        data["label_rules"] = rules
     if species_centroids is not None:
         data["species_centroids"] = _weights_only_safe(species_centroids)
     from taxonova.core.gate_stats import FEATURE_STATISTICS

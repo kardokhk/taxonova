@@ -190,6 +190,10 @@ class HierarchicalModelFactory:
 
             if unified_data.get('species_centroids') is not None:
                 taxonomy_info['species_centroids'] = unified_data['species_centroids']
+            if unified_data.get('label_rules') is not None:
+                from taxonova.labels import rule_options
+                rule_options(unified_data['label_rules'])
+                taxonomy_info['label_rules'] = unified_data['label_rules']
             operating_point = unified_data.get('operating_point')
             if operating_point:
                 from taxonova.core.operating_point import validate
