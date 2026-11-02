@@ -6,6 +6,6 @@ C_00116861	Bacteria	1.0000	Fusobacteriota	0.9998	Fusobacteriia	0.9998	Fusobacter
 C_00116840	Bacteria	1.0000	Bacteroidota	0.9999	Bacteroidia	0.9999	Bacteroidales	0.9999	Bacteroidaceae	0.9999	Prevotella	0.9996	Prevotella oris	0.9996
 C_00005624	Bacteria	1.0000	Bacteroidota	0.9999	Bacteroidia	0.9999	Bacteroidales	0.9999	Bacteroidaceae	0.9999	Prevotella	0.9987	Prevotella melaninogenica_C	0.9944
 adv_nrun20	Bacteria	1.0000	Fusobacteriota	0.9998	Fusobacteriia	0.9998	Fusobacteriales	0.9998	Fusobacteriaceae	0.9998	Fusobacterium	0.9998	Fusobacterium hwasookii	0.9983
-adv_first60	Bacteria	1.0000	Proteobacteria	0.6503	Gammaproteobacteria	0.6503	Enterobacterales	0.6503	Vibrionaceae	0.6503	Vibrio	0.6503	Vibrio kanaloae	0.6280
+adv_first60	Unclassified	1.0000	Unclassified	0.6503	Unclassified	0.6503	Unclassified	0.6503	Unclassified	0.6503	Unclassified	0.6503	Unclassified	0.6280
 adv_revcomp	Bacteria	0.9959	WOR-3	0.2753	UBA3073	0.2753	UBA3073	0.2753	UBA3073	0.2753	UBA3073	0.2753	UBA3073 sp002366725	0.1813
 adv_all_n	Unclassified	0.0000	Unclassified	0.0000	Unclassified	0.0000	Unclassified	0.0000	Unclassified	0.0000	Unclassified	0.0000	Unclassified	0.0000

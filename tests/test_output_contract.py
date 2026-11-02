@@ -33,7 +33,8 @@ def _write(tmp_path, labels, confs, args, extra=None):
              "confidence": {r: confs[i] for i, r in enumerate(RANKS)}}
     if extra:
         preds.update(extra)
-    seqs = [(f"q{i}", "ACGT", {}) for i in range(n)]
+    # 120 valid bases: above the low-information cut (100), so rows are judged on their gates alone
+    seqs = [(f"q{i}", "ACGT" * 30, {}) for i in range(n)]
     PredictionOutputFormatter(RANKS).write_tsv_output(args, preds, seqs)
     lines = (tmp_path / "o.tsv").read_text().splitlines()
     return [l.split("\t") for l in lines[1:]]

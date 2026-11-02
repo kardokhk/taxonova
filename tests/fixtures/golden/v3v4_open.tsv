@@ -12,6 +12,6 @@ fa227bc5f8e0913de5b5b66110cd3bad	Bacteria	1.0000	Pseudomonadota	0.9989	Gammaprot
 ad41cc2e1ee27e81d4b68cc70043d63b	Bacteria	1.0000	Deinococcota	0.9994	Deinococci	0.9994	Deinococcales	0.9994	Thermaceae_405955	0.9994	Allomeiothermus	0.9958	Allomeiothermus silvanus	0.9017
 fecce07d71fb6eedb08e113579bef409	Bacteria	1.0000	Actinomycetota	0.9999	Actinomycetes	0.9999	Streptosporangiales	0.9998	Streptosporangiaceae	0.9988	Nocardiopsis_D	0.9977	Nocardiopsis_D deserti	0.8739
 adv_nrun20	Bacteria	1.0000	Bacillota_A_368345	0.9999	Clostridia_258483	0.9998	Clostridiales	0.9998	Clostridiaceae_222000	0.9968	Unknown	0.4098	Unknown	0.4098
-adv_first60	Bacteria	1.0000	Bacillota_A_368345	0.9552	Clostridia_258483	0.9552	Lachnospirales	0.8951	Lachnospiraceae	0.8951	Butyribacter	0.8625	Butyribacter intestini	0.8625
+adv_first60	Unclassified	1.0000	Unclassified	0.9552	Unclassified	0.9552	Unclassified	0.8951	Unclassified	0.8951	Unclassified	0.8625	Unclassified	0.8625
 adv_revcomp	Bacteria	1.0000	Bacillota_I	0.7661	Bacilli_A	0.7661	Lactobacillales	0.3229	Vagococcaceae	0.3229	Vagococcus_A	0.3229	Unknown	0.3229
 adv_all_n	Unclassified	0.0000	Unclassified	0.0000	Unclassified	0.0000	Unclassified	0.0000	Unclassified	0.0000	Unclassified	0.0000	Unclassified	0.0000

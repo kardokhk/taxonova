@@ -11,7 +11,7 @@ bd555db92e641c4efbc2682303dc061a	Bacteria	1.0000	Thermotogota	0.9992	Thermotogae
 91a623f12ee32d9194e05467a12bf8d9	Bacteria	1.0000	Acidobacteriota	1.0000	Terriglobia	0.9997	Terriglobales	0.9997	Acidobacteriaceae	0.9997	Terriglobus_A	0.9984	Terriglobus_A roseus_B	0.9984
 99d036662b063df42ed9adb2d5cfac02	Bacteria	1.0000	Pseudomonadota	0.9999	Gammaproteobacteria	0.9998	Xanthomonadales	0.9998	Rhodanobacteraceae	0.9998	Frateuria_B_613055	0.9986	Frateuria aurantia	0.9986
 a62a452acfd5c114f6c3c3656db5c48b	Bacteria	1.0000	Bacillota_A_368345	1.0000	Clostridia_258483	0.9999	Acetivibrionales	0.9996	Acetivibrionaceae	0.9969	Hungateiclostridium	0.9969	Hungateiclostridium thermocellum	0.9969
-adv_nrun20	Bacteria	1.0000	Pseudomonadota	0.9994	Gammaproteobacteria	0.9994	Enterobacterales_737866	0.9994	Enterobacteriaceae_A_725029	0.9994	Salmonella	0.9962	Salmonella bongori	0.9962
-adv_first60	Bacteria	1.0000	Pseudomonadota	0.9888	Gammaproteobacteria	0.8646	Enterobacterales_737866	0.8646	Enterobacteriaceae_A_725029	0.5508	Escherichia	0.5508	Unknown	0.5508
+adv_nrun20	Unclassified	1.0000	Unclassified	0.9994	Unclassified	0.9994	Unclassified	0.9994	Unclassified	0.9994	Unclassified	0.9962	Unclassified	0.9962
+adv_first60	Unclassified	1.0000	Unclassified	0.9888	Unclassified	0.8646	Unclassified	0.8646	Unclassified	0.5508	Unclassified	0.5508	Unclassified	0.5508
 adv_revcomp	Bacteria	1.0000	Patescibacteria	0.4362	ABY1	0.4362	UBA1558	0.4362	UBA10009	0.4362	UBA10009	0.4362	Unknown	0.4362
 adv_all_n	Unclassified	0.0000	Unclassified	0.0000	Unclassified	0.0000	Unclassified	0.0000	Unclassified	0.0000	Unclassified	0.0000	Unclassified	0.0000

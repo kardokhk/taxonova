@@ -12,6 +12,6 @@ b1964c97ed54ecbc7eebaf7ff679fece	Bacteria	1.0000	Actinomycetota	1.0000	Coriobact
 39edff3c30b6f0de2f4cc584a7107388	Bacteria	1.0000	Thermotogota	0.9995	Thermotogae	0.9990	Thermotogales	0.9990	Fervidobacteriaceae	0.9990	Fervidobacterium_A	0.9990	Fervidobacterium_A pennivorans	0.9971
 9c157df348c96823a332b90bf432104b	Bacteria	1.0000	Bacillota_I	1.0000	Bacilli_A	0.9999	Lactobacillales	0.9999	Streptococcaceae	0.9999	Streptococcus	0.9999	Streptococcus pyogenes	0.9999
 adv_nrun20	Bacteria	1.0000	Pseudomonadota	1.0000	Gammaproteobacteria	1.0000	Enterobacterales_737866	1.0000	Enterobacteriaceae_A_725029	1.0000	Salmonella	0.9999	Salmonella bongori	0.9999
-adv_first60	Bacteria	1.0000	Pseudomonadota	0.7316	Gammaproteobacteria	0.7316	Enterobacterales_737866	0.7316	Enterobacteriaceae_A_725029	0.7316	Salmonella	0.7316	Salmonella bongori	0.7316
+adv_first60	Unclassified	1.0000	Unclassified	0.7316	Unclassified	0.7316	Unclassified	0.7316	Unclassified	0.7316	Unclassified	0.7316	Unclassified	0.7316
 adv_revcomp	Bacteria	1.0000	Pseudomonadota	0.9992	Gammaproteobacteria	0.9989	Enterobacterales_737866	0.9958	Enterobacteriaceae_A_725029	0.9924	Escherichia	0.8894	Unknown	0.6644
 adv_all_n	Unclassified	0.0000	Unclassified	0.0000	Unclassified	0.0000	Unclassified	0.0000	Unclassified	0.0000	Unclassified	0.0000	Unclassified	0.0000
