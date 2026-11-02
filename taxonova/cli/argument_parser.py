@@ -81,6 +81,7 @@ def _add_classify_parser(subparsers):
                    help="where models are stored (default: $TAXONOVA_MODELS_DIR, else ~/.taxonova/models)")
     p.add_argument("--no-log", action="store_true", default=False,
                    help="do not write the run log (<output name>.log) next to the output table")
+    _add_label_rules_arg(p)
     _add_common_output_args(p)
 
 
@@ -324,6 +325,14 @@ def _add_training_parser(subparsers):
     
     _add_common_output_args(train_parser)
 
+def _add_label_rules_arg(parser):
+    parser.add_argument(
+        "--label-rules", "--label_rules", dest="label_rules", action="store_true", default=False,
+        help=("species rank: no group spanning several genera, species must belong to the genus call "
+              "(the genus is never rewritten from the species), no placeholder name as species; "
+              "replaces the species-to-genus consistency rewrite"))
+
+
 def _add_classification_parser(subparsers):
     """Add classification mode parser."""
     classification_parser = subparsers.add_parser(
@@ -353,4 +362,5 @@ def _add_classification_parser(subparsers):
                   f"default of {GRADED_PROFILE[_lvl]} at "
                   f"--confidence_threshold {GRADED_SPECIES}"))
 
+    _add_label_rules_arg(classification_parser)
     _add_common_output_args(classification_parser)

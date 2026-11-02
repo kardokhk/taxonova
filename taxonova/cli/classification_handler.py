@@ -181,10 +181,18 @@ def classification_mode(args):
             if not _console_shows_warnings():
                 print(f"WARNING: {msg}", file=sys.stderr)
     
-    if enforce_taxonomy:
+    label_rules = getattr(args, "label_rules", False)
+    if enforce_taxonomy and not label_rules:
         logger.info("Applying taxonomic consistency to predictions...")
         consistency_processor = TaxonomicConsistencyProcessor(dataset, predictor.level_order)
         predictions = consistency_processor.apply_consistency(predictions, sequences)
+    elif label_rules:
+        if taxonomy_hierarchy is None:
+            logger.warning("No hierarchy data found. --label-rules not applied.")
+        else:
+            from taxonova.labels import apply_to_predictions, ref_from_hierarchy
+            predictions, reasons = apply_to_predictions(predictions, ref_from_hierarchy(taxonomy_hierarchy))
+            logger.info("Label rules (species rank): " + ", ".join(f"{k} {v}" for k, v in sorted(reasons.items())))
     
     gate = getattr(args, "species_gate", None)
     from taxonova.core.gate_stats import FEATURE_STATISTICS, centroid_distance
