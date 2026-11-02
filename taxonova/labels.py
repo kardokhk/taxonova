@@ -29,7 +29,7 @@ from __future__ import annotations
 import math
 import re
 from collections import Counter, defaultdict
-from typing import Dict, Iterable, List, Optional, Sequence, Set, Tuple
+from typing import Dict, Iterable, List, Mapping, Optional, Sequence, Set, Tuple
 
 RANKS = ("domain", "phylum", "class", "order", "family", "genus", "species")
 PFX = ("d__", "p__", "c__", "o__", "f__", "g__", "s__")
@@ -240,13 +240,17 @@ def lineages_from_fasta(path: str) -> Dict[str, List[str]]:
 _TOKEN_SPLIT = re.compile(r"[-_ \[\]]+")
 
 
-def genus_token_agrees(species: str, genus: str) -> bool:
+def genus_token_agrees(species: str, genus: str, synonyms: Optional[Mapping[str, Iterable[str]]] = None) -> bool:
     """The genus part of a species name agrees with the genus label (research/PITFALLS.md P10).
 
     True when the species name starts with a genus member followed by a space (Greengenes2 suffixes included, as
     written), or when its first word (brackets and 'Candidatus' removed) is one of the words of a genus member
     split at '-', '_', spaces and brackets (SILVA composite genera such as 'Escherichia-Shigella' or
-    '[Ruminococcus] torques group'). 'Salmonella enterica' under 'Escherichia-Shigella' disagrees."""
+    '[Ruminococcus] torques group'). 'Salmonella enterica' under 'Escherichia-Shigella' disagrees.
+
+    ``synonyms`` maps a genus label (or group member) to further genus names its species may carry, for
+    references that keep a renamed species under the old genus field (Greengenes2: 'Segatella copri' under
+    'Prevotella'). Only declared pairs are accepted."""
     if not species or not genus:
         return False
     w = species.split()
@@ -258,12 +262,17 @@ def genus_token_agrees(species: str, genus: str) -> bool:
             return True
         if first and first in set(_TOKEN_SPLIT.split(g)) - {"", "Candidatus"}:
             return True
+        if synonyms and first:
+            for alias in synonyms.get(g, ()):
+                if species.startswith(alias + " ") or first == alias:
+                    return True
     return False
 
 
 
 def resolve_species(species: str, genus: str, ref: RefTaxonomy,
-                    alternatives: Sequence[str] = (), upper: Sequence[str] = ()) -> Tuple[str, str]:
+                    alternatives: Sequence[str] = (), upper: Sequence[str] = (), genus_token: bool = True,
+                    genus_synonyms: Optional[Mapping[str, Iterable[str]]] = None) -> Tuple[str, str]:
     """Apply the cross-genus group rule, rank-path consistency and the placeholder rule to one species call.
 
     ``species``: the species label proposed for the query ('' for none); ``genus``: the genus call that stands
@@ -272,7 +281,13 @@ def resolve_species(species: str, genus: str, ref: RefTaxonomy,
     rank path (labels keyed by path, research/PITFALLS.md P08), otherwise on the (genus, species) pair.
     Returns ``(label, reason)``; label '' means the species rank abstains. Reasons: 'empty', 'no_genus', 'kept',
     'cross_genus_subset', 'cross_genus_abstain', 'genus_token_subset', 'genus_token_abstain', 'path_inconsistent',
-    'placeholder_trimmed', 'placeholder_alternative', 'placeholder_abstain'."""
+    'placeholder_trimmed', 'placeholder_alternative', 'placeholder_abstain'.
+
+    ``genus_token=False`` switches the genus-token check off (the cross-genus, path and placeholder rules stay on);
+    ``genus_synonyms`` declares accepted genus aliases for the token check (see :func:`genus_token_agrees`)."""
+    def tok_ok(m, g):
+        return (not genus_token) or genus_token_agrees(m, g, genus_synonyms)
+
     if is_nocall(species):
         return "", "empty"
     if is_nocall(genus):
@@ -286,7 +301,7 @@ def resolve_species(species: str, genus: str, ref: RefTaxonomy,
 
     def valid(lab):
         ms = members(lab)
-        return bool(lab) and len(ref.genera_of(lab)) == 1 and all(genus_token_agrees(m, genus) for m in ms) \
+        return bool(lab) and len(ref.genera_of(lab)) == 1 and all(tok_ok(m, genus) for m in ms) \
             and not any(ref.is_placeholder(m) for m in ms) and on_path(lab)
 
     mem = members(species)
@@ -302,10 +317,10 @@ def resolve_species(species: str, genus: str, ref: RefTaxonomy,
         return "", "placeholder_abstain"
     gm = set(members(genus))
     span = ref.genera_of(species)
-    tok = [m for m in mem if genus_token_agrees(m, genus)]
+    tok = [m for m in mem if tok_ok(m, genus)]
     if len(span) > 1 or len(tok) < len(mem):
         kind = "cross_genus" if len(span) > 1 else "genus_token"
-        inside = [m for m in mem if (ref.genera_of(m) & gm) and genus_token_agrees(m, genus)]
+        inside = [m for m in mem if (ref.genera_of(m) & gm) and tok_ok(m, genus)]
         if inside and len(inside) < len(mem):
             lab = ref.species_taxon(genus, inside)
             if lab and valid(lab):
@@ -316,12 +331,15 @@ def resolve_species(species: str, genus: str, ref: RefTaxonomy,
     return species, "kept"
 
 
-def apply_species_rule(labels: Sequence[str], ref: RefTaxonomy, alternatives: Sequence[str] = ()) -> Tuple[List[str], str]:
+def apply_species_rule(labels: Sequence[str], ref: RefTaxonomy, alternatives: Sequence[str] = (),
+                       genus_token: bool = True,
+                       genus_synonyms: Optional[Mapping[str, Iterable[str]]] = None) -> Tuple[List[str], str]:
     """7 labels (a gated lineage, '' = no call) -> 7 labels with the species rank resolved; ranks above unchanged."""
     lab = [("" if is_nocall(x) else x) for x in labels]
     if not lab[SP]:
         return lab, "empty"
-    s, why = resolve_species(lab[SP], lab[G], ref, alternatives, upper=lab[:G])
+    s, why = resolve_species(lab[SP], lab[G], ref, alternatives, upper=lab[:G], genus_token=genus_token,
+                             genus_synonyms=genus_synonyms)
     lab[SP] = s
     return lab, why
 
@@ -470,7 +488,8 @@ def ref_from_hierarchy(hierarchy) -> RefTaxonomy:
     return RefTaxonomy(lineages)
 
 
-def apply_to_predictions(predictions: dict, ref: RefTaxonomy) -> Tuple[dict, Counter]:
+def apply_to_predictions(predictions: dict, ref: RefTaxonomy, genus_token: bool = True,
+                         genus_synonyms: Optional[Mapping[str, Iterable[str]]] = None) -> Tuple[dict, Counter]:
     """Species rule on a predictor output dict ({'predictions': {level: [labels]}, 'confidence': {level: [..]}}),
     in place. The genus label stands; a species that fails the rule becomes 'unknown' with confidence 0.0, so the
     writer reports it as unclassified. Returns (predictions, Counter of reasons)."""
@@ -479,7 +498,7 @@ def apply_to_predictions(predictions: dict, ref: RefTaxonomy) -> Tuple[dict, Cou
     ge = predictions["predictions"]["genus"]
     cs = predictions["confidence"]["species"]
     for i in range(len(sp)):
-        s, w = resolve_species(sp[i] or "", ge[i] or "", ref)
+        s, w = resolve_species(sp[i] or "", ge[i] or "", ref, genus_token=genus_token, genus_synonyms=genus_synonyms)
         why[w] += 1
         if s != sp[i] and not (is_nocall(s) and is_nocall(sp[i])):
             sp[i] = s if s else "unknown"
