@@ -443,3 +443,12 @@ def test_apply_to_predictions_passes_genus_token_switch():
             "confidence": {"genus": [0.9], "species": [0.8]}}
     out, why = L.apply_to_predictions(pred, ref, genus_token=False)
     assert out["predictions"]["species"] == ["Segatella copri"] and why == {"kept": 1}
+
+
+# Recorded, not fixed at integration (2026-11-02): SILVA single names in brackets such as '[Eubacterium]' or
+# '[Bacillus]' are read as one-member groups, so they share members with the plain genus 'Eubacterium'. The
+# frozen held-out pipelines pin labels.py by hash, so the fix waits for the next release cycle.
+@pytest.mark.xfail(strict=True, reason="one-member bracket names are read as groups (open, integration READY.md)")
+def test_single_bracketed_name_is_not_a_group():
+    assert L.is_group("[Eubacterium]") is False
+    assert L.members("[Eubacterium]") == ["[Eubacterium]"]
