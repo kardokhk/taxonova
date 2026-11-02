@@ -393,3 +393,53 @@ def test_species_with_disagreeing_genus_token_is_not_output_p10():
     assert L.apply_species_rule(ENT + ["Salmonella", "Salmonella enterica"], ref)[1] == "kept"
     s, why = L.resolve_species("[Escherichia coli|Salmonella enterica]", "Escherichia-Shigella", ref, upper=ENT)
     assert (s, why) == ("Escherichia coli", "cross_genus_subset")   # S. enterica belongs to Salmonella
+
+
+# ----------------------------------------------------------- genus-token check switch and synonym table (integration)
+# Greengenes2 keeps renamed species under the old genus field (labels/RESULTS.md section 2): the T1 truth holds
+# g__Prevotella; s__Segatella copri, so the genus-token rule must be switchable per reference, and a declared
+# synonym table may accept a species token as an alias of the genus label.
+
+def gg2_rename_ref():
+    up = ["Bacteria", "Bacteroidota", "Bacteroidia", "Bacteroidales", "Bacteroidaceae"]
+    return L.RefTaxonomy([up + ["Prevotella", "Segatella copri"], up + ["Prevotella", "Prevotella bivia"],
+                          up + ["Segatella", "Segatella oris"]]), up
+
+
+def test_genus_token_check_can_be_switched_off():
+    ref, up = gg2_rename_ref()
+    # default: the token rule abstains on a reference path whose species was renamed to a new genus
+    assert L.resolve_species("Segatella copri", "Prevotella", ref, upper=up) == ("", "genus_token_abstain")
+    # off: the pair is a reference path, so it is kept
+    assert L.resolve_species("Segatella copri", "Prevotella", ref, upper=up, genus_token=False) == \
+        ("Segatella copri", "kept")
+    out, why = L.apply_species_rule(up + ["Prevotella", "Segatella copri"], ref, genus_token=False)
+    assert (out[L.SP], why) == ("Segatella copri", "kept")
+
+
+def test_genus_token_off_keeps_cross_genus_and_path_rules():
+    ref, up = gg2_rename_ref()
+    # a species of another genus that is not a reference child of the genus call still abstains
+    assert L.resolve_species("Segatella oris", "Prevotella", ref, upper=up, genus_token=False) == \
+        ("", "path_inconsistent")
+    # a group whose members span two genera is still cut to the in-genus member
+    s, why = L.resolve_species("[Prevotella bivia|Segatella oris]", "Prevotella", ref, upper=up, genus_token=False)
+    assert (s, why) == ("Prevotella bivia", "cross_genus_subset")
+
+
+def test_genus_synonym_table_accepts_declared_alias_only():
+    ref, up = gg2_rename_ref()
+    syn = {"Prevotella": {"Segatella"}}
+    assert L.genus_token_agrees("Segatella copri", "Prevotella", synonyms=syn) is True
+    assert L.genus_token_agrees("Segatella copri", "Prevotella") is False
+    assert L.genus_token_agrees("Bacteroides fragilis", "Prevotella", synonyms=syn) is False
+    assert L.resolve_species("Segatella copri", "Prevotella", ref, upper=up, genus_synonyms=syn) == \
+        ("Segatella copri", "kept")
+
+
+def test_apply_to_predictions_passes_genus_token_switch():
+    ref, _ = gg2_rename_ref()
+    pred = {"predictions": {"genus": ["Prevotella"], "species": ["Segatella copri"]},
+            "confidence": {"genus": [0.9], "species": [0.8]}}
+    out, why = L.apply_to_predictions(pred, ref, genus_token=False)
+    assert out["predictions"]["species"] == ["Segatella copri"] and why == {"kept": 1}
