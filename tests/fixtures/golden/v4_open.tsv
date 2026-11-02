@@ -1,0 +1,17 @@
+sequence_id	domain	domain_confidence	phylum	phylum_confidence	class	class_confidence	order	order_confidence	family	family_confidence	genus	genus_confidence	species	species_confidence
+9580aa8a52ec18a4e92e701cdb595faa	Bacteria	1.0000	Bacillota_A_368345	1.0000	Clostridia_258483	0.9998	Clostridiales	0.9997	Clostridiaceae_222000	0.9994	[Clostridium_AG_200053|Sarcina_200052]	0.4413	[Clostridium_AG_200053 perfringens|Sarcina perfringens]	0.4413
+ffa3a140a59bf514a64e29e644ee0a0a	Bacteria	1.0000	Bacillota_A_368345	1.0000	Clostridia_258483	0.9993	Acetivibrionales	0.9981	Acetivibrionaceae	0.9724	Hungateiclostridium	0.9724	Hungateiclostridium thermocellum	0.9592
+ac3791927e5485b6e2d3197190ddb46d	Bacteria	1.0000	Verrucomicrobiota	1.0000	Verrucomicrobiae	0.9994	Opitutales	0.9994	Coraliomargaritaceae	0.9985	Coraliomargarita_B_755746	0.9982	Coraliomargarita_B_755746 akajimensis	0.9982
+4ad8db20b074326a0cf62c3f373ebd63	Bacteria	1.0000	Actinomycetota	1.0000	Actinomycetes	0.9999	Mycobacteriales	0.9996	Mycobacteriaceae	0.9996	Corynebacterium	0.9991	[Corynebacterium efficiens|Corynebacterium glutamicum]	0.9804
+dd2859ddb15c608956826394ab61dfe1	Bacteria	1.0000	Bacillota_B_370539	0.9993	Desulfitobacteriia	0.9992	Desulfitobacteriales	0.9992	Desulfitobacteriaceae	0.9992	Desulfosporosinus	0.9992	[Desulfosporosinus acididurans|Desulfosporosinus acidiphilus]	0.9851
+e3feb5bc96798855615593ebfe659fbc	Bacteria	1.0000	Bacillota_B_370539	0.9986	Desulfitobacteriia	0.9986	Desulfitobacteriales	0.9986	Desulfitobacteriaceae	0.9986	Desulfosporosinus	0.9986	Desulfosporosinus meridiei	0.9978
+6e0d3a6167a005c7d00a7c7f1bd9ace6	Bacteria	1.0000	Bacillota_B_370525	0.9854	Desulfotomaculia_370525	0.9854	Desulfotomaculales_370525	0.9854	Desulfallaceae	0.9854	Sporotomaculum_370354	0.9854	Sporotomaculum gibsoniae	0.9854
+d2d8f24db7225ca431a192a528d542fb	Bacteria	1.0000	Bacteroidota	1.0000	Bacteroidia	0.9998	Cytophagales_B	0.9997	Cyclobacteriaceae	0.9997	Echinicola	0.9976	Echinicola vietnamensis	0.9973
+49b6645aaa44442231bf939ae46bbc97	Bacteria	1.0000	Thermotogota	0.9993	Thermotogae	0.9993	Thermotogales	0.9993	Fervidobacteriaceae	0.9989	Fervidobacterium_A	0.9989	[Fervidobacterium_A changbaicum|Fervidobacterium_A pennivorans]	0.9948
+f8b73513e6a7d228f5797afcf216a505	Bacteria	1.0000	Pseudomonadota	0.9995	Gammaproteobacteria	0.9993	Xanthomonadales	0.9993	Rhodanobacteraceae	0.9993	[Dyella_B|Dyella_C|Frateuria_B_613055]	0.9887	[Dyella_B koreensis|Dyella_B kyungheensis|Dyella_C soli|Frateuria aurantia]	0.9887
+0b197da222a319aa2f044db7760bcee6	Archaea	1.0000	Halobacteriota	1.0000	Halobacteria	1.0000	Halobacteriales	1.0000	Natrialbaceae	0.9997	Halovivax	0.9988	Halovivax ruber	0.9879
+882b5b49ef18215727a0900958cdec5d	Bacteria	1.0000	Deinococcota	0.9993	Deinococci	0.9993	Deinococcales	0.9993	Thermaceae_405955	0.9993	Allomeiothermus	0.9981	Allomeiothermus silvanus	0.9965
+adv_nrun20	Bacteria	1.0000	Bacillota_A_368345	1.0000	Clostridia_258483	0.9999	Clostridiales	0.9997	Clostridiaceae_222000	0.9995	Clostridium_AG_200053	0.5402	Clostridium_AG_200053 perfringens	0.5402
+adv_first60	Bacteria	1.0000	Bacillota_A_368345	0.9348	Clostridia_258483	0.9348	Clostridiales	0.8382	Clostridiaceae_222000	0.8382	Clostridium_T	0.7051	Unknown	0.1498
+adv_revcomp	Bacteria	1.0000	Pseudomonadota	0.0842	Alphaproteobacteria	0.0842	Rhizobiales_505101	0.0842	Xanthobacteraceae	0.0842	Bradyrhizobium_503403	0.0842	Unknown	0.0842
+adv_all_n	Unclassified	0.0000	Unclassified	0.0000	Unclassified	0.0000	Unclassified	0.0000	Unclassified	0.0000	Unclassified	0.0000	Unclassified	0.0000

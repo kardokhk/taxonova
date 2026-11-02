@@ -24,6 +24,8 @@ class TaxonomicConsistencyProcessor:
         # rewrites taxa/confidence, not the OOD score.
         if 'ood_score' in predictions:
             consistent_predictions['ood_score'] = predictions['ood_score']
+        if 'no_signal' in predictions:
+            consistent_predictions['no_signal'] = predictions['no_signal']
 
         for level in self.level_order:
             consistent_predictions['predictions'][level] = []
@@ -39,11 +41,24 @@ class TaxonomicConsistencyProcessor:
                 current_pred[level] = (pred_idx, conf)
             
             consistent_pred = self.dataset.get_consistent_taxonomy(current_pred)
-            
+
+            # The consistency step rewrites parent labels from the deepest
+            # named rank (normally species). A rewritten rank's confidence was
+            # measured for the label the model predicted there, not for the
+            # new one, so it is capped at the confidence of the rank that
+            # drove the rewrite; unchanged ranks keep their own confidence.
+            driver_conf = None
+            for level in reversed(self.level_order):
+                if predictions['predictions'][level][idx] not in (None, "", "unknown"):
+                    driver_conf = float(predictions['confidence'][level][idx])
+                    break
+
             for level in self.level_order:
                 pred_idx, conf = consistent_pred[level]
                 label = self._get_index_label(level, pred_idx)
-                
+                if driver_conf is not None and label != predictions['predictions'][level][idx]:
+                    conf = min(float(conf), driver_conf)
+
                 consistent_predictions['predictions'][level].append(label)
                 consistent_predictions['confidence'][level].append(conf)
         
@@ -99,6 +114,8 @@ class PredictionOutputFormatter:
         }
         if 'ood_score' in predictions:
             result['ood_score'] = predictions['ood_score']
+        if 'no_signal' in predictions:
+            result['no_signal'] = predictions['no_signal']
 
         for level in self.level_order:
             result[f'{level}_predictions'] = predictions['predictions'][level]
@@ -169,7 +186,14 @@ class PredictionOutputFormatter:
                     else:
                         thresholds = strict_thresholds
 
+                    no_signal = predictions.get('no_signal')
+                    if no_signal is not None and no_signal[idx]:
+                        row.extend(["Unclassified", "0.0000"] * len(self.level_order))
+                        f.write("\t".join(row) + "\n")
+                        continue
+
                     parent_conf = 1.0
+                    abstained = False
                     for level in self.level_order:
                         raw_confidence = predictions['confidence'].get(level, [0.0] * len(sequences))[idx]
                         try:
@@ -181,7 +205,10 @@ class PredictionOutputFormatter:
                         parent_conf = confidence
                         threshold = thresholds.get(level, args.confidence_threshold)
 
-                        if confidence < threshold:
+                        # Abstention propagates: once a rank is Unclassified,
+                        # so is every rank below it, whatever its own gate.
+                        if abstained or confidence < threshold:
+                            abstained = True
                             row.extend(["Unclassified", f"{confidence:.4f}"])
                         else:
                             label = predictions['predictions'][level][idx]

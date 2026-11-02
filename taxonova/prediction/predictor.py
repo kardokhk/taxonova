@@ -74,12 +74,17 @@ class HierarchicalPredictor:
         # write_tsv_output can compare it against τ at write time.
         ood_score_method = getattr(self.config, "ood_score_method", None)
         ood_scores = [] if ood_score_method else None
+        # A row with no valid k-mer (empty, all N, shorter than k) is an
+        # all-zero input; the network still returns a confident-looking
+        # answer for it, so it is flagged and written as Unclassified.
+        no_signal = []
 
         with torch.no_grad():
             pred_pbar = tqdm(eval_loader, desc="Classifying", leave=False, unit="batch",
                              disable=not getattr(self.config, "show_progress", True))
             for batch in pred_pbar:
                 (features, _), _ = batch
+                no_signal.extend((features.abs().sum(dim=1) == 0).tolist())
                 features = features.to(self.device)
 
                 outputs = self.model(features)
@@ -132,5 +137,6 @@ class HierarchicalPredictor:
         }
         if ood_scores is not None:
             formatted_predictions['ood_score'] = ood_scores
+        formatted_predictions['no_signal'] = no_signal
 
         return formatter.format_predictions(formatted_predictions)

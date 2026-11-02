@@ -28,7 +28,9 @@ class SequenceProcessor:
 
     def generate_kmer_frequencies(self, sequence: str) -> np.ndarray:
         seq = sequence.upper()
-        seq_bytes = seq.encode('ascii', errors='ignore')
+        # 'replace' (not 'ignore'): a non-ASCII symbol becomes '?', which breaks
+        # k-mers like N instead of being deleted and joining its two flanks.
+        seq_bytes = seq.encode('ascii', errors='replace')
         
         seq_arr = np.frombuffer(seq_bytes, dtype=np.uint8)
         indices = self._mapping[seq_arr]

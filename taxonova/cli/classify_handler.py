@@ -70,8 +70,12 @@ def classify_mode(args):
 
     if not getattr(args, "model_input", None):
         resolve_classify_model(args)
+    from taxonova.cli.classification_handler import InputError
     logger.info(f"Model {args.model or DEFAULT_MODEL} resolved to {args.model_input}")
-    classification_mode(args)
+    try:
+        classification_mode(args)
+    except InputError as e:
+        sys.exit(f"taxonova: {e}")
     print(f"Results written to {args.output}", file=sys.stderr)
 
 

@@ -65,6 +65,10 @@ def _add_classify_parser(subparsers):
                    type=float, default=GRADED_SPECIES, metavar="X",
                    help=("species confidence threshold (default: %.1f); the thresholds of the other "
                          "ranks scale with it" % GRADED_SPECIES))
+    p.add_argument("--strand", choices=("plus", "both"), default="plus",
+                   help="plus: reads are in the model's orientation (default; a sample is checked and a "
+                        "warning given if many look reversed). both: classify each read in the orientation "
+                        "the model is more confident about (twice the compute)")
     p.add_argument("-t", "--threads", "--cpu_threads", dest="cpu_threads", type=int, default=None,
                    metavar="N", help="CPU threads (default: 2)")
     g = p.add_argument_group("per-rank thresholds (override the scaled defaults)")
@@ -332,6 +336,8 @@ def _add_classification_parser(subparsers):
                              help="Path to save classification results")
     classification_parser.add_argument("--cpu_threads", type=int, default=None,
                              help="Number of CPU threads to use for classification (default: 2)")
+    classification_parser.add_argument("--strand", choices=("plus", "both"), default="plus",
+                             help="plus (default) or both: see 'taxonova classify --help'")
     classification_parser.add_argument(
         "--confidence_threshold", type=float, default=GRADED_SPECIES,
         help=("Species-rank confidence threshold (default: %.1f). The parent "

@@ -37,7 +37,7 @@ def _records(sequences):
 
 def classify(sequences_or_fasta_path, model="v4", confidence=0.8, threads=None, *,
              models_dir=None, domain_threshold=None, phylum_threshold=None, class_threshold=None,
-             order_threshold=None, family_threshold=None, genus_threshold=None, quiet=False):
+             order_threshold=None, family_threshold=None, genus_threshold=None, quiet=False, strand="plus"):
     """Classify sequences with a pretrained or local model.
 
     Parameters
@@ -56,6 +56,8 @@ def classify(sequences_or_fasta_path, model="v4", confidence=0.8, threads=None, 
         CPU threads (default 2, as on the command line).
     domain_threshold ... genus_threshold
         Optional per-rank thresholds that override the scaled defaults.
+    strand
+        ``"plus"`` (default) or ``"both"``, as ``--strand`` on the command line.
 
     Returns
     -------
@@ -91,7 +93,7 @@ def classify(sequences_or_fasta_path, model="v4", confidence=0.8, threads=None, 
             domain_threshold=domain_threshold, phylum_threshold=phylum_threshold,
             class_threshold=class_threshold, order_threshold=order_threshold,
             family_threshold=family_threshold, genus_threshold=genus_threshold,
-            show_resource_usage=False, verbose=False, quiet=bool(quiet),
+            show_resource_usage=False, verbose=False, quiet=bool(quiet), strand=strand,
         )
         classification_mode(args)
         dtypes = {"sequence_id": str}

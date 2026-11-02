@@ -18,10 +18,64 @@ from taxonova.models import ensure_model, superseded_model_warning
 
 logger = logging.getLogger(__name__)
 
+#: Reads checked in both orientations under --strand plus, to warn about reversed input.
+STRAND_SAMPLE = 200
+#: Warn when more than this share of the sample scores better reverse-complemented.
+STRAND_WARN_FRACTION = 0.10
+_COMPLEMENT = str.maketrans("ACGTURYKMSWBDHVN", "TGCAAYRMKSWVHDBN")
+
+
+class InputError(ValueError):
+    """The query file cannot be classified (unreadable, wrong format or empty)."""
+
+
+def reverse_complement(seq: str) -> str:
+    return seq.translate(_COMPLEMENT)[::-1]
+
+
+def _confidence_score(predictions, idx):
+    """Orientation score of one row: the sum of its per-rank confidences."""
+    return sum(float(predictions['confidence'][lvl][idx]) for lvl in predictions['confidence'])
+
+
+def _predict_reversed(model, sequences, processor, taxonomy_info, taxonomic_encoders, config, device, args):
+    rev = [(sid, reverse_complement(seq), tax) for sid, seq, tax in sequences]
+    dataset = TaxonomyDataset(sequences=rev, processor=processor, label_encoder=taxonomy_info['label_encoder'],
+                              taxonomy_hierarchy=taxonomy_info.get('taxonomy_hierarchy'), **taxonomic_encoders)
+    predictor = HierarchicalModelFactory.create_predictor(model, dataset, config, device)
+    predictor.config.show_progress = not getattr(args, "quiet", False)
+    return predictor.predict(rev)
+
+
+def _merge_by_strand(forward, reverse):
+    """Per row, keep the orientation with the higher confidence score; returns
+    (merged predictions, number of rows taken reversed)."""
+    n = len(forward['predictions']['domain'])
+    take_rev = [_confidence_score(reverse, i) > _confidence_score(forward, i) for i in range(n)]
+    merged = {'predictions': {}, 'confidence': {}}
+    for key in ('predictions', 'confidence'):
+        for lvl in forward[key]:
+            merged[key][lvl] = [(reverse if r else forward)[key][lvl][i] for i, r in enumerate(take_rev)]
+    for key in ('no_signal', 'ood_score'):
+        if key in forward:
+            merged[key] = [(reverse if r else forward)[key][i] for i, r in enumerate(take_rev)]
+    return merged, sum(take_rev)
+
+
 def classification_mode(args):
     """Handle classification mode execution."""
     logger.info("Loading query sequences for classification...")
-    sequences = read_fasta_file(args.input, expect_taxonomy=False)
+    try:
+        sequences = read_fasta_file(args.input, expect_taxonomy=False)
+    except FileNotFoundError:
+        raise
+    except ValueError as e:
+        raise InputError(str(e)) from e
+    if not sequences:
+        raise InputError(f"no sequences in {args.input}")
+    strand = getattr(args, "strand", None) or "plus"
+    if strand not in ("plus", "both"):
+        raise ValueError(f"strand must be 'plus' or 'both', got {strand!r}")
     
     cpu_threads = getattr(args, 'cpu_threads', None)
     device = DeviceManager.get_device_for_classification(cpu_threads)
@@ -101,8 +155,26 @@ def classification_mode(args):
         logger.info("Taxonomy consistency enforcement is enabled")
     
     predictions = predictor.predict(sequences)
-    
     formatter = PredictionOutputFormatter(predictor.level_order)
+
+    if strand == "both":
+        reverse = _predict_reversed(model, sequences, processor, taxonomy_info, taxonomic_encoders,
+                                    config, device, args)
+        predictions, n_rev = _merge_by_strand(predictions, reverse)
+        predictions = formatter.format_predictions(predictions)
+        logger.info(f"--strand both: {n_rev}/{len(sequences)} reads classified reverse-complemented")
+    else:
+        sample = sequences[:STRAND_SAMPLE]
+        reverse = _predict_reversed(model, sample, processor, taxonomy_info, taxonomic_encoders,
+                                    config, device, args)
+        n_better = sum(_confidence_score(reverse, i) > _confidence_score(predictions, i)
+                       for i in range(len(sample)))
+        if n_better > STRAND_WARN_FRACTION * len(sample):
+            msg = (f"{n_better} of the first {len(sample)} reads score higher reverse-complemented: the input "
+                   f"may be in mixed or reverse orientation. Rerun with --strand both, or orient the reads first.")
+            logger.warning(msg)
+            if not _console_shows_warnings():
+                print(f"WARNING: {msg}", file=sys.stderr)
     
     if enforce_taxonomy:
         logger.info("Applying taxonomic consistency to predictions...")

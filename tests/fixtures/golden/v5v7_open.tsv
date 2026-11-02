@@ -1,0 +1,17 @@
+sequence_id	domain	domain_confidence	phylum	phylum_confidence	class	class_confidence	order	order_confidence	family	family_confidence	genus	genus_confidence	species	species_confidence
+0b98716b934038dec18ad1ebac65f9a6	Bacteria	1.0000	Pseudomonadota	0.9993	Gammaproteobacteria	0.9993	Enterobacterales_737866	0.9993	Enterobacteriaceae_A_725029	0.9993	Salmonella	0.9959	Salmonella bongori	0.9959
+adc85db882252687cab9a68feb943662	Bacteria	1.0000	Bacillota_A_368345	1.0000	Clostridia_258483	0.9999	Clostridiales	0.9999	Clostridiaceae_222000	0.9996	[Clostridium_AG_200053|Sarcina_200052]	0.7290	[Clostridium_AG_200053 perfringens|Sarcina perfringens]	0.7290
+4ab171ebedc9c5efcb05579682fa45e1	Bacteria	1.0000	Verrucomicrobiota	1.0000	Verrucomicrobiae	0.9997	Opitutales	0.9997	Coraliomargaritaceae	0.9997	Coraliomargarita_B_755746	0.9997	Coraliomargarita_B_755746 akajimensis	0.9997
+de66515e79b23000018d0741e770f3c9	Bacteria	1.0000	Bacillota_I	1.0000	Bacilli_A	1.0000	Paenibacillales	1.0000	Paenibacillaceae_367444	0.9997	Thermobacillus	0.9997	Thermobacillus xylanilyticus	0.9997
+a815387c350ae166c171beac2eb0f5d0	Bacteria	1.0000	Spirochaetota	1.0000	Spirochaetia	0.9992	DSM-16054	0.9980	Sediminispirochaetaceae	0.9980	Sediminispirochaeta	0.9980	[Sediminispirochaeta bajacaliforniensis|Sediminispirochaeta smaragdinae]	0.9980
+cdb0642616e37363c0f806bb733e3e25	Bacteria	1.0000	Deinococcota	0.9986	Deinococci	0.9986	Deinococcales	0.9986	Thermaceae_405955	0.9986	Allomeiothermus	0.9986	Allomeiothermus silvanus	0.9986
+92ea2efdc6022909ff6fedd7793d89d9	Bacteria	1.0000	Actinomycetota	1.0000	Coriobacteriia	0.9999	Coriobacteriales	0.9998	Atopobiaceae	0.9983	Olsenella_H_405123	0.9983	Olsenella uli	0.9983
+bd555db92e641c4efbc2682303dc061a	Bacteria	1.0000	Thermotogota	0.9992	Thermotogae	0.9992	Thermotogales	0.9992	Fervidobacteriaceae	0.9992	Fervidobacterium_A	0.9992	[Fervidobacterium_A changbaicum|Fervidobacterium_A pennivorans]	0.9992
+59e4e8f3f242339b4cf5781b37d3594d	Bacteria	1.0000	Bacillota_I	1.0000	Bacilli_A	0.9999	Lactobacillales	0.9966	Streptococcaceae	0.9966	Streptococcus	0.9966	Streptococcus pyogenes	0.7838
+91a623f12ee32d9194e05467a12bf8d9	Bacteria	1.0000	Acidobacteriota	1.0000	Terriglobia	0.9997	Terriglobales	0.9997	Acidobacteriaceae	0.9997	Terriglobus_A	0.9984	Terriglobus_A roseus_B	0.9984
+99d036662b063df42ed9adb2d5cfac02	Bacteria	1.0000	Pseudomonadota	0.9999	Gammaproteobacteria	0.9998	Xanthomonadales	0.9998	Rhodanobacteraceae	0.9998	Frateuria_B_613055	0.9986	Frateuria aurantia	0.9986
+a62a452acfd5c114f6c3c3656db5c48b	Bacteria	1.0000	Bacillota_A_368345	1.0000	Clostridia_258483	0.9999	Acetivibrionales	0.9996	Acetivibrionaceae	0.9969	Hungateiclostridium	0.9969	Hungateiclostridium thermocellum	0.9969
+adv_nrun20	Bacteria	1.0000	Pseudomonadota	0.9994	Gammaproteobacteria	0.9994	Enterobacterales_737866	0.9994	Enterobacteriaceae_A_725029	0.9994	Salmonella	0.9962	Salmonella bongori	0.9962
+adv_first60	Bacteria	1.0000	Pseudomonadota	0.9888	Gammaproteobacteria	0.8646	Enterobacterales_737866	0.8646	Enterobacteriaceae_A_725029	0.5508	Escherichia	0.5508	Unknown	0.5508
+adv_revcomp	Bacteria	1.0000	Patescibacteria	0.4362	ABY1	0.4362	UBA1558	0.4362	UBA10009	0.4362	UBA10009	0.4362	Unknown	0.4362
+adv_all_n	Unclassified	0.0000	Unclassified	0.0000	Unclassified	0.0000	Unclassified	0.0000	Unclassified	0.0000	Unclassified	0.0000	Unclassified	0.0000

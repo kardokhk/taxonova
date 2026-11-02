@@ -67,8 +67,12 @@ def main(argv=None):
         from taxonova.cli.training_handler import training_mode
         training_mode(args)
     elif args.mode == "classification":
-        from taxonova.cli.classification_handler import classification_mode
-        classification_mode(args)
+        from taxonova.cli.classification_handler import InputError, classification_mode
+        try:
+            classification_mode(args)
+        except InputError as e:
+            logger.error(f"Run failed: {e}")
+            sys.exit(f"taxonova: {e}")
     elif args.mode == "calibrate":
         from taxonova.cli.calibration_handler import calibration_mode
         calibration_mode(args)
