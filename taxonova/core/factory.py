@@ -26,6 +26,17 @@ def _torch_load(*args, **kwargs):
 
 logger = logging.getLogger(__name__)
 
+
+def _hidden_dim_of(state_dict, default: int = 512) -> int:
+    """Network width of a saved HierarchicalClassifier: the output size of the first Linear layer of
+    ``feature_processor`` (``feature_processor.1.weight`` is hidden x input). Released 26.10 models are 512; the
+    Greengenes2 and SILVA V4-V5 and SILVA campaign networks are 1024."""
+    w = state_dict.get("feature_processor.1.weight") if hasattr(state_dict, "get") else None
+    if w is None or getattr(w, "ndim", 0) != 2:
+        return default
+    return int(w.shape[0])
+
+
 class HierarchicalModelFactory:
     
     @staticmethod
@@ -166,7 +177,7 @@ class HierarchicalModelFactory:
                 num_family_classes=taxonomy_info['num_family_classes'],
                 num_genus_classes=taxonomy_info['num_genus_classes'],
                 num_species_classes=taxonomy_info['num_species_classes'],
-                hidden_dim=512,
+                hidden_dim=_hidden_dim_of(model_state_dict),
                 dropout=0.3
             )
             
@@ -241,6 +252,7 @@ class HierarchicalModelFactory:
                 if key not in taxonomy_info:
                     taxonomy_info[key] = 1
                     logger.warning(f"Setting default value for missing {key}")
+            state_dict = _torch_load(path, map_location=torch.device('cpu'))
             model = HierarchicalClassifier(
                 input_dim=taxonomy_info['input_dim'],
                 num_domain_classes=taxonomy_info['num_domain_classes'],
@@ -250,11 +262,11 @@ class HierarchicalModelFactory:
                 num_family_classes=taxonomy_info['num_family_classes'],
                 num_genus_classes=taxonomy_info['num_genus_classes'],
                 num_species_classes=taxonomy_info['num_species_classes'],
-                hidden_dim=512,
+                hidden_dim=_hidden_dim_of(state_dict),
                 dropout=0.3
             )
             
-            model.load_state_dict(_torch_load(path, map_location=torch.device('cpu')))
+            model.load_state_dict(state_dict)
             
             if 'level_order' not in taxonomy_info:
                 taxonomy_info['level_order'] = ["domain", "phylum", "class", "order", "family", "genus", "species"]
