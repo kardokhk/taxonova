@@ -44,11 +44,15 @@ def is_nocall(label: Optional[str]) -> bool:
 
 
 def is_group(label: str) -> bool:
-    return len(label) > 2 and label[0] == "[" and label[-1] == "]"
+    """True for a group label ``[a|b|...]``: in brackets, with two or more non-empty members separated by ``|``.
+    A bracketed single name such as the SILVA genus ``[Eubacterium]`` is a name, not a group."""
+    if not label or len(label) <= 2 or label[0] != "[" or label[-1] != "]" or "|" not in label:
+        return False
+    return sum(1 for m in label[1:-1].split("|") if m.strip()) >= 2
 
 
 def members(label: str) -> List[str]:
-    """Members of a group label ``[a|b]``, or ``[label]``; ``[]`` for no call."""
+    """Members of a group label ``[a|b]``, or ``[label]`` for any other label; ``[]`` for no call."""
     if is_nocall(label):
         return []
     if is_group(label):
