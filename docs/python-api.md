@@ -32,11 +32,12 @@ Arguments:
 | argument | default | meaning |
 | --- | --- | --- |
 | `model` | `"v4"` | model id, earlier name, or path to a `.pt` file |
-| `confidence` | `0.8` | species threshold; the other ranks scale with it |
+| `confidence` | `0.8` | species threshold; the other ranks scale with it (the model's calibrated cut-offs are not used from Python; its species gate is) |
 | `threads` | `None` (2) | CPU threads |
 | `domain_threshold` ... `genus_threshold` | `None` | override the scaled threshold of one rank |
 | `models_dir` | `None` | where models are stored (default as on the command line) |
 | `quiet` | `False` | suppress download messages |
+| `strand` | `"plus"` | `"both"` classifies each read in the orientation the model is more confident about |
 
 The model is downloaded on first use. Each call loads the model again, so for
 many small batches it is faster to pass all sequences in one call.

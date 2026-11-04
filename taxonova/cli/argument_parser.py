@@ -335,7 +335,7 @@ def _add_label_rules_arg(parser):
         "--genus-token-check", "--genus_token_check", dest="genus_token_check", choices=("auto", "on", "off"),
         default="auto",
         help=("with --label-rules: whether a species name must carry its genus call's name (auto: the model's "
-              "setting, off for Greengenes2 models that keep renamed species under the old genus)"))
+              "setting, with the renamed genera the model declares; on when the model sets nothing)"))
 
 
 def _add_classification_parser(subparsers):

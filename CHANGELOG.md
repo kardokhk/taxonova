@@ -8,6 +8,135 @@ for further releases in the same month. Model files carry their own version
 
 ## [Unreleased]
 
+## [26.11.0] - 2026-11-04
+
+**Default output changes for the four Greengenes2 models.** `v4`, `v3v4`,
+`v5v7` and `16s` now download new files (`taxonova-<REGION>-greengenes2-26.11.pt`)
+that hold the same networks as 26.10 together with a calibrated operating point:
+per-rank cut-offs and a species abstention gate. When you give no threshold,
+these cut-offs replace the 0.5 / 0.7 / 0.8 defaults, so results differ from
+26.10 runs at the default settings. The 26.10 files remain available as
+`v4-26.10`, `v3v4-26.10`, `v5v7-26.10` and `16s-26.10`.
+
+### Added
+
+- **Calibrated operating points.** A checkpoint may carry its own per-rank
+  thresholds and a species gate (`operating_point` entry). They are used when
+  no threshold is given on the command line. The species cut-offs are the
+  F1-optimal values fitted on validation data, and the genus cut-offs are
+  fitted the same way; domain to family stay at 0.5. The values of each model
+  are listed in [docs/models.md](docs/models.md#operating-points). The run log
+  states which thresholds were used and where they came from.
+- **Species abstention gate.** The Greengenes2 models withhold the species call
+  when the read's species feature is far from the training records of the
+  predicted species (Mahalanobis distance to the species centroid). The gate
+  can only remove a species call; it never changes another rank. It applies
+  whenever the model carries one, also when you set thresholds yourself.
+- **V4-V5 models (preview)** for Greengenes2 (`v4v5`), SILVA 138.2
+  (`v4v5-silva`) and RDP 19 (`v4v5-rdp`), for amplicons made with the primers
+  515F-Y and 926R. They are the first SILVA and RDP models in the package.
+  As previews they are used by id and listed by `taxonova models --all`.
+  In these models a species group label (`[a|b|...]`, two or more species that
+  the region cannot separate) is reported at the genus: the species column
+  reads `Unclassified`. See the known limitations below.
+- `--strand both` (and `strand="both"` in `taxonova.classify()`) classifies
+  each read in the orientation the model is more confident about. The default
+  stays `plus`; Taxonova now warns when many of the first reads score higher
+  reverse-complemented.
+- `--label-rules`: optional species-rank rules. A species group may not span
+  several genera, the species must belong to the genus call (the genus is
+  never rewritten from the species), and an open-nomenclature placeholder is
+  not reported as a species when a named alternative exists.
+  `--genus-token-check auto|on|off` controls whether the species name must
+  carry the genus name; `auto` uses the model's setting. The Greengenes2
+  models carry a table of renamed genera (for example a species kept under its
+  earlier genus name) that the check accepts.
+- FASTQ input (plain or gzip-compressed). gzip is recognised from the file
+  content, not only from a `.gz` name.
+- `taxonova.labels`: label-hygiene functions (group labels, rank-path checks,
+  placeholder names, ambiguity runs in reference records) and helpers that
+  combine the network genus with nearest-neighbour hits, for pipelines built
+  on Taxonova. `taxonova classify` does not run a nearest-neighbour step.
+
+### Changed
+
+- `--confidence` has no fixed default any more: without it (and without any
+  `--<rank>-threshold`) the model's operating point is used, and a model
+  without one keeps the 0.5 / 0.7 / 0.8 profile. Giving `--confidence` or any
+  per-rank threshold restores the scaled profile of earlier releases.
+- `taxonova classify ... --confidence 0` no longer reports a species for every
+  read with a Greengenes2 model, because the species gate still applies.
+- Reads with too little sequence information (fewer than 100 valid bases, or
+  more than 5% ambiguous or other characters) get no call at any rank. Before,
+  an all-N read could receive a full lineage.
+- Abstention always runs from the top: once a rank is below its threshold,
+  every rank below it is `Unclassified`, whatever the per-rank thresholds.
+- Checkpoints are loaded with the network width they were saved with, so
+  models with a hidden size other than 512 load correctly.
+- The old model keys (`gg2_v4`, `gg2_v3v4`, `gg2_v5v7`, `gg2_v1v9`) name the
+  current Greengenes2 models. A file cached by 26.10 under its 26.10 name is
+  used only when that 26.10 model is asked for.
+
+### Fixed
+
+- A FASTA record with an empty sequence was dropped, so the output had fewer
+  rows than the input. Every record now gets a row.
+- An empty file, or a file that is neither FASTA nor FASTQ, wrote a header-only
+  table and exited with status 0; it is now an error with a one-line message.
+- A read with no valid k-mer (all N, empty, or shorter than k) received a
+  confident lineage; it is now `Unclassified` with confidence 0.
+- Alignment gaps (`-`, `.`) and whitespace inside a sequence broke k-mers; they
+  are removed, and the sequence is read in upper case. A non-ASCII symbol is
+  read as N instead of being deleted.
+- A rank above its threshold could follow an `Unclassified` rank when a parent
+  threshold was set higher than the species threshold.
+- When the species head rewrote a parent rank, the parent kept the confidence
+  of the label the network had predicted there; it is now capped at the
+  confidence of the rank that drove the rewrite.
+- A header that is not valid UTF-8 no longer stops the run, a `>` line with no
+  id is an error that names the line, and duplicate ids are kept (with a
+  warning).
+
+### Known limitations
+
+- **V4-V5 models, species.** Reporting group labels at the genus was decided
+  after the benchmark results were read, and was then tested once on a
+  pre-specified set of in-silico V4-V5 amplicons from genomes new in GTDB
+  R226. The test did not meet its pre-specified criterion, a species F1 gain
+  whose 95% CI lies above zero in all three references: Greengenes2 +0.048
+  (95% CI 0.027 to 0.069) and RDP +0.059 (0.046 to 0.072) met it, SILVA +0.006
+  (-0.043 to 0.035) did not. Genus F1 was unchanged in all three. The test scored the
+  evaluation pipeline, which adds a nearest-neighbour species step to the
+  network; `taxonova classify` uses the network alone.
+- **V4-V5 Greengenes2 model, label rules.** It carries no genus synonym table
+  and has the genus-token check off, unlike the other Greengenes2 models.
+  This only matters with `--label-rules`.
+- **SILVA species.** This release has no SILVA model for V4, V3-V4, V5-V7 or
+  the whole gene. In the benchmark for this release, the pre-registered SILVA
+  configuration (network, nearest-neighbour search and a stacked genus step;
+  not part of the package) gained genus F1 but lost species F1 against the
+  same configuration refitted without the new genus step: V4 -0.051 (95% CI
+  -0.070 to -0.032), V3-V4 -0.020 and V5-V7 -0.021 at species, +0.017 to
+  +0.028 at genus. Species assignment for SILVA will be revisited together
+  with the group-label convention.
+- One-member bracketed names such as `[Eubacterium]` are treated as group
+  labels by `taxonova.labels` (recorded as an expected failure in the tests).
+- `taxonova.classify()` keeps `confidence=0.8` as its default, so from Python
+  the scaled profile is used (with the species gate), not the model's
+  calibrated cut-offs.
+
+### Compatibility
+
+- The 26.11 checkpoints load with `torch.load(..., weights_only=True)`, the
+  default from torch 2.6, as the 26.10 checkpoints do. Under torch 2.5 and
+  earlier, `weights_only=True` refuses them (and the 26.10 files) because the
+  taxonomy table holds Python sets; Taxonova itself loads them on every
+  supported torch version.
+- Checkpoints without an operating point (your own models, the 26.10 files,
+  the operon model) behave as before.
+- New downloads: about 250 to 270 MB per Greengenes2 model and 207 to 524 MB
+  per V4-V5 model, once.
+
 ## [26.10.3] - 2026-10-30
 
 Withdraws 26.10.2. Code, models and output are the same as 26.10.1.
