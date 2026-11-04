@@ -34,7 +34,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-test = ["pytest>=7"]
+test = ["pytest>=7", "hypothesis>=6"]
 
 [project.urls]
 Homepage = "https://github.com/kardokhk/taxonova"
