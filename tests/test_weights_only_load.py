@@ -19,7 +19,8 @@ from conftest import released_checkpoint  # noqa: E402
 TORCH = tuple(int(x) for x in torch.__version__.split("+")[0].split(".")[:2])
 pytestmark = pytest.mark.skipif(TORCH < (2, 6), reason=f"torch {torch.__version__} < 2.6: weights_only is not "
                                                        f"the default and its allowlist is older")
-RELEASED = ["v4", "v3v4", "v5v7", "16s", "operon"]
+RELEASED = ["v4", "v3v4", "v5v7", "16s", "operon", "v4v5", "v4v5-silva", "v4v5-rdp",
+            "v4-26.10", "v3v4-26.10", "v5v7-26.10", "16s-26.10"]
 
 
 def _path(model_id):
@@ -56,17 +57,18 @@ def test_operating_point_and_centroids_keep_weights_only_loading(tmp_path):
     assert data["species_centroids"]["labels"] == ["a", "b"]
 
 
-# Hidden-1024 V4-V5 checkpoints (Greengenes2, SILVA) and the RDP V4-V5 checkpoint: weights-only load (integration).
-V4V5_DIR = Path(__import__("os").environ.get(
-    "TAXONOVA_V4V5_MODELS_DIR",
-    "/mnt/tier2/project/p201509/work/post/taxonova/wip/2026-11-01-dev-targets/v4v5/models/final"))
-
-
-@pytest.mark.parametrize("rel", ["gg2/taxonova-V4V5-gg2-dev-s5001.pt", "silva/taxonova-V4V5-silva-dev-s3001.pt",
-                                 "rdp/taxonova-V4V5-rdp-dev-s4001.pt"])
-def test_v4v5_checkpoint_loads_weights_only(rel):
-    p = V4V5_DIR / rel
-    if not p.exists():
-        pytest.skip(f"{p} not present")
-    data = torch.load(p, map_location="cpu", weights_only=True)
+# V4-V5 checkpoints (hidden 1024 for Greengenes2 and SILVA): region metadata and the 26.11 operating point survive a
+# weights-only load.
+@pytest.mark.parametrize("model_id", ["v4v5", "v4v5-silva", "v4v5-rdp"])
+def test_v4v5_checkpoint_loads_weights_only(model_id):
+    data = torch.load(_path(model_id), map_location="cpu", weights_only=True)
     assert "model_state_dict" in data and "region_metadata" in data
+    assert data["operating_point"]["species_groups"] == "genus" and "label_rules" in data
+
+
+@pytest.mark.parametrize("model_id", ["v4", "v3v4", "v5v7", "16s"])
+def test_gg2_26_11_operating_point_loads_weights_only(model_id):
+    data = torch.load(_path(model_id), map_location="cpu", weights_only=True)
+    assert data["operating_point"]["species_gate"]["statistic"] == "mahalanobis_species"
+    assert len(data["species_centroids"]["labels"]) == data["species_centroids"]["mu"].shape[0]
+    assert data["label_rules"]["genus_token"] is True and data["label_rules"]["genus_synonyms"]

@@ -8,7 +8,6 @@ reproduces the saved network's outputs. Edge cases: widths 8 and 1024 (embed_dim
 when present, the hidden-1024 Greengenes2 and SILVA V4-V5 checkpoints load and give the same logits as a network
 built directly at 1024 from the same state dict.
 """
-import os
 from pathlib import Path
 
 import pytest
@@ -70,16 +69,14 @@ def test_default_width_unchanged_for_512(tmp_path):
     assert loaded.hidden_dim == 512
 
 
-V4V5 = Path(os.environ.get("TAXONOVA_V4V5_MODELS_DIR",
-                           "/mnt/tier2/project/p201509/work/post/taxonova/wip/2026-11-01-dev-targets/v4v5/models/final"))
-
-
-@pytest.mark.parametrize("ref,name", [("gg2", "taxonova-V4V5-gg2-dev-s5001.pt"),
-                                      ("silva", "taxonova-V4V5-silva-dev-s3001.pt")])
-def test_released_width_1024_checkpoints_load(ref, name):
-    p = V4V5 / ref / name
-    if not p.exists():
-        pytest.skip(f"{p} not present")
+@pytest.mark.parametrize("model_id", ["v4v5", "v4v5-silva"])
+def test_released_width_1024_checkpoints_load(model_id):
+    import sys
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from conftest import released_checkpoint
+    p = released_checkpoint(model_id)
+    if p is None:
+        pytest.skip(f"model {model_id} not available (set TAXONOVA_TEST_MODELS_DIR)")
     loaded, info = HierarchicalModelFactory.load_model(str(p))
     assert loaded.hidden_dim == 1024
     sd = torch.load(p, map_location="cpu", weights_only=False)["model_state_dict"]
