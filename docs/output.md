@@ -63,7 +63,8 @@ A model without an operating point (the 26.10 files, the operon model, your own
 models) uses 0.5 for domain to family, 0.7 for genus and 0.8 for species. Giving
 `--confidence` or any `--<rank>-threshold` replaces the model's cut-offs with
 this profile: `--confidence` sets the species threshold, and the other ranks
-scale with it in the same ratio:
+scale with it in the same ratio. `taxonova.classify()` in Python follows the
+same rule (`confidence=` and the per-rank arguments):
 
 | `--confidence` | domain to family | genus | species |
 | --- | --- | --- | --- |

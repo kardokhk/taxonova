@@ -10,15 +10,15 @@ downloaded the first time you use it (200 to 520 MB) and kept for later runs.
 | `v5v7` | 16S V5-V7 | Greengenes2 2024.09 | GTDB, through Greengenes2 | 26.11 | stable |
 | `16s` | whole 16S gene, V1-V9 | Greengenes2 2024.09 | GTDB, through Greengenes2 | 26.11 | stable |
 | `operon` | rRNA operon, 16S-ITS-23S | GROND (GTDB R207 build) | GTDB R207 | 1.0 | stable |
-| `v4v5` | 16S V4-V5 (515F-Y / 926R) | Greengenes2 2024.09 | GTDB, through Greengenes2 | 26.11 | preview |
-| `v4v5-silva` | 16S V4-V5 (515F-Y / 926R) | SILVA 138.2 | SILVA 138.2 | 26.11 | preview |
-| `v4v5-rdp` | 16S V4-V5 (515F-Y / 926R) | RDP 19 | RDP 19 | 26.11 | preview |
+| `v4v5` | 16S V4-V5 (515F-Y / 926R) | Greengenes2 2024.09 | GTDB, through Greengenes2 | 26.11 | stable |
+| `v4v5-silva` | 16S V4-V5 (515F-Y / 926R) | SILVA 138.2 | SILVA 138.2 | 26.11 | stable |
+| `v4v5-rdp` | 16S V4-V5 (515F-Y / 926R) | RDP 19 | RDP 19 | 26.11 | stable |
 
-The V4-V5 models are previews: use them by id (`--model v4v5-silva`);
-`taxonova models --all` lists them. Read the
+Read the
 [known limitations](https://github.com/kardokhk/taxonova/blob/main/CHANGELOG.md#known-limitations)
-before you use them. SILVA and RDP models for the other regions are in
-preparation.
+of the V4-V5 models before you use them: they have no species gate, and the
+V4-V5 Greengenes2 model has the genus-token check off. SILVA and RDP models
+for the other regions are in preparation.
 
 ```bash
 taxonova models                      # list the models and which are downloaded
@@ -82,7 +82,7 @@ A model's operating point is used when you give no threshold (no
 `--confidence` and no `--<rank>-threshold`). Domain to family use 0.5 in every
 model below. With any threshold on the command line, the scaled profile of
 [output.md](output.md#thresholds) is used instead; the species gate still
-applies.
+applies. `taxonova.classify()` in Python uses the same rule.
 
 | id | genus | species | species gate | species group labels | label rules (`--label-rules`) |
 | --- | --- | --- | --- | --- | --- |
@@ -103,8 +103,6 @@ applies.
   predicted species is above the listed value. It only removes species calls.
 - "Reported at the genus": a species group label (`[a|b|...]`) becomes
   `Unclassified` at species, and the genus call stands.
-- `taxonova.classify()` in Python uses `confidence=0.8` unless you pass
-  another value, so it does not use these cut-offs.
 
 ## How the models were made
 

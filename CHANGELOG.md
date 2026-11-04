@@ -18,13 +18,18 @@ these cut-offs replace the 0.5 / 0.7 / 0.8 defaults, so results differ from
 26.10 runs at the default settings. The 26.10 files remain available as
 `v4-26.10`, `v3v4-26.10`, `v5v7-26.10` and `16s-26.10`.
 
+**Python default changes too.** `taxonova.classify()` now uses the same
+thresholds as the command line: without `confidence=` (and without any
+per-rank threshold) it uses the model's operating point. See "Changed" for
+how to keep the earlier behaviour.
+
 ### Added
 
 - **Calibrated operating points.** A checkpoint may carry its own per-rank
   thresholds and a species gate (`operating_point` entry). They are used when
-  no threshold is given on the command line. The species cut-offs are the
-  F1-optimal values fitted on validation data, and the genus cut-offs are
-  fitted the same way; domain to family stay at 0.5. The values of each model
+  no threshold is given, on the command line and in `taxonova.classify()`.
+  The species cut-offs are the F1-optimal values fitted on validation data,
+  and the genus cut-offs are fitted the same way; domain to family stay at 0.5. The values of each model
   are listed in [docs/models.md](docs/models.md#operating-points). The run log
   states which thresholds were used and where they came from.
 - **Species abstention gate.** The four Greengenes2 models (`v4`, `v3v4`,
@@ -33,10 +38,10 @@ these cut-offs replace the 0.5 / 0.7 / 0.8 defaults, so results differ from
   predicted species (Mahalanobis distance to the species centroid). The gate
   can only remove a species call; it never changes another rank. It applies
   whenever the model carries one, also when you set thresholds yourself.
-- **V4-V5 models (preview)** for Greengenes2 (`v4v5`), SILVA 138.2
+- **V4-V5 models** for Greengenes2 (`v4v5`), SILVA 138.2
   (`v4v5-silva`) and RDP 19 (`v4v5-rdp`), for amplicons made with the primers
-  515F-Y and 926R. They have no species gate.
-  As previews they are used by id and listed by `taxonova models --all`.
+  515F-Y and 926R, with status `stable`: they are listed by `taxonova models`
+  and included in `taxonova models download all`. They have no species gate.
   In these models a species group label (`[a|b|...]`, two or more species that
   the region cannot separate) is reported at the genus: the species column
   reads `Unclassified`. See the known limitations below.
@@ -66,6 +71,17 @@ these cut-offs replace the 0.5 / 0.7 / 0.8 defaults, so results differ from
   `--<rank>-threshold`) the model's operating point is used, and a model
   without one keeps the 0.5 / 0.7 / 0.8 profile. Giving `--confidence` or any
   per-rank threshold restores the scaled profile of earlier releases.
+- **`taxonova.classify()` default threshold (behaviour change).** The
+  `confidence` argument now defaults to `None` instead of `0.8`, in
+  `taxonova.classify()` and `taxonova.api.classify()`. With no `confidence`
+  and no per-rank threshold, the model's calibrated operating point is used,
+  exactly as by `taxonova classify`; a model without one (the 26.10 files,
+  the operon model, your own models) still uses 0.8 with the scaled profile.
+  An explicit `confidence=` or per-rank threshold replaces the operating
+  point, as before. Migration: pass `confidence=0.8` to keep the earlier
+  Python thresholds (the species gate of the four Greengenes2 models still
+  applies); to reproduce 26.10 tables, also use the 26.10 files
+  (`model="v4-26.10"`, ...).
 - `taxonova classify ... --confidence 0` no longer reports a species for every
   read with the four Greengenes2 models (`v4`, `v3v4`, `v5v7`, `16s`),
   because the species gate still applies.
@@ -111,6 +127,10 @@ these cut-offs replace the 0.5 / 0.7 / 0.8 defaults, so results differ from
   (-0.043 to 0.035) did not. Genus F1 was unchanged in all three. The test scored the
   evaluation pipeline, which adds a nearest-neighbour species step to the
   network; `taxonova classify` uses the network alone.
+- **V4-V5 models, species gate.** None of the three V4-V5 models carries a
+  species abstention gate (no Mahalanobis distance check), unlike the four
+  Greengenes2 models for V4, V3-V4, V5-V7 and the whole gene, so a V4-V5
+  species call is not withheld for reads far from the predicted species.
 - **V4-V5 Greengenes2 model, label rules.** It carries no genus synonym table
   and has the genus-token check off, unlike the other Greengenes2 models.
   This only matters with `--label-rules`.
@@ -126,9 +146,6 @@ these cut-offs replace the 0.5 / 0.7 / 0.8 defaults, so results differ from
   occurred in the calibration set; excluding them did not change any conclusion.
 - One-member bracketed names such as `[Eubacterium]` are treated as group
   labels by `taxonova.labels` (recorded as an expected failure in the tests).
-- `taxonova.classify()` keeps `confidence=0.8` as its default, so from Python
-  the scaled profile is used (with the species gate), not the model's
-  calibrated cut-offs.
 
 ### Compatibility
 

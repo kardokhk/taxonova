@@ -32,12 +32,19 @@ Arguments:
 | argument | default | meaning |
 | --- | --- | --- |
 | `model` | `"v4"` | model id, earlier name, or path to a `.pt` file |
-| `confidence` | `0.8` | species threshold; the other ranks scale with it (the model's calibrated cut-offs are not used from Python; its species gate is) |
+| `confidence` | `None` | species threshold; the other ranks scale with it. `None`: the model's calibrated operating point, or 0.8 for a model without one, as on the command line |
 | `threads` | `None` (2) | CPU threads |
-| `domain_threshold` ... `genus_threshold` | `None` | override the scaled threshold of one rank |
+| `domain_threshold` ... `genus_threshold` | `None` | override the scaled threshold of one rank (and, like `confidence`, replace the operating point) |
 | `models_dir` | `None` | where models are stored (default as on the command line) |
 | `quiet` | `False` | suppress download messages |
 | `strand` | `"plus"` | `"both"` classifies each read in the orientation the model is more confident about |
+
+Thresholds follow `taxonova classify`: with no `confidence` and no per-rank
+threshold, a model with a calibrated operating point uses its own cut-offs
+(see [models.md](models.md#operating-points)) and a model without one uses 0.8
+with the scaled profile. Any threshold you pass replaces the operating point;
+the species gate of a model that has one applies either way. Before 26.11.0, `confidence` defaulted to
+0.8; pass `confidence=0.8` to keep that behaviour.
 
 The model is downloaded on first use. Each call loads the model again, so for
 many small batches it is faster to pass all sequences in one call.

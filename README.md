@@ -34,9 +34,13 @@ to `reads.taxonova.tsv`.
 | `v5v7` | 16S V5-V7 | Greengenes2 |
 | `16s` | whole 16S gene (V1-V9) | Greengenes2 |
 | `operon` | rRNA operon (16S-ITS-23S) | GROND |
+| `v4v5` | 16S V4-V5 (515F-Y / 926R) | Greengenes2 |
+| `v4v5-silva` | 16S V4-V5 (515F-Y / 926R) | SILVA |
+| `v4v5-rdp` | 16S V4-V5 (515F-Y / 926R) | RDP |
 
-Species names follow GTDB. V4-V5 models for Greengenes2, SILVA and RDP are
-available as previews (`v4v5`, `v4v5-silva`, `v4v5-rdp`); see
+Species names follow GTDB in the Greengenes2 and operon models, and the
+reference's own taxonomy in the SILVA and RDP models. The V4-V5 models have
+known limitations; see
 [models](https://github.com/kardokhk/taxonova/blob/main/docs/models.md).
 Run `taxonova models` to see which models are downloaded.
 
@@ -66,7 +70,7 @@ taxonova classify reads.fasta -m v4 --genus-threshold 0.6   # set one rank
 without it, the model's calibrated thresholds are used
 ([output and thresholds](https://github.com/kardokhk/taxonova/blob/main/docs/output.md#thresholds)).
 From Python: `taxonova.classify("reads.fasta", model="v4")` returns a pandas
-DataFrame.
+DataFrame, with the same thresholds as the command line.
 
 ## Links
 
