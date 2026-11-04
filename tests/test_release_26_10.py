@@ -1,6 +1,8 @@
 """Tests for release 26.10.0: the Greengenes2 model keys and checksums,
 threshold 0.9 gating without an OOD configuration, and (when the 26.10
-checkpoints are present) a regression of real classifications at 0.9.
+checkpoints are present) a regression of real classifications at 0.9. Since
+26.11.0 the keys name the 26.11 checkpoints (the same networks with an
+operating point); the 26.10 files keep their own registry entries.
 
 The real-model test looks for the checkpoints in $TAXONOVA_TEST_MODELS_DIR, then
 in the default models directory, and is skipped if they are absent or do not
@@ -37,17 +39,20 @@ GG2 = ["gg2_v4", "gg2_v3v4", "gg2_v5v7", "gg2_v1v9"]
 # --- model table ----------------------------------------------------------
 # Download and cache handling is tested in test_models_registry.py.
 
-def test_gg2_keys_resolve_to_the_26_10_checkpoints():
+def test_gg2_keys_resolve_to_the_current_checkpoints():
+    # 26.11.0: the old keys name the current (26.11) checkpoints; the 26.10 files keep their own entries
     for key in GG2:
         info = AVAILABLE_MODELS[key]
         spec = models.get_model(key)
-        assert info["filename"] == spec.filename and spec.model_version == "26.10"
-        # the 26.10.0 asset name is an alias of the same bytes
-        assert f"{key}_mrgroups_model_26.10.pt" in spec.legacy_filenames
+        assert info["filename"] == spec.filename and spec.model_version == "26.11"
+        old = models.get_model(f"{key}_mrgroups_model_26.10.pt")
+        assert old.model_version == "26.10" and old.status == "deprecated"
+        assert old.id == f"{spec.id}-26.10"
         assert len(info["md5"]) == 32 and len(info["sha256"]) == 64
-        # the file name cached by 26.9.x can never be taken for the new checkpoint
-        assert info["filename"] not in SUPERSEDED_MODEL_FILES
-        assert not any(n in SUPERSEDED_MODEL_FILES for n in spec.legacy_filenames)
+        # the file name cached by 26.9.x can never be taken for a newer checkpoint
+        for s in (spec, old):
+            assert s.filename not in SUPERSEDED_MODEL_FILES
+            assert not any(n in SUPERSEDED_MODEL_FILES for n in s.legacy_filenames)
 
 
 def test_rrn_asset_unchanged():
@@ -104,25 +109,49 @@ def _model_dir():
             yield Path(d)
 
 
-def _checkpoint(key):
+ID = {"gg2_v4": "v4", "gg2_v3v4": "v3v4", "gg2_v5v7": "v5v7", "gg2_v1v9": "16s"}
+
+
+def _checkpoint(model_id):
+    spec = models.get_model(model_id)
     for d in _model_dir():
-        dl = ModelDownloader.__new__(ModelDownloader)
-        dl.models_dir = d
-        if dl.verify_model(key):
-            return dl.get_model_path(key)
+        found = models.find_cached(spec, d, check=False)
+        if found is not None and models.verify(found, spec, full=True):
+            return found
     return None
 
 
-@pytest.mark.parametrize("key", GG2)
-def test_classification_regression_at_09(key, tmp_path):
-    ckpt = _checkpoint(key)
-    if ckpt is None:
-        pytest.skip(f"{key} 26.10 checkpoint not available (set TAXONOVA_TEST_MODELS_DIR)")
+def _classify_at_09(key, ckpt, tmp_path):
     out = tmp_path / "out.tsv"
     cmd = [sys.executable, "-m", "taxonova.main", "classification",
            "--input", str(FIXTURES / f"{key}_mbarc26.fasta"), "--model_input", str(ckpt),
            "--output", str(out), "--confidence_threshold", "0.9", "--cpu_threads", "2"]
     subprocess.run(cmd, check=True, cwd=tmp_path,
                    env=dict(os.environ, PYTHONPATH=str(Path(__file__).resolve().parent.parent)))
+    return out.read_text()
+
+
+@pytest.mark.parametrize("key", GG2)
+def test_classification_regression_at_09(key, tmp_path):
+    ckpt = _checkpoint(f"{ID[key]}-26.10")
+    if ckpt is None:
+        pytest.skip(f"{key} 26.10 checkpoint not available (set TAXONOVA_TEST_MODELS_DIR)")
     expected = (FIXTURES / f"{key}_mbarc26_expected_t0.9.tsv").read_text()
-    assert out.read_text() == expected
+    assert _classify_at_09(key, ckpt, tmp_path) == expected
+
+
+@pytest.mark.parametrize("key", GG2)
+def test_26_11_checkpoint_at_09_differs_only_by_the_species_gate(key, tmp_path):
+    """The 26.11 Greengenes2 files are the 26.10 networks with an operating point. At an explicit threshold the
+    user's thresholds are used, and the species gate can only withhold a species call: every column from domain
+    to genus is unchanged, and a species is either the 26.10 call or Unclassified."""
+    ckpt = _checkpoint(ID[key])
+    if ckpt is None:
+        pytest.skip(f"{key} 26.11 checkpoint not available (set TAXONOVA_TEST_MODELS_DIR)")
+    got = [r.split("\t") for r in _classify_at_09(key, ckpt, tmp_path).splitlines()]
+    want = [r.split("\t") for r in (FIXTURES / f"{key}_mbarc26_expected_t0.9.tsv").read_text().splitlines()]
+    assert got[0] == want[0] and len(got) == len(want)
+    sp = want[0].index("species")
+    for g, w in zip(got[1:], want[1:]):
+        assert g[:sp] == w[:sp]
+        assert g[sp:] == w[sp:] or g[sp] == "Unclassified"
