@@ -25,11 +25,11 @@ EXPECTED = {
                "taxonova-operon-grond-1.0.pt"],
     "v4v5": ["v4v5", "V4V5", "V4-V5", "gg2_v4v5", "taxonova-V4V5-greengenes2-26.11.1.pt"],
     "v4v5-silva": ["v4v5-silva", "silva_v4v5", "taxonova-V4V5-silva-26.11.1.pt"],
-    "v4v5-rdp": ["v4v5-rdp", "rdp_v4v5", "taxonova-V4V5-rdp-26.11.1.pt"],
-    # the 26.11 V4-V5 files (released in 26.11.0) stay resolvable, to their own bytes
+    # RDP V4-V5 ships without a species gate in 26.11.1, so it keeps the 26.11 file
+    "v4v5-rdp": ["v4v5-rdp", "rdp_v4v5", "taxonova-V4V5-rdp-26.11.pt"],
+    # the replaced 26.11 V4-V5 files (released in 26.11.0) stay resolvable, to their own bytes
     "v4v5-26.11": ["v4v5-26.11", "taxonova-V4V5-greengenes2-26.11.pt"],
     "v4v5-silva-26.11": ["v4v5-silva-26.11", "taxonova-V4V5-silva-26.11.pt"],
-    "v4v5-rdp-26.11": ["v4v5-rdp-26.11", "taxonova-V4V5-rdp-26.11.pt"],
     # the 26.10 files (and their 26.10.0 asset names) stay resolvable, to the 26.10 bytes
     "v4-26.10": ["v4-26.10", "gg2_v4_mrgroups_model_26.10.pt", "taxonova-V4-greengenes2-26.10.pt"],
     "v3v4-26.10": ["v3v4-26.10", "gg2_v3v4_mrgroups_model_26.10.pt", "taxonova-V3V4-greengenes2-26.10.pt"],
@@ -67,11 +67,13 @@ def test_26_11_registry():
     assert [i for i, s in hidden.items() if s.status == "stable"] == [
         "v4", "v3v4", "v5v7", "16s", "operon", "v4v5", "v4v5-silva", "v4v5-rdp"]
     assert [i for i, s in hidden.items() if s.status == "deprecated"] == [
-        "v4v5-26.11", "v4v5-silva-26.11", "v4v5-rdp-26.11", "v4-26.10", "v3v4-26.10", "v5v7-26.10", "16s-26.10"]
-    for i in ("v4", "v3v4", "v5v7", "16s"):
+        "v4v5-26.11", "v4v5-silva-26.11", "v4-26.10", "v3v4-26.10", "v5v7-26.10", "16s-26.10"]
+    for i in ("v4", "v3v4", "v5v7", "16s", "v4v5-rdp"):
         assert hidden[i].model_version == "26.11" and hidden[i].filename.endswith("-26.11.pt")
-    # 26.11.1: new V4-V5 files (species gate; Greengenes2 label rules); the 26.11 files keep their own entries
-    for i in ("v4v5", "v4v5-silva", "v4v5-rdp"):
+    # 26.11.1: new Greengenes2 and SILVA V4-V5 files (species gate; Greengenes2 label rules); their 26.11 files keep
+    # their own entries. RDP V4-V5 ships without a gate and keeps its 26.11 file (no v4v5-rdp-26.11 id).
+    assert "v4v5-rdp-26.11" not in hidden
+    for i in ("v4v5", "v4v5-silva"):
         assert hidden[i].model_version == "26.11.1" and hidden[i].filename.endswith("-26.11.1.pt")
         old = hidden[f"{i}-26.11"]
         assert old.model_version == "26.11" and old.filename.endswith("-26.11.pt")

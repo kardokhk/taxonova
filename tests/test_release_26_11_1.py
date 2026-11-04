@@ -1,9 +1,12 @@
-"""Release 26.11.1: version, registry and the three new V4-V5 checkpoints.
+"""Release 26.11.1: version, registry and the two new V4-V5 checkpoints.
 
-- The V4-V5 ids name new files (``taxonova-V4V5-<reference>-26.11.1.pt``) with a Mahalanobis species gate and its
-  species centroid table; the Greengenes2 V4-V5 file also has the genus-token check on with the renamed-genus table.
-  Their network weights, per-rank thresholds and species-group mode are those of the 26.11 files.
-- The 26.11 V4-V5 files stay in the registry as deprecated ids (``v4v5-26.11`` ...), with their 26.11.0 checksums.
+- The Greengenes2 and SILVA V4-V5 ids name new files (``taxonova-V4V5-<reference>-26.11.1.pt``) with a Mahalanobis
+  species gate and its species centroid table; the Greengenes2 V4-V5 file also has the genus-token check on with the
+  renamed-genus table. Their network weights, per-rank thresholds and species-group mode are those of the 26.11 files.
+- Their 26.11 files stay in the registry as deprecated ids (``v4v5-26.11``, ``v4v5-silva-26.11``), with their 26.11.0
+  checksums.
+- RDP V4-V5 ships without a species gate: its gate cost more than 0.01 species F1 on VAL by the package route, and the
+  gate was the only change to that file, so ``v4v5-rdp`` keeps the 26.11 file and there is no ``v4v5-rdp-26.11`` id.
 - Every other file is unchanged.
 
 Checkpoint tests look for the files in $TAXONOVA_TEST_MODELS_DIR (see conftest.py) and are skipped if absent.
@@ -25,7 +28,7 @@ sys.path.insert(0, str(REPO))
 import taxonova  # noqa: E402
 from taxonova import models  # noqa: E402
 
-V45 = ("v4v5", "v4v5-silva", "v4v5-rdp")
+V45 = ("v4v5", "v4v5-silva")
 #: 26.11.0 values, unchanged in 26.11.1
 SHA_26_11_0 = {
     "v4": "2026db6c5d4875247d7f581c24bd3ae45c43281a5fd1d13de9f95caa8c4078c2",
@@ -35,10 +38,10 @@ SHA_26_11_0 = {
     "operon": "9ac36fea212edd569198027c9e6fb182199bb316acacad188d758929c9408289",
     "v4v5-26.11": "68bfdeada873e325299547ade195025a39370f122674b13a5ae14fa273058ebc",
     "v4v5-silva-26.11": "c358924f3c9fc2911e6415949fa8771ab45ae67d1fb6df017fe002d3689cac4e",
-    "v4v5-rdp-26.11": "1b62cbf91817803d6410882f3e231b7d9442957074e89bbc072c87b46a5aef8b",
+    "v4v5-rdp": "1b62cbf91817803d6410882f3e231b7d9442957074e89bbc072c87b46a5aef8b",
 }
 #: per-rank cut-offs of the V4-V5 files (26.11.0, kept in 26.11.1): genus, species
-CUTS = {"v4v5": (0.52, 0.50), "v4v5-silva": (0.45, 0.69), "v4v5-rdp": (0.69, 0.59)}
+CUTS = {"v4v5": (0.52, 0.50), "v4v5-silva": (0.45, 0.69)}
 
 
 def test_version_is_26_11_1():
@@ -66,6 +69,21 @@ def test_v4v5_ids_name_the_26_11_1_files(model_id):
     assert old.filename not in new.legacy_filenames
     assert new in models.list_models()
     assert old not in models.list_models() and old in models.list_models(include_hidden=True)
+
+
+def test_v4v5_rdp_keeps_the_26_11_file():
+    spec = models.get_model("v4v5-rdp")
+    assert spec.status == "stable" and spec.model_version == "26.11"
+    assert spec.filename == "taxonova-V4V5-rdp-26.11.pt"
+    assert spec.md5 == "b786769f384abeeb25620f950ab6e34b" and spec.size_mb == 207
+    assert spec.urls[0] == ("https://github.com/kardokhk/taxonova/releases/download/v26.11.0/"
+                            "taxonova-V4V5-rdp-26.11.pt")
+    assert models.get_model("taxonova-V4V5-rdp-26.11.pt") is spec and spec.legacy_filenames == ()
+    for name in ("v4v5-rdp-26.11", "taxonova-V4V5-rdp-26.11.1.pt"):
+        with pytest.raises(KeyError):
+            models.get_model(name)
+    assert not [s for s in models.list_models(include_hidden=True) if s.model_version == "26.11.1"
+                and s.reference == "RDP"]
 
 
 def _load(path):
@@ -122,6 +140,15 @@ def test_26_11_1_file_holds_the_26_11_network(model_id, checkpoint):
     assert "species_gate" not in old["operating_point"] and "species_centroids" not in old
     for k in ("thresholds", "species_groups", "reference", "region", "fitted_on"):
         assert new["operating_point"][k] == old["operating_point"][k], k
+
+
+@pytest.mark.models
+def test_v4v5_rdp_checkpoint_has_no_species_gate(checkpoint):
+    data = _load(checkpoint("v4v5-rdp"))
+    op = data["operating_point"]
+    assert "species_gate" not in op and "species_centroids" not in data
+    assert op["thresholds"]["genus"] == 0.69 and op["thresholds"]["species"] == 0.59
+    assert op["species_groups"] == "genus"
 
 
 @pytest.mark.models
