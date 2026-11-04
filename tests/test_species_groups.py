@@ -281,3 +281,20 @@ def test_regression_fixture_val_rows():
         out, why = SG.collapse(L.parse_lineage(r["final"]))
         assert L.format_lineage(out) == r["expected"], r["query_id"]
         assert why == r["reason"], r["query_id"]
+
+
+# ---------- regression: Greengenes2 renamed genera (the reference places the group under the genus call) ----------
+
+def test_group_listed_under_the_genus_in_the_reference_keeps_the_genus():
+    """Greengenes2 V4-V5 VAL: 'g__Spirillospora_393771; s__[Actinomadura hallensis|Actinomadura sputi]' is a
+    reference (genus, species) pair although the names' genus token differs; it collapses to the genus, it is not a
+    group spanning genera."""
+    up = ["Bacteria", "Actinomycetota", "Actinomycetes", "Streptosporangiales", "Streptosporangiaceae"]
+    grp = "[Actinomadura hallensis|Actinomadura sputi]"
+    ref = L.RefTaxonomy([up + ["Spirillospora_393771", grp], up + ["Spirillospora_393771", "Spirillospora albida"]])
+    out, why = SG.collapse(up + ["Spirillospora_393771", grp], ref)
+    assert out == up + ["Spirillospora_393771", ""] and why == "group_to_genus"
+    # members listed under the genus as single species count as in the genus too
+    ref2 = L.RefTaxonomy([up + ["Spirillospora_393771", "Actinomadura hallensis"],
+                          up + ["Spirillospora_393771", "Actinomadura sputi"]])
+    assert SG.collapse(up + ["Spirillospora_393771", grp], ref2)[1] == "group_to_genus"
