@@ -44,7 +44,10 @@ def _predict_reversed(model, sequences, processor, taxonomy_info, taxonomic_enco
                               taxonomy_hierarchy=taxonomy_info.get('taxonomy_hierarchy'), **taxonomic_encoders)
     predictor = HierarchicalModelFactory.create_predictor(model, dataset, config, device)
     predictor.config.show_progress = not getattr(args, "quiet", False)
-    return predictor.predict(rev)
+    predictions = predictor.predict(rev)
+    # species features of the reversed reads, for the species gate of rows taken reverse-complemented
+    predictions['_species_features'] = getattr(predictor, 'last_species_features', None)
+    return predictions
 
 
 def _merge_by_strand(forward, reverse):
@@ -59,7 +62,18 @@ def _merge_by_strand(forward, reverse):
     for key in ('no_signal', 'ood_score'):
         if key in forward:
             merged[key] = [(reverse if r else forward)[key][i] for i, r in enumerate(take_rev)]
+    merged['_take_reverse'] = take_rev
     return merged, sum(take_rev)
+
+
+def _merged_species_features(forward_features, reverse_features, take_rev):
+    """Species features in the orientation each row was classified in (None if either side has none)."""
+    if forward_features is None or reverse_features is None:
+        return forward_features
+    out = forward_features.copy()
+    rows = [i for i, r in enumerate(take_rev) if r]
+    out[rows] = reverse_features[rows]
+    return out
 
 
 def classification_mode(args):
@@ -167,9 +181,13 @@ def classification_mode(args):
         reverse = _predict_reversed(model, sequences, processor, taxonomy_info, taxonomic_encoders,
                                     config, device, args)
         predictions, n_rev = _merge_by_strand(predictions, reverse)
+        species_features = _merged_species_features(getattr(predictor, 'last_species_features', None),
+                                                    reverse.get('_species_features'),
+                                                    predictions.pop('_take_reverse'))
         predictions = formatter.format_predictions(predictions)
         logger.info(f"--strand both: {n_rev}/{len(sequences)} reads classified reverse-complemented")
     else:
+        species_features = getattr(predictor, 'last_species_features', None)
         sample = sequences[:STRAND_SAMPLE]
         reverse = _predict_reversed(model, sample, processor, taxonomy_info, taxonomic_encoders,
                                     config, device, args)
@@ -200,7 +218,7 @@ def classification_mode(args):
     from taxonova.core.gate_stats import FEATURE_STATISTICS, centroid_distance
     if gate is not None and gate["statistic"] in FEATURE_STATISTICS:
         predictions['species_gate_stat'] = centroid_distance(
-            predictor.last_species_features, predictions['predictions']['species'],
+            species_features, predictions['predictions']['species'],
             taxonomy_info['species_centroids'], gate["statistic"]).tolist()
 
     formatted_predictions = formatter.format_predictions(predictions)
