@@ -123,6 +123,7 @@ def classification_mode(args):
         )
         
         _resolve_operating_point(args, taxonomy_info)
+        args.species_group_collapse = _species_group_collapser(taxonomy_info)
         config = create_classification_config(args, taxonomy_info)
 
         # tx_wip_03 iter-2: if the checkpoint was post-hoc fit with OOD-aware
@@ -230,6 +231,24 @@ def _resolve_operating_point(args, taxonomy_info):
     shown = {k: (None if v == float('inf') else round(v, 4)) for k, v in thresholds.items()}
     logger.info(f"Thresholds ({source}): {shown}")
     return thresholds
+
+
+def _species_group_collapser(taxonomy_info):
+    """The writer's species-group collapse (taxonova/species_groups.py) when the checkpoint's operating point sets
+    ``species_groups: genus``, else None. Member genera and paths come from the checkpoint's taxonomy hierarchy."""
+    from taxonova.species_groups import collapser, mode
+    entry = taxonomy_info.get('operating_point')
+    if mode(entry) != "genus":
+        return None
+    hierarchy = taxonomy_info.get('taxonomy_hierarchy')
+    ref = None
+    if hierarchy is not None:
+        from taxonova.labels import ref_from_hierarchy
+        ref = ref_from_hierarchy(hierarchy)
+    else:
+        logger.warning("No hierarchy data found: species groups spanning genera will get no call.")
+    logger.info("Species group labels are reported at the genus (checkpoint operating point)")
+    return collapser(entry, ref)
 
 
 def _console_shows_warnings():

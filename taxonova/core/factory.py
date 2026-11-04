@@ -198,6 +198,8 @@ class HierarchicalModelFactory:
             if operating_point:
                 from taxonova.core.operating_point import validate
                 taxonomy_info['operating_point'] = validate(operating_point)
+                from taxonova.species_groups import mode as species_groups_mode
+                species_groups_mode(taxonomy_info['operating_point'])     # refuse a malformed species_groups value
                 logger.info(f"Loaded operating point: {taxonomy_info['operating_point'].get('method', '')} "
                             f"thresholds={taxonomy_info['operating_point']['thresholds']} "
                             f"species_gate={taxonomy_info['operating_point'].get('species_gate')}")

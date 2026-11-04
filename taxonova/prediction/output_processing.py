@@ -3,9 +3,11 @@ Post-prediction processing utilities for taxonomic classification.
 """
 import logging
 from typing import Dict, List, Tuple, Any
-from collections import defaultdict
+from collections import Counter, defaultdict
 
 from taxonova.core.thresholds import GRADED_SPECIES, scaled_profile
+
+RANKS7 = ("domain", "phylum", "class", "order", "family", "genus", "species")
 
 logger = logging.getLogger(__name__)
 
@@ -162,6 +164,11 @@ class PredictionOutputFormatter:
                 if species_gate is not None and gate_stats is None:
                     raise ValueError("species gate configured but the predictor returned no gate statistic")
                 n_gated = 0
+                # species group labels reported at the genus (taxonova/species_groups.py), when the checkpoint asks
+                group_collapse = getattr(args, "species_group_collapse", None)
+                if group_collapse is not None and list(self.level_order) != list(RANKS7):
+                    raise ValueError("species group collapse needs the seven ranks domain..species")
+                n_collapsed = Counter()
 
                 for idx, seq in enumerate(sequences):
                     row = [seq[0]]
@@ -212,6 +219,7 @@ class PredictionOutputFormatter:
 
                     parent_conf = 1.0
                     parent_called = True
+                    cells = []
                     for level in self.level_order:
                         raw_confidence = predictions['confidence'].get(level, [0.0] * len(sequences))[idx]
                         try:
@@ -227,14 +235,23 @@ class PredictionOutputFormatter:
                         # rank's threshold can be below its parent's (genus 0.38 under family 0.5), and the capped
                         # confidence alone would then name a genus under an unclassified family.
                         if not parent_called or confidence < threshold:
-                            row.extend(["Unclassified", f"{confidence:.4f}"])
+                            cells.append(["Unclassified", f"{confidence:.4f}"])
                             parent_called = False
                         else:
                             label = predictions['predictions'][level][idx]
                             if not label or label == "unknown":
                                 label = "Unknown"
-                            row.extend([label, f"{confidence:.4f}"])
+                            cells.append([label, f"{confidence:.4f}"])
 
+                    if group_collapse is not None:
+                        called = ["" if lab in ("Unclassified", "Unknown") else lab for lab, _ in cells]
+                        kept, why = group_collapse(called)
+                        n_collapsed[why] += 1
+                        for cell, before, after in zip(cells, called, kept):
+                            if before and not after:
+                                cell[0] = "Unclassified"     # the confidence is still reported
+                    for cell in cells:
+                        row.extend(cell)
                     f.write("\t".join(row) + "\n")
 
             if ood_config is not None:
@@ -245,6 +262,9 @@ class PredictionOutputFormatter:
             if species_gate is not None:
                 logger.info(f"Species gate ({species_gate['statistic']}): species call withheld for "
                             f"{n_gated}/{len(sequences)} inputs")
+            if group_collapse is not None:
+                logger.info("Species group labels (reported at the genus): "
+                            + ", ".join(f"{k} {v}" for k, v in sorted(n_collapsed.items())))
             logger.info(f"Successfully wrote classifications to {args.output}")
         except Exception as e:
             logger.error(f"Error writing classifications: {str(e)}")

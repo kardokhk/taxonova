@@ -86,10 +86,13 @@ def set_operating_point(src, entry, dst, species_centroids=None, label_rules=Non
 
     The weights, encoders and every other key are copied unchanged; `entry` replaces any earlier operating point.
     `label_rules` (optional) is the species-rule entry read by `taxonova.labels.rule_options`, for example
-    ``{"genus_token": False}`` for Greengenes2.
+    ``{"genus_token": False}`` for Greengenes2. An `entry` may set ``species_groups`` to ``"genus"`` to report
+    species group labels at the genus (`taxonova.species_groups`).
     """
     from taxonova.core.operating_point import KEY, validate
     validate(entry)                                   # refuse a malformed entry before writing anything
+    from taxonova.species_groups import mode as species_groups_mode
+    species_groups_mode(entry)                        # 'species_groups' (optional): 'keep' or 'genus'
     if label_rules is not None:
         from taxonova.labels import rule_options
         rule_options(label_rules)                     # refuse a malformed entry before writing anything
