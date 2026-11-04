@@ -445,10 +445,43 @@ def test_apply_to_predictions_passes_genus_token_switch():
     assert out["predictions"]["species"] == ["Segatella copri"] and why == {"kept": 1}
 
 
-# Recorded, not fixed at integration (2026-11-02): SILVA single names in brackets such as '[Eubacterium]' or
-# '[Bacillus]' are read as one-member groups, so they share members with the plain genus 'Eubacterium'. The
-# fix waits for the next release cycle.
-@pytest.mark.xfail(strict=True, reason="one-member bracket names are read as groups (open, known limitation)")
+# SILVA single names in brackets such as '[Eubacterium]' or '[Bacillus]' are names, not one-member groups, so
+# they do not share a member with the plain genus 'Eubacterium' (fixed in 26.11.1).
 def test_single_bracketed_name_is_not_a_group():
     assert L.is_group("[Eubacterium]") is False
     assert L.members("[Eubacterium]") == ["[Eubacterium]"]
+
+
+@pytest.mark.parametrize("label, expected", [
+    ("[a|b]", True),
+    ("[Vibrio breoganii|Vibrio comitans|Vibrio ezurae]", True),
+    ("[Eubacterium]", False),
+    ("[Bacillus]", False),
+    ("[Eubacterium] rectale", False),
+    ("[a|]", False),
+    ("[|b]", False),
+    ("[|]", False),
+    ("[]", False),
+    ("Escherichia coli", False),
+    ("", False),
+])
+def test_is_group_needs_two_members(label, expected):
+    assert L.is_group(label) is expected
+
+
+def test_members_of_bracketed_single_names():
+    assert L.members("[Bacillus]") == ["[Bacillus]"]
+    assert L.members("[Eubacterium] rectale") == ["[Eubacterium] rectale"]
+    assert L.members("[a|b]") == ["a", "b"]
+
+
+def test_bracketed_single_genus_is_not_the_plain_genus():
+    """A species of the SILVA genus '[Eubacterium]' does not belong to a genus call 'Eubacterium' (and the
+    reverse): the two labels have no member in common."""
+    assert not set(L.members("[Eubacterium]")) & set(L.members("Eubacterium"))
+    lins = [["Bacteria", "Bacillota", "Clostridia", "Lachnospirales", "Lachnospiraceae", "[Eubacterium]",
+             "[Eubacterium] rectale"],
+            ["Bacteria", "Bacillota", "Clostridia", "Eubacteriales", "Eubacteriaceae", "Eubacterium",
+             "Eubacterium limosum"]]
+    ref = L.RefTaxonomy(lins)
+    assert ref.genera_of("[Eubacterium] rectale") == {"[Eubacterium]"}

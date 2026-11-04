@@ -66,10 +66,9 @@ def test_is_species_group(label, expected):
     assert SG.is_species_group(label) is expected
 
 
-def test_package_is_group_unchanged_for_single_bracket_names():
-    """This module does not rely on labels.is_group, which still reads '[Eubacterium]' as a group (strict xfail
-    in tests/test_labels.py stays open)."""
-    assert L.is_group("[Eubacterium]") is True
+def test_package_is_group_agrees_for_single_bracket_names():
+    """labels.is_group and this module agree that '[Eubacterium]' is a single name, not a group (26.11.1)."""
+    assert L.is_group("[Eubacterium]") is False
     assert SG.is_species_group("[Eubacterium]") is False
 
 
