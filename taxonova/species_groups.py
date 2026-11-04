@@ -5,7 +5,8 @@ different species. A checkpoint can ask for these to be reported at the genus in
 
 * **Mode ``genus``.** When the called species is a group label (two or more members separated by ``|``), the
   species rank abstains and the genus call stands, with its confidence. Single species are untouched.
-* **Groups spanning genera.** The species rule (``taxonova.labels``) already blocks species groups whose members lie
+* **Groups spanning genera.** A group listed under the genus call in the reference (a training lineage), or whose
+  members all are, is inside the genus whatever its names say (Greengenes2 renamed genera). The species rule (``taxonova.labels``) already blocks species groups whose members lie
   outside the genus call, but a model run without it can still emit one. Then the call is cut to the lowest rank at
   which every member's reference path shares the called label; a member whose path is unknown confirms no rank, so
   the read gets no call.
@@ -64,9 +65,15 @@ def is_species_group(label: Optional[str]) -> bool:
 
 
 def _in_genus(member: str, genus: str, ref) -> bool:
+    """A member belongs to the genus call when the reference lists it under that genus label (alone or inside a
+    species label; Greengenes2 keeps renamed species under the new genus), when its reference genera meet the
+    call's members, or when its genus token agrees with the call."""
     gm = set(_members(genus))
-    if ref is not None and ref.genera_of(member) & gm:
-        return True
+    if ref is not None:
+        if any(member in _members(s) for s in ref.species_by_genus.get(genus, ())):
+            return True
+        if ref.genera_of(member) & gm:
+            return True
     return genus_token_agrees(member, genus)
 
 
@@ -96,11 +103,12 @@ def collapse(labels: Sequence[str], ref=None) -> Tuple[List[str], str]:
         return lab, "empty"
     if not is_species_group(lab[SP]):
         return lab, "kept"
-    ms = _members(lab[SP])
+    group = lab[SP]
+    ms = _members(group)
     lab[SP] = ""
     if not lab[G]:
         return lab, "group_no_genus"
-    if all(_in_genus(m, lab[G], ref) for m in ms):
+    if (ref is not None and ref.is_pair(lab[G], group)) or all(_in_genus(m, lab[G], ref) for m in ms):
         return lab, "group_to_genus"
     paths = [_member_paths(m, ref) for m in ms]
     for r in range(G - 1, -1, -1):
