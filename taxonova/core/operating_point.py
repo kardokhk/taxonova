@@ -29,7 +29,7 @@ KEY = "operating_point"
 RANKS = ("domain", "phylum", "class", "order", "family", "genus", "species")
 GATE_STATISTICS = ("energy_species", "mahalanobis_species", "centroid_cosine_species")
 
-#: Low-information reads get no call at any rank, whatever the model (README rule 5 of the 2026-11-01 campaign:
+#: Low-information reads get no call at any rank, whatever the model (an ambiguity code never counts as a match:
 #: an all-N read used to receive a full lineage, because k-mers containing N are skipped and the network then
 #: classifies a near-empty feature vector). A/C/G/T/U (either case) are valid bases; everything else, including
 #: IUPAC codes and alignment gaps, counts against the read. A checkpoint operating point may set stricter values.

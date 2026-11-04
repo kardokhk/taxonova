@@ -1,4 +1,4 @@
-"""Species group labels reported at the genus (fix A, development campaign 2026-11-01, decision of 2026-11-04).
+"""Species group labels reported at the genus (used by the V4-V5 models from release 26.11.0).
 
 Some species outputs are multi-species group labels ``[a|b|...]``: training records with an identical amplicon and
 different species. A checkpoint can ask for these to be reported at the genus instead:

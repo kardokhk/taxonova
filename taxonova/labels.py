@@ -3,7 +3,7 @@
 Pure functions over label strings and a reference taxonomy built from the training lineages. Nothing here touches a
 model; the functions post-process whatever a classifier (the network, a nearest-neighbour step or a stacker) emits.
 
-Rules (development campaign 2026-11-01, labels/PREREGISTRATION.md):
+Rules:
 
 * **Cross-genus group rule.** A species-level output is a single species, or a group ``[a|b|...]`` whose members all
   belong to one genus. When the members span genera, the species output is restricted to the members inside the
@@ -17,7 +17,7 @@ Rules (development campaign 2026-11-01, labels/PREREGISTRATION.md):
   or an ambiguous name is not presented as a species when a named alternative exists: a group drops its placeholder
   members, and a placeholder single species is replaced by the first named, path-consistent alternative supplied by
   the caller. Without a named alternative the species abstains. Numbered GTDB-style species (``sp004555055``) are
-  species in Greengenes2 and are not placeholders (PREPROCESSING_SPEC.md rule 1).
+  species in Greengenes2 and are not placeholders (see :func:`placeholder_class`).
 * **Ambiguity runs in reference records.** vsearch scores N as a match, so a reference record with a long run of
   ambiguity codes can tie with any query. :func:`max_ambiguity_run` and :func:`ambiguous_records` find such records;
   nearest-neighbour steps exclude them (:func:`drop_hits_to`).
@@ -97,8 +97,8 @@ def _epithet(species: str, genus: str) -> str:
 def placeholder_class(species: str, genus: str = "") -> str:
     """'' (empty), 'open', 'numbered', 'ambiguous' or 'named' for one species name (not a group).
 
-    Same rule as the species-F1 campaign (preproc/lib/preproc.py ``placeholder_class``, PREPROCESSING_SPEC.md rule
-    1), with the genus taken from the name when not given. 'open' and 'ambiguous' are placeholders."""
+    Same rule as the one used to prepare the training labels, with the genus taken from the name when not given.
+    'open' and 'ambiguous' are placeholders."""
     if not species:
         return ""
     if not genus:
@@ -161,7 +161,7 @@ class RefTaxonomy:
                         self.member_genera[m].update(pre)
                     elif len(gm) == 1 and genus_token_agrees(m, gm[0]):
                         # a record whose genus disagrees with the species name (SILVA source-organism names,
-                        # PITFALLS.md P10) does not define the genus of that species
+                        # for example) does not define the genus of that species
                         self.member_genera[m].update(gm)
         # member sets of the species taxa under each genus label, for subset matching
         self._by_set: Dict[Tuple[str, frozenset], str] = {}
@@ -175,8 +175,8 @@ class RefTaxonomy:
         return cls(lineages_from_fasta(path).values())
 
     def multi_parent_names(self) -> Dict[str, List[str]]:
-        """Per rank, the names that sit under more than one parent path (research/PITFALLS.md P08). Labels are
-        keyed by full path in this class, so these names are counted, not merged."""
+        """Per rank, the names that sit under more than one parent path (the same name under two paths is two
+        taxa). Labels are keyed by full path in this class, so these names are counted, not merged."""
         out: Dict[str, List[str]] = defaultdict(list)
         for (r, name), ps in self._parents.items():
             if len(ps) > 1:
@@ -241,7 +241,8 @@ _TOKEN_SPLIT = re.compile(r"[-_ \[\]]+")
 
 
 def genus_token_agrees(species: str, genus: str, synonyms: Optional[Mapping[str, Iterable[str]]] = None) -> bool:
-    """The genus part of a species name agrees with the genus label (research/PITFALLS.md P10).
+    """The genus part of a species name agrees with the genus label (SILVA records can carry a source-organism
+    species name from another genus).
 
     True when the species name starts with a genus member followed by a space (Greengenes2 suffixes included, as
     written), or when its first word (brackets and 'Candidatus' removed) is one of the words of a genus member
@@ -278,7 +279,8 @@ def resolve_species(species: str, genus: str, ref: RefTaxonomy,
     ``species``: the species label proposed for the query ('' for none); ``genus``: the genus call that stands
     ('' for none); ``alternatives``: further species candidates in order of preference (for the placeholder rule);
     ``upper``: the called domain..family labels; when all five are given, path consistency is judged on the full
-    rank path (labels keyed by path, research/PITFALLS.md P08), otherwise on the (genus, species) pair.
+    rank path (labels keyed by path, so a name used under two paths is two taxa), otherwise on the (genus, species)
+    pair.
     Returns ``(label, reason)``; label '' means the species rank abstains. Reasons: 'empty', 'no_genus', 'kept',
     'cross_genus_subset', 'cross_genus_abstain', 'genus_token_subset', 'genus_token_abstain', 'path_inconsistent',
     'placeholder_trimmed', 'placeholder_alternative', 'placeholder_abstain'.

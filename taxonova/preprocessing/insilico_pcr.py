@@ -11,7 +11,8 @@ Matching rules (fixed, tested in ``tests/test_insilico_pcr.py``):
 * Only A, C, G and T (U read as T) in the **template** can match. Any other
   template character, N included, counts as a mismatch. This is deliberate:
   vsearch and the old ``process_mock.py`` scored N as a match, which let a
-  record with an N run tie with anything (campaign README rule 5).
+  record with an N run tie with anything (an ambiguity code must never count
+  as a match).
 * At most ``max_mismatches`` mismatches per primer, and none in the
   ``three_prime_exact`` bases at the primer's 3' end.
 * The forward site with the fewest mismatches is used (leftmost on ties); the
