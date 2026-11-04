@@ -42,7 +42,8 @@ these cut-offs replace the 0.5 / 0.7 / 0.8 defaults, so results differ from
 - `--strand both` (and `strand="both"` in `taxonova.classify()`) classifies
   each read in the orientation the model is more confident about. The default
   stays `plus`; Taxonova now warns when many of the first reads score higher
-  reverse-complemented.
+  reverse-complemented. With `--strand both`, the species gate is computed in
+  the orientation each read was classified in.
 - `--label-rules`: optional species-rank rules. A species group may not span
   several genera, the species must belong to the genus call (the genus is
   never rewritten from the species), and an open-nomenclature placeholder is
