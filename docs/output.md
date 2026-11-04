@@ -55,7 +55,7 @@ it does too.
 When you give no threshold, a model that carries a calibrated operating point
 uses its own cut-offs (all 26.11 models; the values are in
 [models.md](models.md#operating-points)), and the run log says so. The
-Greengenes2 models also carry a species gate, which withholds the species call
+four Greengenes2 models (`v4`, `v3v4`, `v5v7`, `16s`) also carry a species gate, which withholds the species call
 for reads far from the training records of the predicted species; it applies
 with any thresholds, and only removes species calls.
 

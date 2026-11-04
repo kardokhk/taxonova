@@ -27,14 +27,15 @@ these cut-offs replace the 0.5 / 0.7 / 0.8 defaults, so results differ from
   fitted the same way; domain to family stay at 0.5. The values of each model
   are listed in [docs/models.md](docs/models.md#operating-points). The run log
   states which thresholds were used and where they came from.
-- **Species abstention gate.** The Greengenes2 models withhold the species call
+- **Species abstention gate.** The four Greengenes2 models (`v4`, `v3v4`,
+  `v5v7`, `16s`) withhold the species call
   when the read's species feature is far from the training records of the
   predicted species (Mahalanobis distance to the species centroid). The gate
   can only remove a species call; it never changes another rank. It applies
   whenever the model carries one, also when you set thresholds yourself.
 - **V4-V5 models (preview)** for Greengenes2 (`v4v5`), SILVA 138.2
   (`v4v5-silva`) and RDP 19 (`v4v5-rdp`), for amplicons made with the primers
-  515F-Y and 926R. They are the first SILVA and RDP models in the package.
+  515F-Y and 926R. They have no species gate.
   As previews they are used by id and listed by `taxonova models --all`.
   In these models a species group label (`[a|b|...]`, two or more species that
   the region cannot separate) is reported at the genus: the species column
@@ -49,8 +50,8 @@ these cut-offs replace the 0.5 / 0.7 / 0.8 defaults, so results differ from
   never rewritten from the species), and an open-nomenclature placeholder is
   not reported as a species when a named alternative exists.
   `--genus-token-check auto|on|off` controls whether the species name must
-  carry the genus name; `auto` uses the model's setting. The Greengenes2
-  models carry a table of renamed genera (for example a species kept under its
+  carry the genus name; `auto` uses the model's setting. The four
+  Greengenes2 models for V4, V3-V4, V5-V7 and the whole gene carry a table of renamed genera (for example a species kept under its
   earlier genus name) that the check accepts.
 - FASTQ input (plain or gzip-compressed). gzip is recognised from the file
   content, not only from a `.gz` name.
@@ -66,7 +67,8 @@ these cut-offs replace the 0.5 / 0.7 / 0.8 defaults, so results differ from
   without one keeps the 0.5 / 0.7 / 0.8 profile. Giving `--confidence` or any
   per-rank threshold restores the scaled profile of earlier releases.
 - `taxonova classify ... --confidence 0` no longer reports a species for every
-  read with a Greengenes2 model, because the species gate still applies.
+  read with the four Greengenes2 models (`v4`, `v3v4`, `v5v7`, `16s`),
+  because the species gate still applies.
 - Reads with too little sequence information (fewer than 100 valid bases, or
   more than 5% ambiguous or other characters) get no call at any rank. Before,
   an all-N read could receive a full lineage.
