@@ -8,6 +8,95 @@ for further releases in the same month. Model files carry their own version
 
 ## [Unreleased]
 
+## [26.11.1] - 2026-11-04
+
+**V4-V5 models: new files with a species gate.** `v4v5`, `v4v5-silva` and
+`v4v5-rdp` now download new files (`taxonova-V4V5-<reference>-26.11.1.pt`)
+that hold the same networks, cut-offs and group-label handling as 26.11.0,
+together with a species abstention gate. Some species calls are now
+withheld, so results differ from 26.11.0 at the species rank only; every
+other rank is unchanged. The 26.11 files remain available as
+`v4v5-26.11`, `v4v5-silva-26.11` and `v4v5-rdp-26.11`. The four Greengenes2
+models for V4, V3-V4, V5-V7 and the whole gene and the operon model are
+unchanged.
+
+### Added
+
+- **Species gate for the V4-V5 models.** As in the four Greengenes2 models,
+  the species call is withheld when the read's species feature is far from
+  the training records of the predicted species (Mahalanobis distance to the
+  species centroid). The cut of each model is listed in
+  [docs/models.md](docs/models.md#operating-points). It was fitted on
+  validation reads as the strictest cut that keeps species F1 within 0.0075
+  of the ungated value (0.005 for RDP, where 0.0075 cost more than 0.01), and
+  is the median over three training seeds. On validation reads, cross-fitted,
+  the gate changed species F1 of the released network by -0.008 (95% CI
+  -0.014 to -0.002) for Greengenes2, -0.006 (-0.012 to -0.0003) for SILVA and
+  -0.002 (-0.012 to 0.006) for RDP. On synthetic chimeras of two genera, the
+  share of reads with a species call fell from 0.38 to 0.11 (Greengenes2),
+  0.21 to 0.10 (SILVA) and 0.18 to 0.06 (RDP); on reads with 3% random
+  substitutions, from 0.68 to 0.40, 0.38 to 0.26 and 0.33 to 0.19.
+
+### Changed
+
+- **V4-V5 Greengenes2 model, label rules.** `v4v5` now has the genus-token
+  check on, with the table of renamed genera, like the other Greengenes2
+  models. This only matters with `--label-rules`; `--genus-token-check off`
+  restores the 26.11.0 setting. On validation reads with `--label-rules`,
+  species F1 changed by -0.0005 (95% CI -0.0016 to 0.0004); 5 of 2,909 reads
+  changed.
+
+### Fixed
+
+- `taxonova.labels.is_group` read a bracketed single name such as the SILVA
+  genus `[Eubacterium]` as a one-member group, so that it shared its member
+  with the plain genus `Eubacterium`. A group label now needs two or more
+  members separated by `|`. This affects `--label-rules` and the
+  `taxonova.labels` functions; the default `taxonova classify` output does
+  not use them.
+
+### Evaluation of the 26.11.0 files (descriptive)
+
+The 26.11.0 files were scored at their default settings after the release,
+on benchmark data that had already been read during development. These
+numbers describe the files; nothing was chosen or tuned on them. Species F1
+(95% CI) on the real-read pools of the TaxoBench T2 tier, 26.11.0 file
+against the 26.10 file at its default, with the paired difference:
+
+- V4 (`v4`): 0.833 (0.696 to 0.932) against 0.756; +0.077 (0.027 to 0.149).
+- V3-V4 (`v3v4`): 0.718 (0.511 to 0.872) against 0.625; +0.093 (0.023 to
+  0.207).
+- Whole gene (`16s`): 0.866 (0.767 to 0.945) against 0.833; +0.033 (0.007 to
+  0.074).
+- V4-V5 (`v4v5`, without the 26.11.1 gate), against the 26.10 whole-gene
+  model that V4-V5 users had before: 0.756 (0.608 to 0.882) against 0.310;
+  +0.446 (0.229 to 0.670).
+
+The pools hold 27 to 117 species clusters, so the intervals are wide. T2 has
+no V5-V7 reads. On in-silico V4-V5 amplicons of genomes new in GTDB R226,
+`v4v5` (26.11.0) had species F1 0.739 (0.675 to 0.799), against 0.202 for
+the 26.10 whole-gene model; +0.538 (0.453 to 0.620).
+
+### Known limitations
+
+- The V4-V5 species gate was fitted after the benchmark results had been
+  read, on validation data only, and has not been tested on unread data.
+- **RDP V4-V5 gate.** Most RDP species have one training record, so the cut
+  lies above every training distance and the gate acts only on reads far
+  from any training record. On the validation reads (the data it was fitted
+  on), `taxonova classify` with the 26.11.1 file had species F1 0.016 lower
+  (95% CI 0.002 to 0.034) than with the 26.11 file, above the 0.01 target.
+- The limitations of the V4-V5 models listed for 26.11.0 (species-group
+  confirmation not met for SILVA; no SILVA models for the other regions)
+  still apply. The two items on the species gate and on the Greengenes2
+  label rules are resolved.
+
+### Compatibility
+
+- New downloads: 565 MB (`v4v5`), 509 MB (`v4v5-silva`) and 223 MB
+  (`v4v5-rdp`), once. The new files load with `torch.load(...,
+  weights_only=True)` under torch 2.6 and later, as the 26.11 files do.
+
 ## [26.11.0] - 2026-11-04
 
 **Default output changes for the four Greengenes2 models.** `v4`, `v3v4`,
