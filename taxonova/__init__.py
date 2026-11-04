@@ -13,7 +13,7 @@ __version__ = "26.11.0"
 __all__ = ["__version__", "classify"]
 
 
-def classify(sequences_or_fasta_path, model="v4", confidence=0.8, threads=None, **kwargs):
+def classify(sequences_or_fasta_path, model="v4", confidence=None, threads=None, **kwargs):
     """Classify sequences and return a pandas DataFrame with the columns of
     the command-line output. See :func:`taxonova.api.classify`."""
     from taxonova.api import classify as _classify
