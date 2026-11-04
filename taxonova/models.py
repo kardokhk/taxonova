@@ -223,19 +223,21 @@ _REGISTRY: List[ModelSpec] = [
         reference="RDP",
         reference_version="19",
         taxonomy="RDP 19",
-        model_version="26.11.1",
-        filename="taxonova-V4V5-rdp-26.11.1.pt",
-        urls=_urls("taxonova-V4V5-rdp-26.11.1.pt", tag="v26.11.1"),
-        sha256="b095a51aadd0db985d4df18f2d23d3aee735533fc7bfb2297b116a28e31b44ca",
-        md5="a94f86815483815b6e54788fccfcf6fd",
-        size_mb=223,
+        model_version="26.11",
+        filename="taxonova-V4V5-rdp-26.11.pt",
+        urls=_urls("taxonova-V4V5-rdp-26.11.pt", tag="v26.11.0"),
+        sha256="1b62cbf91817803d6410882f3e231b7d9442957074e89bbc072c87b46a5aef8b",
+        md5="b786769f384abeeb25620f950ab6e34b",
+        size_mb=207,
         status="stable",
         aliases=("rdp_v4v5",),
         description="Amplicons of the 16S V4-V5 region (primers 515F-Y and 926R), RDP taxonomy.",
     ),
-    # The 26.11 V4-V5 checkpoints of release 26.11.0, replaced in 26.11.1 by the same networks with a species gate
-    # (and, for Greengenes2, the genus-token check with the renamed-genus table). Kept so that earlier analyses can
-    # be rerun; the short ids resolve to the 26.11.1 files above.
+    # The 26.11 Greengenes2 and SILVA V4-V5 checkpoints of release 26.11.0, replaced in 26.11.1 by the same networks
+    # with a species gate (and, for Greengenes2, the genus-token check with the renamed-genus table). Kept so that
+    # earlier analyses can be rerun; the short ids resolve to the 26.11.1 files above. The RDP V4-V5 model has no
+    # species gate in 26.11.1 (its gate cost more than 0.01 species F1 on validation data), so v4v5-rdp still names
+    # its 26.11 file and needs no deprecated entry.
     ModelSpec(
         id="v4v5-26.11",
         name="16S V4-V5, Greengenes2 (26.11)",
@@ -267,22 +269,6 @@ _REGISTRY: List[ModelSpec] = [
         size_mb=479,
         status="deprecated",
         description="26.11 checkpoint of v4v5-silva, without a species gate.",
-    ),
-    ModelSpec(
-        id="v4v5-rdp-26.11",
-        name="16S V4-V5, RDP (26.11)",
-        region="16S V4-V5",
-        reference="RDP",
-        reference_version="19",
-        taxonomy="RDP 19",
-        model_version="26.11",
-        filename="taxonova-V4V5-rdp-26.11.pt",
-        urls=_urls("taxonova-V4V5-rdp-26.11.pt", tag="v26.11.0"),
-        sha256="1b62cbf91817803d6410882f3e231b7d9442957074e89bbc072c87b46a5aef8b",
-        md5="b786769f384abeeb25620f950ab6e34b",
-        size_mb=207,
-        status="deprecated",
-        description="26.11 checkpoint of v4v5-rdp, without a species gate.",
     ),
     # The 26.10 Greengenes2 checkpoints, replaced in 26.11.0 by the same networks with a calibrated operating
     # point. Kept so that earlier analyses can be rerun; their file names (and the 26.10.0 asset names) resolve
