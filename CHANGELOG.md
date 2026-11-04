@@ -122,6 +122,8 @@ these cut-offs replace the 0.5 / 0.7 / 0.8 defaults, so results differ from
   -0.070 to -0.032), V3-V4 -0.020 and V5-V7 -0.021 at species, +0.017 to
   +0.028 at genus. Species assignment for SILVA will be revisited together
   with the group-label convention.
+- In the held-out benchmark for this release, some evaluation sequences also
+  occurred in the calibration set; excluding them did not change any conclusion.
 - One-member bracketed names such as `[Eubacterium]` are treated as group
   labels by `taxonova.labels` (recorded as an expected failure in the tests).
 - `taxonova.classify()` keeps `confidence=0.8` as its default, so from Python
