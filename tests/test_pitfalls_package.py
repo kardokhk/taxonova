@@ -1,8 +1,8 @@
-"""research/PITFALLS.md top-20 rows 3 to 6 for the package (campaign commit 32920a8).
+"""Package checks for four classifier pitfalls, numbered as rows 3 to 6 below.
 
 Row 3, low-information reads abstain: the zero-k-mer case is fixed here; the
-general rule (fewer than 100 A/C/G/T or more than 5% other symbols) belongs to
-operating-point/ and is recorded as an expected failure until it is merged.
+general rule (fewer than 100 A/C/G/T or more than 5% other symbols) lives in
+taxonova.core.operating_point and is recorded as an expected failure where it does not apply.
 Row 4, orientation: `--strand both` classifies each read in the orientation
 the model is more confident about; the default (`plus`) warns when a sample of
 the input looks reverse-complemented.
@@ -143,4 +143,4 @@ def test_low_information_reads_abstain_at_domain(checkpoint, tmp_path, case):
     row = parse_tsv(run_classification(fa, ckpt, tmp_path / "o.tsv"))[0]
     if row["domain"] != "Unclassified":
         pytest.xfail(f"{case}: called {row['domain']}/{row['phylum']} at {row['phylum_confidence']}; "
-                     "low-information abstention is owned by operating-point/ (BUGS.md P-LOWINFO)")
+                     "low-information abstention is handled in taxonova.core.operating_point")

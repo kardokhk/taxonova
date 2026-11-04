@@ -1,4 +1,4 @@
-"""CPU versus GPU on the same interpreter and torch build (PREREGISTRATION:
+"""CPU versus GPU on the same interpreter and torch build (criterion:
 identical labels for >= 99.9% of rows, max |confidence difference| <= 1e-3).
 
     python tests/tools/device_invariance.py OUT.tsv

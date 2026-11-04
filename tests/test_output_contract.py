@@ -1,4 +1,4 @@
-"""Output contract, without model checkpoints (tests/PREREGISTRATION.md, "Output contract").
+"""Output contract, without model checkpoints.
 
 1. Abstention propagates downward: a rank written as Unclassified implies
    Unclassified at every child rank, whatever per-rank thresholds were given.

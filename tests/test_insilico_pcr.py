@@ -99,7 +99,7 @@ def test_degenerate_primer_codes():
         assert bool(hits) is ok
 
 
-# ---- N handling (README rule 5) --------------------------------------------------------------------------------
+# ---- N handling (N never matches) -----------------------------------------------------------------------------
 def test_n_in_template_is_a_mismatch_not_a_match(recs):
     s, f0 = _site(recs)
     n_site = s[:f0] + "N" * len(F515Y) + s[f0 + len(F515Y):]
@@ -131,7 +131,7 @@ def test_ambiguity_screen(seq, keep, reason):
     ("ACGT" * 45 + "N" + "ACGT" * 45, ("minor", "ok")),                       # single N: network only
     ("ACGT" * 30 + "N" + "ACGT" * 30 + "RY" + "ACGT" * 30, ("minor", "ok")),  # 3 codes, no run
     ("ACGT" * 45 + "NN" + "ACGT" * 45, ("exclude", "n_run")),                 # an N run
-    ("N" * 1137 + "ACGT" * 10, ("exclude", "n_run")),                         # the README rule 5 case
+    ("N" * 1137 + "ACGT" * 10, ("exclude", "n_run")),                         # a long N run
     ("ACGT" * 20 + "N" + "ACGT" * 20 + "N" + "ACGT" * 20 + "RY" + "ACGT" * 20, ("exclude", "too_many")),
 ])
 def test_ambiguity_tier(seq, tier):

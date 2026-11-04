@@ -1,4 +1,4 @@
-"""Ambiguity codes in the k-mer step (README rule 5: N must never count as a match).
+"""Ambiguity codes in the k-mer step (rule: N must never count as a match).
 
 A k-mer that contains N or any other non-ACGT(U) symbol is skipped, so an N
 run contributes nothing and cannot make two unrelated reads look alike. These

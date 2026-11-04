@@ -1,5 +1,5 @@
 """Released models on adversarial inputs: output contract, read shape and
-orientation, and invariance (tests/PREREGISTRATION.md).
+orientation, and invariance.
 
 Skipped unless the released checkpoints are available (see conftest.py).
 """
@@ -189,4 +189,4 @@ def test_no_label_spans_more_than_one_genus(model):
              len({x.split(" ")[0] for x in s.strip("[]").split("|")}) > 1}
     if multi or named:
         pytest.xfail(f"{mid}: {len(multi)} species on >1 genus path, {len(named)} group labels naming >1 genus; "
-                     "owned by labels/ (BUGS.md T-GRP)")
+                     "handled by the species rule in taxonova.labels")

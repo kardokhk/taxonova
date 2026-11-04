@@ -1,4 +1,4 @@
-"""Query parsing contract (tests/PREREGISTRATION.md, "Parser").
+"""Query parsing contract (parser).
 
 The reader must return one record per input record, in order, with the
 sequence as uppercase IUPAC letters (U kept: the k-mer step reads it as T),

@@ -234,7 +234,7 @@ def test_row_thresholds_low_info_is_all_infinite():
 
 
 def test_temperature_scaling_never_changes_the_argmax():
-    # PITFALLS P20: temperature changes confidence, never the label
+    # temperature changes confidence, never the label
     import torch
     gen = torch.Generator().manual_seed(20261102)
     z = torch.randn(500, 40, generator=gen) * 4

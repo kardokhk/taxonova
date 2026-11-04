@@ -1,4 +1,4 @@
-"""Species group labels collapsed to the genus (taxonova.species_groups; fix A, decision of 2026-11-04).
+"""Species group labels collapsed to the genus (taxonova.species_groups).
 
 The V4-V5 release models report a multi-species group label ``[a|b|...]`` at species as the genus call (with its
 confidence) and no species. The mode lives in the checkpoint's ``operating_point`` entry (``species_groups``:

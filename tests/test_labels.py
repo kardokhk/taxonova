@@ -396,7 +396,7 @@ def test_species_with_disagreeing_genus_token_is_not_output_p10():
 
 
 # ----------------------------------------------------------- genus-token check switch and synonym table (integration)
-# Greengenes2 keeps renamed species under the old genus field (labels/RESULTS.md section 2): the T1 truth holds
+# Greengenes2 keeps renamed species under the old genus field in its training lineages: the reference holds
 # g__Prevotella; s__Segatella copri, so the genus-token rule must be switchable per reference, and a declared
 # synonym table may accept a species token as an alias of the genus label.
 
@@ -447,8 +447,8 @@ def test_apply_to_predictions_passes_genus_token_switch():
 
 # Recorded, not fixed at integration (2026-11-02): SILVA single names in brackets such as '[Eubacterium]' or
 # '[Bacillus]' are read as one-member groups, so they share members with the plain genus 'Eubacterium'. The
-# frozen held-out pipelines pin labels.py by hash, so the fix waits for the next release cycle.
-@pytest.mark.xfail(strict=True, reason="one-member bracket names are read as groups (open, integration READY.md)")
+# fix waits for the next release cycle.
+@pytest.mark.xfail(strict=True, reason="one-member bracket names are read as groups (open, known limitation)")
 def test_single_bracketed_name_is_not_a_group():
     assert L.is_group("[Eubacterium]") is False
     assert L.members("[Eubacterium]") == ["[Eubacterium]"]
