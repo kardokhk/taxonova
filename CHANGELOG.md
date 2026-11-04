@@ -10,35 +10,45 @@ for further releases in the same month. Model files carry their own version
 
 ## [26.11.1] - 2026-11-04
 
-**V4-V5 models: new files with a species gate.** `v4v5`, `v4v5-silva` and
-`v4v5-rdp` now download new files (`taxonova-V4V5-<reference>-26.11.1.pt`)
-that hold the same networks, cut-offs and group-label handling as 26.11.0,
-together with a species abstention gate. Some species calls are now
-withheld, so results differ from 26.11.0 at the species rank only; every
-other rank is unchanged. The 26.11 files remain available as
-`v4v5-26.11`, `v4v5-silva-26.11` and `v4v5-rdp-26.11`. The four Greengenes2
-models for V4, V3-V4, V5-V7 and the whole gene and the operon model are
-unchanged.
+**Greengenes2 and SILVA V4-V5 models: new files with a species gate.**
+`v4v5` and `v4v5-silva` now download new files
+(`taxonova-V4V5-<reference>-26.11.1.pt`) that hold the same networks,
+cut-offs and group-label handling as 26.11.0, together with a species
+abstention gate. Some species calls are now withheld, so results differ from
+26.11.0 at the species rank only; every other rank is unchanged. The 26.11
+files remain available as `v4v5-26.11` and `v4v5-silva-26.11`. The RDP V4-V5
+model (`v4v5-rdp`) has no species gate and keeps its 26.11 file (see
+Changed). The four Greengenes2 models for V4, V3-V4, V5-V7 and the whole gene
+and the operon model are unchanged.
 
 ### Added
 
-- **Species gate for the V4-V5 models.** As in the four Greengenes2 models,
-  the species call is withheld when the read's species feature is far from
-  the training records of the predicted species (Mahalanobis distance to the
-  species centroid). The cut of each model is listed in
-  [docs/models.md](docs/models.md#operating-points). It was fitted on
-  validation reads as the strictest cut that keeps species F1 within 0.0075
-  of the ungated value (0.005 for RDP, where 0.0075 cost more than 0.01), and
-  is the median over three training seeds. On validation reads, cross-fitted,
-  the gate changed species F1 of the released network by -0.008 (95% CI
-  -0.014 to -0.002) for Greengenes2, -0.006 (-0.012 to -0.0003) for SILVA and
-  -0.002 (-0.012 to 0.006) for RDP. On synthetic chimeras of two genera, the
-  share of reads with a species call fell from 0.38 to 0.11 (Greengenes2),
-  0.21 to 0.10 (SILVA) and 0.18 to 0.06 (RDP); on reads with 3% random
-  substitutions, from 0.68 to 0.40, 0.38 to 0.26 and 0.33 to 0.19.
+- **Species gate for the Greengenes2 and SILVA V4-V5 models.** As in the
+  four Greengenes2 models, the species call is withheld when the read's
+  species feature is far from the training records of the predicted species
+  (Mahalanobis distance to the species centroid). The cut of each model is
+  listed in [docs/models.md](docs/models.md#operating-points). It was fitted
+  on validation reads as the strictest cut that keeps species F1 within
+  0.0075 of the ungated value, and is the median over three training seeds.
+  On validation reads, cross-fitted, the gate changed species F1 of the
+  released network by -0.008 (95% CI -0.014 to -0.002) for Greengenes2 and
+  -0.006 (-0.012 to -0.0003) for SILVA. On synthetic chimeras of two genera,
+  the share of reads with a species call fell from 0.38 to 0.11
+  (Greengenes2) and 0.21 to 0.10 (SILVA); on reads with 3% random
+  substitutions, from 0.68 to 0.40 and 0.38 to 0.26.
 
 ### Changed
 
+- **RDP V4-V5 model: no species gate.** `v4v5-rdp` ships without a species
+  gate and still downloads its 26.11 file (`taxonova-V4V5-rdp-26.11.pt`, the
+  same bytes as in 26.11.0), so its output is unchanged. A model whose gate
+  costs more than 0.01 species F1 on validation reads ships without one. For
+  RDP, the gate met that limit on the cross-fitted fitting route only at the
+  stricter budget of 0.005 (mean cost over three training seeds 0.0086;
+  0.0107 at 0.0075), but with `taxonova classify` on the validation reads it
+  lowered species F1 by 0.016 (95% CI 0.002 to 0.034; these are the reads it
+  was fitted on). Most RDP species have one training record, so the cut lay
+  above every training distance.
 - **V4-V5 Greengenes2 model, label rules.** `v4v5` now has the genus-token
   check on, with the table of renamed genera, like the other Greengenes2
   models. This only matters with `--label-rules`; `--genus-token-check off`
@@ -82,20 +92,18 @@ the 26.10 whole-gene model; +0.538 (0.453 to 0.620).
 
 - The V4-V5 species gate was fitted after the benchmark results had been
   read, on validation data only, and has not been tested on unread data.
-- **RDP V4-V5 gate.** Most RDP species have one training record, so the cut
-  lies above every training distance and the gate acts only on reads far
-  from any training record. On the validation reads (the data it was fitted
-  on), `taxonova classify` with the 26.11.1 file had species F1 0.016 lower
-  (95% CI 0.002 to 0.034) than with the 26.11 file, above the 0.01 target.
+- **RDP V4-V5 model, species gate.** `v4v5-rdp` has no species abstention
+  gate, so its species call is not withheld for reads far from the predicted
+  species (see Changed).
 - The limitations of the V4-V5 models listed for 26.11.0 (species-group
   confirmation not met for SILVA; no SILVA models for the other regions)
-  still apply. The two items on the species gate and on the Greengenes2
-  label rules are resolved.
+  still apply. The item on the Greengenes2 label rules is resolved, and the
+  item on the species gate is resolved for Greengenes2 and SILVA.
 
 ### Compatibility
 
-- New downloads: 565 MB (`v4v5`), 509 MB (`v4v5-silva`) and 223 MB
-  (`v4v5-rdp`), once. The new files load with `torch.load(...,
+- New downloads: 565 MB (`v4v5`) and 509 MB (`v4v5-silva`), once;
+  `v4v5-rdp` needs no new download. The new files load with `torch.load(...,
   weights_only=True)` under torch 2.6 and later, as the 26.11 files do.
 
 ## [26.11.0] - 2026-11-04
