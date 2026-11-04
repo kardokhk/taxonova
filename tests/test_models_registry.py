@@ -42,7 +42,7 @@ def test_every_alias_resolves(model_id, name):
 
 def test_registry_contents():
     specs = list_models()
-    assert [s.id for s in specs] == ["v4", "v3v4", "v5v7", "16s", "operon"]
+    assert [s.id for s in specs] == ["v4", "v3v4", "v5v7", "16s", "operon", "v4v5", "v4v5-silva", "v4v5-rdp"]
     names = set()
     for s in list_models(include_hidden=True):
         assert len(s.sha256) == 64 and len(s.md5) == 32
@@ -59,7 +59,9 @@ def test_registry_contents():
 
 def test_26_11_registry():
     hidden = {s.id: s for s in list_models(include_hidden=True)}
-    assert [i for i, s in hidden.items() if s.status == "preview"] == ["v4v5", "v4v5-silva", "v4v5-rdp"]
+    assert [i for i, s in hidden.items() if s.status == "preview"] == []
+    assert [i for i, s in hidden.items() if s.status == "stable"] == [
+        "v4", "v3v4", "v5v7", "16s", "operon", "v4v5", "v4v5-silva", "v4v5-rdp"]
     assert [i for i, s in hidden.items() if s.status == "deprecated"] == [
         "v4-26.10", "v3v4-26.10", "v5v7-26.10", "16s-26.10"]
     for i in ("v4", "v3v4", "v5v7", "16s", "v4v5", "v4v5-silva", "v4v5-rdp"):
