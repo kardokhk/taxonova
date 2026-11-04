@@ -52,8 +52,9 @@ unchanged.
   genus `[Eubacterium]` as a one-member group, so that it shared its member
   with the plain genus `Eubacterium`. A group label now needs two or more
   members separated by `|`. This affects `--label-rules` and the
-  `taxonova.labels` functions; the default `taxonova classify` output does
-  not use them.
+  `taxonova.labels` functions, which the V4-V5 models also use when they
+  report group labels at the genus. No group label of the V4-V5 files
+  contains a bracketed single name, so default output is unchanged.
 
 ### Evaluation of the 26.11.0 files (descriptive)
 
