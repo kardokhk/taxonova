@@ -79,3 +79,54 @@ def save_model(model: torch.nn.Module, path: str, dataset: Optional[TaxonomyData
     except Exception as e:
         logger.error(f"Failed to save unified model: {str(e)}")
         raise
+
+
+def set_operating_point(src, entry, dst, species_centroids=None, label_rules=None):
+    """Copy checkpoint `src` to `dst` with a validated `operating_point` entry (core/operating_point.py).
+
+    The weights, encoders and every other key are copied unchanged; `entry` replaces any earlier operating point.
+    `label_rules` (optional) is the species-rule entry read by `taxonova.labels.rule_options`, for example
+    ``{"genus_token": False}`` for Greengenes2. An `entry` may set ``species_groups`` to ``"genus"`` to report
+    species group labels at the genus (`taxonova.species_groups`).
+    """
+    from taxonova.core.operating_point import KEY, validate
+    validate(entry)                                   # refuse a malformed entry before writing anything
+    from taxonova.species_groups import mode as species_groups_mode
+    species_groups_mode(entry)                        # 'species_groups' (optional): 'keep' or 'genus'
+    if label_rules is not None:
+        from taxonova.labels import rule_options
+        rule_options(label_rules)                     # refuse a malformed entry before writing anything
+    data = torch.load(src, map_location="cpu", weights_only=False)
+    if "model_state_dict" not in data or "taxonomy_info" not in data:
+        raise ValueError(f"{src} is not a unified Taxonova checkpoint")
+    data[KEY] = entry
+    if label_rules is not None:
+        rules = dict(label_rules)
+        if rules.get("genus_synonyms") is not None:      # plain lists, so weights_only=True can read them
+            rules["genus_synonyms"] = {g: sorted(a) for g, a in rules["genus_synonyms"].items()}
+        data["label_rules"] = rules
+    if species_centroids is not None:
+        data["species_centroids"] = _weights_only_safe(species_centroids)
+    from taxonova.core.gate_stats import FEATURE_STATISTICS
+    gate = entry.get("species_gate") or {}
+    if gate.get("statistic") in FEATURE_STATISTICS and data.get("species_centroids") is None:
+        raise ValueError(f"gate {gate['statistic']} needs species_centroids")
+    torch.save(data, dst)
+    return dst
+
+
+def _weights_only_safe(table):
+    """Centroid table as tensors and plain Python types, so that torch.load(weights_only=True) (the default from
+    torch 2.6) can read the checkpoint."""
+    import numpy as np
+    out = {}
+    for k, v in table.items():
+        if isinstance(v, np.ndarray):
+            out[k] = torch.from_numpy(np.ascontiguousarray(v))
+        elif isinstance(v, (np.integer, np.floating)):
+            out[k] = v.item()
+        elif k == "labels":
+            out[k] = [str(x) for x in v]
+        else:
+            out[k] = v
+    return out

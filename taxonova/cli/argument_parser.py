@@ -62,9 +62,14 @@ def _add_classify_parser(subparsers):
     p.add_argument("-o", "--output", default=None, metavar="OUT",
                    help="output table (default: <input name>.taxonova.tsv in the current directory)")
     p.add_argument("-c", "--confidence", "--confidence_threshold", dest="confidence_threshold",
-                   type=float, default=GRADED_SPECIES, metavar="X",
-                   help=("species confidence threshold (default: %.1f); the thresholds of the other "
-                         "ranks scale with it" % GRADED_SPECIES))
+                   type=float, default=None, metavar="X",
+                   help=("species confidence threshold; the thresholds of the other ranks scale with it "
+                         "(default: the model's calibrated operating point if it has one, else %.1f)"
+                         % GRADED_SPECIES))
+    p.add_argument("--strand", choices=("plus", "both"), default="plus",
+                   help="plus: reads are in the model's orientation (default; a sample is checked and a "
+                        "warning given if many look reversed). both: classify each read in the orientation "
+                        "the model is more confident about (twice the compute)")
     p.add_argument("-t", "--threads", "--cpu_threads", dest="cpu_threads", type=int, default=None,
                    metavar="N", help="CPU threads (default: 2)")
     g = p.add_argument_group("per-rank thresholds (override the scaled defaults)")
@@ -76,6 +81,7 @@ def _add_classify_parser(subparsers):
                    help="where models are stored (default: $TAXONOVA_MODELS_DIR, else ~/.taxonova/models)")
     p.add_argument("--no-log", action="store_true", default=False,
                    help="do not write the run log (<output name>.log) next to the output table")
+    _add_label_rules_arg(p)
     _add_common_output_args(p)
 
 
@@ -319,6 +325,19 @@ def _add_training_parser(subparsers):
     
     _add_common_output_args(train_parser)
 
+def _add_label_rules_arg(parser):
+    parser.add_argument(
+        "--label-rules", "--label_rules", dest="label_rules", action="store_true", default=False,
+        help=("species rank: no group spanning several genera, species must belong to the genus call "
+              "(the genus is never rewritten from the species), no placeholder name as species; "
+              "replaces the species-to-genus consistency rewrite"))
+    parser.add_argument(
+        "--genus-token-check", "--genus_token_check", dest="genus_token_check", choices=("auto", "on", "off"),
+        default="auto",
+        help=("with --label-rules: whether a species name must carry its genus call's name (auto: the model's "
+              "setting, with the renamed genera the model declares; on when the model sets nothing)"))
+
+
 def _add_classification_parser(subparsers):
     """Add classification mode parser."""
     classification_parser = subparsers.add_parser(
@@ -332,9 +351,12 @@ def _add_classification_parser(subparsers):
                              help="Path to save classification results")
     classification_parser.add_argument("--cpu_threads", type=int, default=None,
                              help="Number of CPU threads to use for classification (default: 2)")
+    classification_parser.add_argument("--strand", choices=("plus", "both"), default="plus",
+                             help="plus (default) or both: see 'taxonova classify --help'")
     classification_parser.add_argument(
-        "--confidence_threshold", type=float, default=GRADED_SPECIES,
-        help=("Species-rank confidence threshold (default: %.1f). The parent "
+        "--confidence_threshold", type=float, default=None,
+        help=("Species-rank confidence threshold (default: the model's "
+              "calibrated operating point if it has one, else %.1f). The parent "
               "gates scale with it in the recommended ratio, so this one "
               "number sets the operating point at every rank."
               % GRADED_SPECIES))
@@ -345,4 +367,5 @@ def _add_classification_parser(subparsers):
                   f"default of {GRADED_PROFILE[_lvl]} at "
                   f"--confidence_threshold {GRADED_SPECIES}"))
 
+    _add_label_rules_arg(classification_parser)
     _add_common_output_args(classification_parser)

@@ -1,0 +1,11 @@
+sequence_id	domain	domain_confidence	phylum	phylum_confidence	class	class_confidence	order	order_confidence	family	family_confidence	genus	genus_confidence	species	species_confidence
+C_00110984	Bacteria	1.0000	Fusobacteriota	0.9998	Fusobacteriia	0.9998	Fusobacteriales	0.9998	Fusobacteriaceae	0.9998	Fusobacterium	0.9998	Fusobacterium hwasookii	0.9983
+C_00104032	Bacteria	1.0000	Fusobacteriota	0.9996	Fusobacteriia	0.9996	Fusobacteriales	0.9996	Fusobacteriaceae	0.9996	Fusobacterium	0.9996	Fusobacterium nucleatum	0.9996
+U_00029901	Bacteria	1.0000	Fusobacteriota	0.9998	Fusobacteriia	0.9998	Fusobacteriales	0.9998	Fusobacteriaceae	0.9998	Fusobacterium	0.9997	Fusobacterium pseudoperiodonticum	0.9909
+C_00116861	Bacteria	1.0000	Fusobacteriota	0.9998	Fusobacteriia	0.9998	Fusobacteriales	0.9998	Fusobacteriaceae	0.9998	Fusobacterium_A	0.9998	Fusobacterium_A varium	0.9983
+C_00116840	Bacteria	1.0000	Bacteroidota	0.9999	Bacteroidia	0.9999	Bacteroidales	0.9999	Bacteroidaceae	0.9999	Prevotella	0.9996	Prevotella oris	0.9996
+C_00005624	Bacteria	1.0000	Bacteroidota	0.9999	Bacteroidia	0.9999	Bacteroidales	0.9999	Bacteroidaceae	0.9999	Prevotella	0.9987	Prevotella melaninogenica_C	0.9944
+adv_nrun20	Bacteria	1.0000	Fusobacteriota	0.9998	Fusobacteriia	0.9998	Fusobacteriales	0.9998	Fusobacteriaceae	0.9998	Fusobacterium	0.9998	Fusobacterium hwasookii	0.9983
+adv_first60	Unclassified	1.0000	Unclassified	0.6503	Unclassified	0.6503	Unclassified	0.6503	Unclassified	0.6503	Unclassified	0.6503	Unclassified	0.6280
+adv_revcomp	Bacteria	0.9959	WOR-3	0.2753	UBA3073	0.2753	UBA3073	0.2753	UBA3073	0.2753	UBA3073	0.2753	UBA3073 sp002366725	0.1813
+adv_all_n	Unclassified	0.0000	Unclassified	0.0000	Unclassified	0.0000	Unclassified	0.0000	Unclassified	0.0000	Unclassified	0.0000	Unclassified	0.0000

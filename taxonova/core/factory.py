@@ -26,6 +26,17 @@ def _torch_load(*args, **kwargs):
 
 logger = logging.getLogger(__name__)
 
+
+def _hidden_dim_of(state_dict, default: int = 512) -> int:
+    """Network width of a saved HierarchicalClassifier: the output size of the first Linear layer of
+    ``feature_processor`` (``feature_processor.1.weight`` is hidden x input). Released 26.10 models are 512; the
+    Greengenes2 and SILVA V4-V5 networks, and other networks trained at that width, are 1024."""
+    w = state_dict.get("feature_processor.1.weight") if hasattr(state_dict, "get") else None
+    if w is None or getattr(w, "ndim", 0) != 2:
+        return default
+    return int(w.shape[0])
+
+
 class HierarchicalModelFactory:
     
     @staticmethod
@@ -166,7 +177,7 @@ class HierarchicalModelFactory:
                 num_family_classes=taxonomy_info['num_family_classes'],
                 num_genus_classes=taxonomy_info['num_genus_classes'],
                 num_species_classes=taxonomy_info['num_species_classes'],
-                hidden_dim=512,
+                hidden_dim=_hidden_dim_of(model_state_dict),
                 dropout=0.3
             )
             
@@ -176,6 +187,22 @@ class HierarchicalModelFactory:
             if temperatures:
                 model.set_temperatures(temperatures)
                 logger.info(f"Applied calibrated temperatures: {temperatures}")
+
+            if unified_data.get('species_centroids') is not None:
+                taxonomy_info['species_centroids'] = unified_data['species_centroids']
+            if unified_data.get('label_rules') is not None:
+                from taxonova.labels import rule_options
+                rule_options(unified_data['label_rules'])
+                taxonomy_info['label_rules'] = unified_data['label_rules']
+            operating_point = unified_data.get('operating_point')
+            if operating_point:
+                from taxonova.core.operating_point import validate
+                taxonomy_info['operating_point'] = validate(operating_point)
+                from taxonova.species_groups import mode as species_groups_mode
+                species_groups_mode(taxonomy_info['operating_point'])     # refuse a malformed species_groups value
+                logger.info(f"Loaded operating point: {taxonomy_info['operating_point'].get('method', '')} "
+                            f"thresholds={taxonomy_info['operating_point']['thresholds']} "
+                            f"species_gate={taxonomy_info['operating_point'].get('species_gate')}")
 
             ood_config = unified_data.get('ood_config')
             if ood_config:
@@ -231,6 +258,7 @@ class HierarchicalModelFactory:
                 if key not in taxonomy_info:
                     taxonomy_info[key] = 1
                     logger.warning(f"Setting default value for missing {key}")
+            state_dict = _torch_load(path, map_location=torch.device('cpu'))
             model = HierarchicalClassifier(
                 input_dim=taxonomy_info['input_dim'],
                 num_domain_classes=taxonomy_info['num_domain_classes'],
@@ -240,11 +268,11 @@ class HierarchicalModelFactory:
                 num_family_classes=taxonomy_info['num_family_classes'],
                 num_genus_classes=taxonomy_info['num_genus_classes'],
                 num_species_classes=taxonomy_info['num_species_classes'],
-                hidden_dim=512,
+                hidden_dim=_hidden_dim_of(state_dict),
                 dropout=0.3
             )
             
-            model.load_state_dict(_torch_load(path, map_location=torch.device('cpu')))
+            model.load_state_dict(state_dict)
             
             if 'level_order' not in taxonomy_info:
                 taxonomy_info['level_order'] = ["domain", "phylum", "class", "order", "family", "genus", "species"]

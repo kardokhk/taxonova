@@ -74,12 +74,24 @@ class HierarchicalPredictor:
         # write_tsv_output can compare it against τ at write time.
         ood_score_method = getattr(self.config, "ood_score_method", None)
         ood_scores = [] if ood_score_method else None
+        # A row with no valid k-mer (empty, all N, shorter than k) is an
+        # all-zero input; the network still returns a confident-looking
+        # answer for it, so it is flagged and written as Unclassified.
+        no_signal = []
+        gate_statistic = getattr(self.config, "species_gate_statistic", None)
+        from taxonova.core.gate_stats import FEATURE_STATISTICS
+        want_features = gate_statistic in FEATURE_STATISTICS
+        gate_stats = [] if gate_statistic and not want_features else None
+        feats = []
+        hook = (self.model.species_classifier.register_forward_hook(
+            lambda m, i, o: feats.append(i[0].detach().float().cpu())) if want_features else None)
 
         with torch.no_grad():
             pred_pbar = tqdm(eval_loader, desc="Classifying", leave=False, unit="batch",
                              disable=not getattr(self.config, "show_progress", True))
             for batch in pred_pbar:
                 (features, _), _ = batch
+                no_signal.extend((features.abs().sum(dim=1) == 0).tolist())
                 features = features.to(self.device)
 
                 outputs = self.model(features)
@@ -94,6 +106,10 @@ class HierarchicalPredictor:
                     preds = torch.argmax(probs, dim=1)
                     batch_preds[level] = preds.cpu().numpy()
                     batch_confs[level] = confidence.cpu().numpy()
+
+                if gate_stats is not None:
+                    from taxonova.core.gate_stats import species_gate_statistic
+                    gate_stats.extend(species_gate_statistic(outputs, gate_statistic).cpu().numpy().tolist())
 
                 if ood_scores is not None:
                     from taxonova.calibration.ood import compute_ood_score_from_outputs
@@ -118,6 +134,11 @@ class HierarchicalPredictor:
                     predictions[level]['preds'].extend(batch_preds[level])
                     predictions[level]['confidences'].extend(capped)
         
+        if hook is not None:
+            hook.remove()
+            # read by the classification handler after the consistency step (distance to the written label)
+            self.last_species_features = torch.cat(feats).numpy() if feats else None
+
         for level in self.level_order:
             get_label_func = getattr(self.dataset, f'get_{level}_label')
             predictions[level]['labels'] = [get_label_func(pred) 
@@ -132,5 +153,8 @@ class HierarchicalPredictor:
         }
         if ood_scores is not None:
             formatted_predictions['ood_score'] = ood_scores
+        formatted_predictions['no_signal'] = no_signal
+        if gate_stats is not None:
+            formatted_predictions['species_gate_stat'] = gate_stats
 
         return formatter.format_predictions(formatted_predictions)

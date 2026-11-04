@@ -18,10 +18,78 @@ from taxonova.models import ensure_model, superseded_model_warning
 
 logger = logging.getLogger(__name__)
 
+#: Reads checked in both orientations under --strand plus, to warn about reversed input.
+STRAND_SAMPLE = 200
+#: Warn when more than this share of the sample scores better reverse-complemented.
+STRAND_WARN_FRACTION = 0.10
+_COMPLEMENT = str.maketrans("ACGTURYKMSWBDHVN", "TGCAAYRMKSWVHDBN")
+
+
+class InputError(ValueError):
+    """The query file cannot be classified (unreadable, wrong format or empty)."""
+
+
+def reverse_complement(seq: str) -> str:
+    return seq.translate(_COMPLEMENT)[::-1]
+
+
+def _confidence_score(predictions, idx):
+    """Orientation score of one row: the sum of its per-rank confidences."""
+    return sum(float(predictions['confidence'][lvl][idx]) for lvl in predictions['confidence'])
+
+
+def _predict_reversed(model, sequences, processor, taxonomy_info, taxonomic_encoders, config, device, args):
+    rev = [(sid, reverse_complement(seq), tax) for sid, seq, tax in sequences]
+    dataset = TaxonomyDataset(sequences=rev, processor=processor, label_encoder=taxonomy_info['label_encoder'],
+                              taxonomy_hierarchy=taxonomy_info.get('taxonomy_hierarchy'), **taxonomic_encoders)
+    predictor = HierarchicalModelFactory.create_predictor(model, dataset, config, device)
+    predictor.config.show_progress = not getattr(args, "quiet", False)
+    predictions = predictor.predict(rev)
+    # species features of the reversed reads, for the species gate of rows taken reverse-complemented
+    predictions['_species_features'] = getattr(predictor, 'last_species_features', None)
+    return predictions
+
+
+def _merge_by_strand(forward, reverse):
+    """Per row, keep the orientation with the higher confidence score; returns
+    (merged predictions, number of rows taken reversed)."""
+    n = len(forward['predictions']['domain'])
+    take_rev = [_confidence_score(reverse, i) > _confidence_score(forward, i) for i in range(n)]
+    merged = {'predictions': {}, 'confidence': {}}
+    for key in ('predictions', 'confidence'):
+        for lvl in forward[key]:
+            merged[key][lvl] = [(reverse if r else forward)[key][lvl][i] for i, r in enumerate(take_rev)]
+    for key in ('no_signal', 'ood_score'):
+        if key in forward:
+            merged[key] = [(reverse if r else forward)[key][i] for i, r in enumerate(take_rev)]
+    merged['_take_reverse'] = take_rev
+    return merged, sum(take_rev)
+
+
+def _merged_species_features(forward_features, reverse_features, take_rev):
+    """Species features in the orientation each row was classified in (None if either side has none)."""
+    if forward_features is None or reverse_features is None:
+        return forward_features
+    out = forward_features.copy()
+    rows = [i for i, r in enumerate(take_rev) if r]
+    out[rows] = reverse_features[rows]
+    return out
+
+
 def classification_mode(args):
     """Handle classification mode execution."""
     logger.info("Loading query sequences for classification...")
-    sequences = read_fasta_file(args.input, expect_taxonomy=False)
+    try:
+        sequences = read_fasta_file(args.input, expect_taxonomy=False)
+    except FileNotFoundError:
+        raise
+    except ValueError as e:
+        raise InputError(str(e)) from e
+    if not sequences:
+        raise InputError(f"no sequences in {args.input}")
+    strand = getattr(args, "strand", None) or "plus"
+    if strand not in ("plus", "both"):
+        raise ValueError(f"strand must be 'plus' or 'both', got {strand!r}")
     
     cpu_threads = getattr(args, 'cpu_threads', None)
     device = DeviceManager.get_device_for_classification(cpu_threads)
@@ -68,6 +136,8 @@ def classification_mode(args):
             taxonomy_hierarchy=taxonomy_hierarchy
         )
         
+        _resolve_operating_point(args, taxonomy_info)
+        args.species_group_collapse = _species_group_collapser(taxonomy_info)
         config = create_classification_config(args, taxonomy_info)
 
         # tx_wip_03 iter-2: if the checkpoint was post-hoc fit with OOD-aware
@@ -85,6 +155,10 @@ def classification_mode(args):
         # the per-row OOD score during forward and stash it on the predictions
         # dict. Phylum-MSP needs no precomputation since it equals the
         # existing phylum_confidence.
+        gate = getattr(args, "species_gate", None)
+        if gate is not None:
+            predictor.config.species_gate_statistic = gate["statistic"]
+            logger.info(f"Species gate: {gate['statistic']} <= {gate['max']:.4f} (else no species call)")
         if ood_config:
             score_method = ood_config.get("score_method", "phylum_msp")
             if score_method != "phylum_msp":
@@ -101,17 +175,99 @@ def classification_mode(args):
         logger.info("Taxonomy consistency enforcement is enabled")
     
     predictions = predictor.predict(sequences)
-    
     formatter = PredictionOutputFormatter(predictor.level_order)
+
+    if strand == "both":
+        reverse = _predict_reversed(model, sequences, processor, taxonomy_info, taxonomic_encoders,
+                                    config, device, args)
+        predictions, n_rev = _merge_by_strand(predictions, reverse)
+        species_features = _merged_species_features(getattr(predictor, 'last_species_features', None),
+                                                    reverse.get('_species_features'),
+                                                    predictions.pop('_take_reverse'))
+        predictions = formatter.format_predictions(predictions)
+        logger.info(f"--strand both: {n_rev}/{len(sequences)} reads classified reverse-complemented")
+    else:
+        species_features = getattr(predictor, 'last_species_features', None)
+        sample = sequences[:STRAND_SAMPLE]
+        reverse = _predict_reversed(model, sample, processor, taxonomy_info, taxonomic_encoders,
+                                    config, device, args)
+        n_better = sum(_confidence_score(reverse, i) > _confidence_score(predictions, i)
+                       for i in range(len(sample)))
+        if n_better > STRAND_WARN_FRACTION * len(sample):
+            msg = (f"{n_better} of the first {len(sample)} reads score higher reverse-complemented: the input "
+                   f"may be in mixed or reverse orientation. Rerun with --strand both, or orient the reads first.")
+            logger.warning(msg)
+            if not _console_shows_warnings():
+                print(f"WARNING: {msg}", file=sys.stderr)
     
-    if enforce_taxonomy:
+    label_rules = getattr(args, "label_rules", False)
+    if enforce_taxonomy and not label_rules:
         logger.info("Applying taxonomic consistency to predictions...")
         consistency_processor = TaxonomicConsistencyProcessor(dataset, predictor.level_order)
         predictions = consistency_processor.apply_consistency(predictions, sequences)
+    elif label_rules:
+        if taxonomy_hierarchy is None:
+            logger.warning("No hierarchy data found. --label-rules not applied.")
+        else:
+            from taxonova.labels import apply_to_predictions, ref_from_hierarchy, rule_options
+            opts = rule_options(taxonomy_info.get('label_rules'), getattr(args, "genus_token_check", "auto"))
+            predictions, reasons = apply_to_predictions(predictions, ref_from_hierarchy(taxonomy_hierarchy), **opts)
+            logger.info("Label rules (species rank): " + ", ".join(f"{k} {v}" for k, v in sorted(reasons.items())))
     
+    gate = getattr(args, "species_gate", None)
+    from taxonova.core.gate_stats import FEATURE_STATISTICS, centroid_distance
+    if gate is not None and gate["statistic"] in FEATURE_STATISTICS:
+        predictions['species_gate_stat'] = centroid_distance(
+            species_features, predictions['predictions']['species'],
+            taxonomy_info['species_centroids'], gate["statistic"]).tolist()
+
     formatted_predictions = formatter.format_predictions(predictions)
     
     formatter.write_tsv_output(args, formatted_predictions, sequences)
+
+def _resolve_operating_point(args, taxonomy_info):
+    """Per-rank thresholds for this run: the user's if any was given, else the checkpoint's calibrated operating
+    point, else the graded default. Sets args.level_thresholds, args.threshold_source, args.species_gate and, for
+    consumers of the single number, args.confidence_threshold (the species gate actually applied)."""
+    from taxonova.core.operating_point import resolve_thresholds
+    entry = taxonomy_info.get('operating_point')
+    thresholds, source = resolve_thresholds(args, entry)
+    args.level_thresholds = thresholds
+    args.threshold_source = source
+    # The abstention gate belongs to the calibrated operating point; it is used whenever the checkpoint has one,
+    # also with user thresholds, because it can only remove species calls.
+    args.species_gate = entry.get('species_gate') if entry else None
+    from taxonova.core.gate_stats import FEATURE_STATISTICS
+    if args.species_gate and args.species_gate["statistic"] in FEATURE_STATISTICS \
+            and taxonomy_info.get('species_centroids') is None:
+        raise ValueError(f"operating point gate {args.species_gate['statistic']} needs the checkpoint's "
+                         f"species_centroids table, which is missing")
+    args.operating_point_entry = entry
+    if getattr(args, 'confidence_threshold', None) is None:
+        sp = thresholds['species']
+        args.confidence_threshold = sp if sp != float('inf') else 1.0
+    shown = {k: (None if v == float('inf') else round(v, 4)) for k, v in thresholds.items()}
+    logger.info(f"Thresholds ({source}): {shown}")
+    return thresholds
+
+
+def _species_group_collapser(taxonomy_info):
+    """The writer's species-group collapse (taxonova/species_groups.py) when the checkpoint's operating point sets
+    ``species_groups: genus``, else None. Member genera and paths come from the checkpoint's taxonomy hierarchy."""
+    from taxonova.species_groups import collapser, mode
+    entry = taxonomy_info.get('operating_point')
+    if mode(entry) != "genus":
+        return None
+    hierarchy = taxonomy_info.get('taxonomy_hierarchy')
+    ref = None
+    if hierarchy is not None:
+        from taxonova.labels import ref_from_hierarchy
+        ref = ref_from_hierarchy(hierarchy)
+    else:
+        logger.warning("No hierarchy data found: species groups spanning genera will get no call.")
+    logger.info("Species group labels are reported at the genus (checkpoint operating point)")
+    return collapser(entry, ref)
+
 
 def _console_shows_warnings():
     """True if the root logger already writes warnings to the console (as with

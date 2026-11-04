@@ -3,9 +3,11 @@ Post-prediction processing utilities for taxonomic classification.
 """
 import logging
 from typing import Dict, List, Tuple, Any
-from collections import defaultdict
+from collections import Counter, defaultdict
 
 from taxonova.core.thresholds import GRADED_SPECIES, scaled_profile
+
+RANKS7 = ("domain", "phylum", "class", "order", "family", "genus", "species")
 
 logger = logging.getLogger(__name__)
 
@@ -24,6 +26,10 @@ class TaxonomicConsistencyProcessor:
         # rewrites taxa/confidence, not the OOD score.
         if 'ood_score' in predictions:
             consistent_predictions['ood_score'] = predictions['ood_score']
+        if 'no_signal' in predictions:
+            consistent_predictions['no_signal'] = predictions['no_signal']
+        if 'species_gate_stat' in predictions:
+            consistent_predictions['species_gate_stat'] = predictions['species_gate_stat']
 
         for level in self.level_order:
             consistent_predictions['predictions'][level] = []
@@ -39,11 +45,24 @@ class TaxonomicConsistencyProcessor:
                 current_pred[level] = (pred_idx, conf)
             
             consistent_pred = self.dataset.get_consistent_taxonomy(current_pred)
-            
+
+            # The consistency step rewrites parent labels from the deepest
+            # named rank (normally species). A rewritten rank's confidence was
+            # measured for the label the model predicted there, not for the
+            # new one, so it is capped at the confidence of the rank that
+            # drove the rewrite; unchanged ranks keep their own confidence.
+            driver_conf = None
+            for level in reversed(self.level_order):
+                if predictions['predictions'][level][idx] not in (None, "", "unknown"):
+                    driver_conf = float(predictions['confidence'][level][idx])
+                    break
+
             for level in self.level_order:
                 pred_idx, conf = consistent_pred[level]
                 label = self._get_index_label(level, pred_idx)
-                
+                if driver_conf is not None and label != predictions['predictions'][level][idx]:
+                    conf = min(float(conf), driver_conf)
+
                 consistent_predictions['predictions'][level].append(label)
                 consistent_predictions['confidence'][level].append(conf)
         
@@ -99,6 +118,10 @@ class PredictionOutputFormatter:
         }
         if 'ood_score' in predictions:
             result['ood_score'] = predictions['ood_score']
+        if 'no_signal' in predictions:
+            result['no_signal'] = predictions['no_signal']
+        if 'species_gate_stat' in predictions:
+            result['species_gate_stat'] = predictions['species_gate_stat']
 
         for level in self.level_order:
             result[f'{level}_predictions'] = predictions['predictions'][level]
@@ -132,10 +155,20 @@ class PredictionOutputFormatter:
                 f.write("\t".join(header) + "\n")
 
                 strict_thresholds = self._get_level_thresholds(args)
-                if ood_config is not None:
-                    from taxonova.calibration.ood import gating_thresholds
-                    ood_row_thresholds = gating_thresholds(
-                        strict_thresholds, ood_config.get("relaxed_thresholds", {}))
+                from taxonova.core.operating_point import (gate_passes, low_information,
+                                                           low_information_limits, row_thresholds)
+                min_valid, max_amb = low_information_limits(getattr(args, "operating_point_entry", None))
+                n_low_info = 0
+                species_gate = getattr(args, "species_gate", None)
+                gate_stats = predictions.get("species_gate_stat")
+                if species_gate is not None and gate_stats is None:
+                    raise ValueError("species gate configured but the predictor returned no gate statistic")
+                n_gated = 0
+                # species group labels reported at the genus (taxonova/species_groups.py), when the checkpoint asks
+                group_collapse = getattr(args, "species_group_collapse", None)
+                if group_collapse is not None and list(self.level_order) != list(RANKS7):
+                    raise ValueError("species group collapse needs the seven ranks domain..species")
+                n_collapsed = Counter()
 
                 for idx, seq in enumerate(sequences):
                     row = [seq[0]]
@@ -161,15 +194,32 @@ class PredictionOutputFormatter:
                             # below the user's thresholds. Releases 26.9.x
                             # used ood_config["relaxed_thresholds"] (0.0 at
                             # every rank) in place of them.
-                            thresholds = ood_row_thresholds
+                            ood_extra = ood_config.get("relaxed_thresholds", {})
                             ood_n_relaxed += 1
                         else:
-                            thresholds = strict_thresholds
+                            ood_extra = None
                             ood_n_strict += 1
                     else:
-                        thresholds = strict_thresholds
+                        ood_extra = None
+                    sp_label = predictions['predictions']['species'][idx]
+                    # an empty / 'unknown' species label is no species call: nothing for the gate to withhold
+                    gate_ok = (species_gate is None or sp_label in ("", None, "unknown", "Unknown")
+                               or gate_passes(species_gate, gate_stats[idx]))
+                    n_gated += 0 if gate_ok else 1
+                    # one place computes the row's gates, elementwise never below strict_thresholds
+                    low_info = low_information(seq[1], min_valid, max_amb) if len(seq) > 1 else True
+                    n_low_info += int(low_info)
+                    thresholds = row_thresholds(strict_thresholds, ood_extra, gate_ok, low_info)
+
+                    no_signal = predictions.get('no_signal')
+                    if no_signal is not None and no_signal[idx]:
+                        row.extend(["Unclassified", "0.0000"] * len(self.level_order))
+                        f.write("\t".join(row) + "\n")
+                        continue
 
                     parent_conf = 1.0
+                    parent_called = True
+                    cells = []
                     for level in self.level_order:
                         raw_confidence = predictions['confidence'].get(level, [0.0] * len(sequences))[idx]
                         try:
@@ -181,18 +231,40 @@ class PredictionOutputFormatter:
                         parent_conf = confidence
                         threshold = thresholds.get(level, args.confidence_threshold)
 
-                        if confidence < threshold:
-                            row.extend(["Unclassified", f"{confidence:.4f}"])
+                        # Abstention propagates downward whatever the thresholds: with calibrated gates a child
+                        # rank's threshold can be below its parent's (genus 0.38 under family 0.5), and the capped
+                        # confidence alone would then name a genus under an unclassified family.
+                        if not parent_called or confidence < threshold:
+                            cells.append(["Unclassified", f"{confidence:.4f}"])
+                            parent_called = False
                         else:
                             label = predictions['predictions'][level][idx]
                             if not label or label == "unknown":
                                 label = "Unknown"
-                            row.extend([label, f"{confidence:.4f}"])
+                            cells.append([label, f"{confidence:.4f}"])
 
+                    if group_collapse is not None:
+                        called = ["" if lab in ("Unclassified", "Unknown") else lab for lab, _ in cells]
+                        kept, why = group_collapse(called)
+                        n_collapsed[why] += 1
+                        for cell, before, after in zip(cells, called, kept):
+                            if before and not after:
+                                cell[0] = "Unclassified"     # the confidence is still reported
+                    for cell in cells:
+                        row.extend(cell)
                     f.write("\t".join(row) + "\n")
 
             if ood_config is not None:
                 self._log_ood_summary(ood_config, ood_n_relaxed, ood_n_strict)
+            if n_low_info:
+                logger.warning(f"{n_low_info}/{len(sequences)} inputs have fewer than {min_valid} valid bases or "
+                               f"more than {100 * max_amb:.0f}% ambiguous characters: no call at any rank")
+            if species_gate is not None:
+                logger.info(f"Species gate ({species_gate['statistic']}): species call withheld for "
+                            f"{n_gated}/{len(sequences)} inputs")
+            if group_collapse is not None:
+                logger.info("Species group labels (reported at the genus): "
+                            + ", ".join(f"{k} {v}" for k, v in sorted(n_collapsed.items())))
             logger.info(f"Successfully wrote classifications to {args.output}")
         except Exception as e:
             logger.error(f"Error writing classifications: {str(e)}")
@@ -253,6 +325,9 @@ class PredictionOutputFormatter:
         still sit at 0.5, which is the value that evidence supports, and only
         genus and species are raised.
         """
+        resolved = getattr(args, "level_thresholds", None)
+        if resolved:
+            return dict(resolved)
         result = {}
         for lvl, gate in scaled_profile(args.confidence_threshold).items():
             override = getattr(args, f"{lvl}_threshold", None)

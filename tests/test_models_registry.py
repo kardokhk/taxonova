@@ -17,16 +17,20 @@ from taxonova.models import ModelSpec, UnknownModelError, ensure_model, get_mode
 # --- resolution ------------------------------------------------------------
 
 EXPECTED = {
-    "v4": ["v4", "V4", "gg2_v4", "GG2_V4", "gg2_v4_mrgroups_model_26.10.pt",
-           "taxonova-V4-greengenes2-26.10.pt"],
-    "v3v4": ["v3v4", "V3V4", "V3-V4", "v3-v4", "gg2_v3v4", "gg2_v3v4_mrgroups_model_26.10.pt",
-             "taxonova-V3V4-greengenes2-26.10.pt"],
-    "v5v7": ["v5v7", "V5-V7", "gg2_v5v7", "gg2_v5v7_mrgroups_model_26.10.pt",
-             "taxonova-V5V7-greengenes2-26.10.pt"],
-    "16s": ["16s", "16S", "v1v9", "V1-V9", "full", "gg2_v1v9", "gg2_v1v9_mrgroups_model_26.10.pt",
-            "taxonova-16S-greengenes2-26.10.pt"],
+    "v4": ["v4", "V4", "gg2_v4", "GG2_V4", "taxonova-V4-greengenes2-26.11.pt"],
+    "v3v4": ["v3v4", "V3V4", "V3-V4", "v3-v4", "gg2_v3v4", "taxonova-V3V4-greengenes2-26.11.pt"],
+    "v5v7": ["v5v7", "V5-V7", "gg2_v5v7", "taxonova-V5V7-greengenes2-26.11.pt"],
+    "16s": ["16s", "16S", "v1v9", "V1-V9", "full", "gg2_v1v9", "taxonova-16S-greengenes2-26.11.pt"],
     "operon": ["operon", "rrn", "RRN", "gtdb_rrn", "gtdb_rrn_mrgroups_model.pt",
                "taxonova-operon-grond-1.0.pt"],
+    "v4v5": ["v4v5", "V4V5", "V4-V5", "gg2_v4v5", "taxonova-V4V5-greengenes2-26.11.pt"],
+    "v4v5-silva": ["v4v5-silva", "silva_v4v5", "taxonova-V4V5-silva-26.11.pt"],
+    "v4v5-rdp": ["v4v5-rdp", "rdp_v4v5", "taxonova-V4V5-rdp-26.11.pt"],
+    # the 26.10 files (and their 26.10.0 asset names) stay resolvable, to the 26.10 bytes
+    "v4-26.10": ["v4-26.10", "gg2_v4_mrgroups_model_26.10.pt", "taxonova-V4-greengenes2-26.10.pt"],
+    "v3v4-26.10": ["v3v4-26.10", "gg2_v3v4_mrgroups_model_26.10.pt", "taxonova-V3V4-greengenes2-26.10.pt"],
+    "v5v7-26.10": ["v5v7-26.10", "gg2_v5v7_mrgroups_model_26.10.pt", "taxonova-V5V7-greengenes2-26.10.pt"],
+    "16s-26.10": ["16s-26.10", "gg2_v1v9_mrgroups_model_26.10.pt", "taxonova-16S-greengenes2-26.10.pt"],
 }
 
 
@@ -38,14 +42,14 @@ def test_every_alias_resolves(model_id, name):
 
 def test_registry_contents():
     specs = list_models()
-    assert [s.id for s in specs] == ["v4", "v3v4", "v5v7", "16s", "operon"]
+    assert [s.id for s in specs] == ["v4", "v3v4", "v5v7", "16s", "operon", "v4v5", "v4v5-silva", "v4v5-rdp"]
     names = set()
-    for s in specs:
-        assert s.status == "stable"
+    for s in list_models(include_hidden=True):
         assert len(s.sha256) == 64 and len(s.md5) == 32
         assert s.filename.startswith("taxonova-") and s.filename.endswith(".pt")
         assert "mrgroups" not in s.filename
-        assert s.urls[0] == f"https://github.com/kardokhk/taxonova/releases/download/v26.10.1/{s.filename}"
+        tag = "v26.10.1" if s.model_version in ("26.10", "1.0") else "v26.11.0"
+        assert s.urls[0] == f"https://github.com/kardokhk/taxonova/releases/download/{tag}/{s.filename}"
         assert s.urls[1] == f"https://huggingface.co/claessonlab/taxonova-models/resolve/main/{s.filename}"
         for n in (s.id, s.filename) + s.aliases:
             assert n.lower() not in names, f"name {n} used twice"
@@ -53,10 +57,27 @@ def test_registry_contents():
     assert get_model("operon").sha256 == "9ac36fea212edd569198027c9e6fb182199bb316acacad188d758929c9408289"
 
 
+def test_26_11_registry():
+    hidden = {s.id: s for s in list_models(include_hidden=True)}
+    assert [i for i, s in hidden.items() if s.status == "preview"] == []
+    assert [i for i, s in hidden.items() if s.status == "stable"] == [
+        "v4", "v3v4", "v5v7", "16s", "operon", "v4v5", "v4v5-silva", "v4v5-rdp"]
+    assert [i for i, s in hidden.items() if s.status == "deprecated"] == [
+        "v4-26.10", "v3v4-26.10", "v5v7-26.10", "16s-26.10"]
+    for i in ("v4", "v3v4", "v5v7", "16s", "v4v5", "v4v5-silva", "v4v5-rdp"):
+        assert hidden[i].model_version == "26.11" and hidden[i].filename.endswith("-26.11.pt")
+    assert hidden["v4v5-silva"].reference == "SILVA" and hidden["v4v5-rdp"].reference == "RDP"
+    assert hidden["v4v5"].reference == "Greengenes2"
+    # the 26.11 Greengenes2 files are new bytes: no earlier file name is an alias of them
+    for i in ("v4", "v3v4", "v5v7", "16s"):
+        assert hidden[i].legacy_filenames == ()
+        assert hidden[i].sha256 != hidden[f"{i}-26.10"].sha256
+
+
 def test_checksums_unchanged_from_26_10_0():
     # Same bytes as the 26.10.0 / v1.0.0 assets under their earlier names.
-    md5 = {"v4": "bccf86c9086b68defe8bc8a2a3dff2b6", "v3v4": "a5e584504627a8055afe25fd56893e37",
-           "v5v7": "6de1add678c05fd0c5c3679ea4094d1d", "16s": "103e508682ad0b948e9f8a993bb7be0a",
+    md5 = {"v4-26.10": "bccf86c9086b68defe8bc8a2a3dff2b6", "v3v4-26.10": "a5e584504627a8055afe25fd56893e37",
+           "v5v7-26.10": "6de1add678c05fd0c5c3679ea4094d1d", "16s-26.10": "103e508682ad0b948e9f8a993bb7be0a",
            "operon": "6f5d4ef039888a33ad765ef41725b624"}
     for model_id, value in md5.items():
         assert get_model(model_id).md5 == value
@@ -250,7 +271,7 @@ def test_superseded_warning_needs_name_and_md5(tmp_path, monkeypatch):
     old = tmp_path / name
     old.write_bytes(payload)
     msg = models.superseded_model_warning(old)
-    assert msg and "model v4" in msg and "gg2_v4_mrgroups_model_26.10.pt" in msg
+    assert msg and "model v4" in msg and "taxonova-V4-greengenes2-26.11.pt" in msg and "formerly" not in msg
     other = tmp_path / "x" / name
     other.parent.mkdir()
     other.write_bytes(b"a different file under the old name")
@@ -279,10 +300,12 @@ def test_model_downloader_shim(tmp_path, monkeypatch, source):
     assert dl.download_multiple_models(["fake", "silva"]) == {"fake": path, "silva": None}
     with pytest.raises(ValueError):
         dl.get_model_path("silva")
-    # an old key finds a copy cached by 26.10.0 under its earlier name
+    # an old key names the current model: a copy cached by 26.10.0 is the 26.10 checkpoint, not the 26.11 one
     old = tmp_path / "m" / "gg2_v4_mrgroups_model_26.10.pt"
     old.write_bytes(b"x")
-    assert dl.get_model_path("gg2_v4") == old and "gg2_v4" in dl.list_downloaded_models()
+    assert dl.get_model_path("gg2_v4") == tmp_path / "m" / "taxonova-V4-greengenes2-26.11.pt"
+    assert "gg2_v4" not in dl.list_downloaded_models()
+    assert models.find_cached(get_model("v4-26.10"), tmp_path / "m", check=False) == old
     assert md.superseded_model_warning is models.superseded_model_warning
 
 

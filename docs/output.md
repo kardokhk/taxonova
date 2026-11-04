@@ -52,13 +52,23 @@ it does too.
 
 ## Thresholds
 
-The default thresholds are 0.5 for domain to family, 0.7 for genus and 0.8 for
-species. `--confidence` sets the species threshold, and the other ranks scale
-with it in the same ratio:
+When you give no threshold, a model that carries a calibrated operating point
+uses its own cut-offs (all 26.11 models; the values are in
+[models.md](models.md#operating-points)), and the run log says so. The
+four Greengenes2 models (`v4`, `v3v4`, `v5v7`, `16s`) also carry a species gate, which withholds the species call
+for reads far from the training records of the predicted species; it applies
+with any thresholds, and only removes species calls.
+
+A model without an operating point (the 26.10 files, the operon model, your own
+models) uses 0.5 for domain to family, 0.7 for genus and 0.8 for species. Giving
+`--confidence` or any `--<rank>-threshold` replaces the model's cut-offs with
+this profile: `--confidence` sets the species threshold, and the other ranks
+scale with it in the same ratio. `taxonova.classify()` in Python follows the
+same rule (`confidence=` and the per-rank arguments):
 
 | `--confidence` | domain to family | genus | species |
 | --- | --- | --- | --- |
-| 0.8 (default) | 0.5 | 0.7 | 0.8 |
+| 0.8 (default without an operating point) | 0.5 | 0.7 | 0.8 |
 | 0.9 | 0.5625 | 0.7875 | 0.9 |
 | 0.7 | 0.4375 | 0.6125 | 0.7 |
 | 0.0 | 0 | 0 | 0 (every rank reported) |
@@ -88,8 +98,8 @@ resemble your data, for example a mock community sequenced with the same
 primers, or a held-out part of the reference.
 
 To explore thresholds after a single run, classify with `--confidence 0` (every
-rank is reported with its confidence) and apply cut-offs to the confidence
-columns afterwards. Apply them from domain downwards, so that a rank below its
+rank is reported with its confidence, except species calls withheld by a
+model's species gate) and apply cut-offs to the confidence columns afterwards. Apply them from domain downwards, so that a rank below its
 cut-off also clears the ranks below it, as Taxonova does.
 
 ## Run log

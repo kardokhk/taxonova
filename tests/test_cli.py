@@ -22,7 +22,9 @@ def test_classify_minimal():
     assert a.mode == "classify" and a.input == "reads.fasta"
     assert a.model is None  # handler uses v4 and says so
     assert a.output == "reads.taxonova.tsv"
-    assert a.confidence_threshold == 0.8 and a.cpu_threads is None
+    # 26.11: no default number at parse time; the model's calibrated operating point, else 0.8, is resolved
+    # after loading (core/operating_point.py; tests/test_operating_point.py::test_no_entry_is_the_previous_default)
+    assert a.confidence_threshold is None and a.cpu_threads is None
     assert all(getattr(a, f"{r}_threshold") is None for r in RANKS)
 
 

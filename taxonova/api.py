@@ -4,6 +4,10 @@
     df = taxonova.classify("reads.fasta", model="v4")
     df = taxonova.classify({"asv1": "TACG...", "asv2": "TACG..."}, model="v3v4", confidence=0.7)
 
+The thresholds follow the command line: without any threshold argument the
+model's calibrated operating point is used (0.8 with the scaled profile for a
+model without one); `confidence=` or a per-rank threshold replaces it.
+
 The table has exactly the columns of the command-line output (`sequence_id`,
 then a label and a `<rank>_confidence` column for each rank from domain to
 species) and the same values, because it is produced by the same code.
@@ -35,9 +39,9 @@ def _records(sequences):
     return [(x[0], x[1]) for x in items]
 
 
-def classify(sequences_or_fasta_path, model="v4", confidence=0.8, threads=None, *,
+def classify(sequences_or_fasta_path, model="v4", confidence=None, threads=None, *,
              models_dir=None, domain_threshold=None, phylum_threshold=None, class_threshold=None,
-             order_threshold=None, family_threshold=None, genus_threshold=None, quiet=False):
+             order_threshold=None, family_threshold=None, genus_threshold=None, quiet=False, strand="plus"):
     """Classify sequences with a pretrained or local model.
 
     Parameters
@@ -51,11 +55,18 @@ def classify(sequences_or_fasta_path, model="v4", confidence=0.8, threads=None, 
         or the path to a ``.pt`` checkpoint. Downloaded on first use.
     confidence
         Species confidence threshold; the other ranks scale with it, as on the
-        command line (``--confidence``).
+        command line (``--confidence``). Default ``None``, as on the command
+        line: the model's calibrated operating point if it has one, else 0.8
+        with the other ranks scaled. Any explicit threshold (``confidence`` or a
+        per-rank threshold) replaces the operating point; pass
+        ``confidence=0.8`` for the behaviour of releases before 26.11.0.
     threads
         CPU threads (default 2, as on the command line).
     domain_threshold ... genus_threshold
-        Optional per-rank thresholds that override the scaled defaults.
+        Optional per-rank thresholds that override the scaled defaults (and,
+        like ``confidence``, replace the model's operating point).
+    strand
+        ``"plus"`` (default) or ``"both"``, as ``--strand`` on the command line.
 
     Returns
     -------
@@ -87,11 +98,11 @@ def classify(sequences_or_fasta_path, model="v4", confidence=0.8, threads=None, 
         out = Path(tmp) / "out.tsv"
         args = SimpleNamespace(
             input=str(fasta), model_input=str(model_path), output=str(out),
-            confidence_threshold=float(confidence), cpu_threads=threads,
+            confidence_threshold=None if confidence is None else float(confidence), cpu_threads=threads,
             domain_threshold=domain_threshold, phylum_threshold=phylum_threshold,
             class_threshold=class_threshold, order_threshold=order_threshold,
             family_threshold=family_threshold, genus_threshold=genus_threshold,
-            show_resource_usage=False, verbose=False, quiet=bool(quiet),
+            show_resource_usage=False, verbose=False, quiet=bool(quiet), strand=strand,
         )
         classification_mode(args)
         dtypes = {"sequence_id": str}

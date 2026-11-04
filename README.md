@@ -22,7 +22,7 @@ pip install taxonova
 taxonova classify reads.fasta --model v4
 ```
 
-The model is downloaded on first use (about 240 MB, once). Results are written
+The model is downloaded on first use (about 250 MB, once). Results are written
 to `reads.taxonova.tsv`.
 
 ## Models
@@ -34,8 +34,14 @@ to `reads.taxonova.tsv`.
 | `v5v7` | 16S V5-V7 | Greengenes2 |
 | `16s` | whole 16S gene (V1-V9) | Greengenes2 |
 | `operon` | rRNA operon (16S-ITS-23S) | GROND |
+| `v4v5` | 16S V4-V5 (515F-Y / 926R) | Greengenes2 |
+| `v4v5-silva` | 16S V4-V5 (515F-Y / 926R) | SILVA |
+| `v4v5-rdp` | 16S V4-V5 (515F-Y / 926R) | RDP |
 
-Species names follow GTDB. SILVA and RDP models are in preparation.
+Species names follow GTDB in the Greengenes2 and operon models, and the
+reference's own taxonomy in the SILVA and RDP models. The V4-V5 models have
+known limitations; see
+[models](https://github.com/kardokhk/taxonova/blob/main/docs/models.md).
 Run `taxonova models` to see which models are downloaded.
 
 ## Output
@@ -49,20 +55,22 @@ f1eb3726...   Bacteria  1.0000             ...  Prevotella  0.9988            Pr
 ```
 
 A rank below its confidence threshold, and every rank below it, reads
-`Unclassified`.
+`Unclassified`. Each model sets its own thresholds unless you give one.
 
 ## Options you may want
 
 ```bash
 taxonova classify reads.fasta -m v3v4 -o results.tsv   # model and output file
-taxonova classify reads.fasta -m v4 --confidence 0.9   # stricter (default 0.8)
+taxonova classify reads.fasta -m v4 --confidence 0.9   # set the species threshold yourself
 taxonova classify reads.fasta -m v4 --threads 8        # more CPU threads
 taxonova classify reads.fasta -m v4 --genus-threshold 0.6   # set one rank
 ```
 
-`--confidence` sets the species threshold, and the other ranks scale with it.
+`--confidence` sets the species threshold, and the other ranks scale with it;
+without it, the model's calibrated thresholds are used
+([output and thresholds](https://github.com/kardokhk/taxonova/blob/main/docs/output.md#thresholds)).
 From Python: `taxonova.classify("reads.fasta", model="v4")` returns a pandas
-DataFrame.
+DataFrame, with the same thresholds as the command line.
 
 ## Links
 
