@@ -8,7 +8,7 @@ for further releases in the same month. Model files carry their own version
 
 ## [Unreleased]
 
-## [26.11.1] - 2026-11-04
+## [26.11.1] - 2026-11-05
 
 **Greengenes2 only: the SILVA and RDP models are withdrawn.** Taxonova now
 supports the Greengenes2 reference database only (and the GROND operon
