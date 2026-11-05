@@ -13,9 +13,8 @@ Public API (kept small and stable)::
     ensure_model("v4")            # pathlib.Path to a verified local copy (downloads once)
     models_dir()                  # $TAXONOVA_MODELS_DIR, else ~/.taxonova/models
 
-Model ids follow ``<region>[-<reference>]``. The reference suffix is left out
-for the default reference of a region (Greengenes2 for the 16S regions), so a
-SILVA V4 model would be ``v4-silva``. The number at the end of a file name is
+Model ids name the region (``v4``, ``v4v5``); the 16S models are trained on
+Greengenes2 and the operon model on GROND. The number at the end of a file name is
 the version of the model (when the checkpoint was made), not the version of
 the package. See docs/models.md for how a model is added.
 
@@ -71,7 +70,7 @@ class ModelSpec:
     ``urls`` are tried in order; a download is accepted only if its sha256
     (and md5, where listed) match. ``status`` is ``"stable"`` for models shown
     by default, ``"preview"`` for models that can be used by id but are not
-    yet listed (for example a new reference under evaluation), and
+    yet listed (for example a new region under evaluation), and
     ``"deprecated"`` for models kept only so that old analyses can be rerun.
     ``aliases`` are other names that resolve to this model (matched without
     regard to case); aliases ending in ``.pt`` are earlier file names of the
@@ -199,45 +198,9 @@ _REGISTRY: List[ModelSpec] = [
         aliases=("gg2_v4v5", "V4-V5"),
         description="Amplicons of the 16S V4-V5 region (primers 515F-Y and 926R).",
     ),
-    ModelSpec(
-        id="v4v5-silva",
-        name="16S V4-V5, SILVA",
-        region="16S V4-V5",
-        reference="SILVA",
-        reference_version="138.2",
-        taxonomy="SILVA 138.2",
-        model_version="26.11.1",
-        filename="taxonova-V4V5-silva-26.11.1.pt",
-        urls=_urls("taxonova-V4V5-silva-26.11.1.pt", tag="v26.11.1"),
-        sha256="121e0f230f79556bfeedee1e84f58385348d4a0bc78599c5f809b4e30f1aca60",
-        md5="53a22a1917a1062971ad380b366dd100",
-        size_mb=509,
-        status="stable",
-        aliases=("silva_v4v5",),
-        description="Amplicons of the 16S V4-V5 region (primers 515F-Y and 926R), SILVA taxonomy.",
-    ),
-    ModelSpec(
-        id="v4v5-rdp",
-        name="16S V4-V5, RDP",
-        region="16S V4-V5",
-        reference="RDP",
-        reference_version="19",
-        taxonomy="RDP 19",
-        model_version="26.11",
-        filename="taxonova-V4V5-rdp-26.11.pt",
-        urls=_urls("taxonova-V4V5-rdp-26.11.pt", tag="v26.11.0"),
-        sha256="1b62cbf91817803d6410882f3e231b7d9442957074e89bbc072c87b46a5aef8b",
-        md5="b786769f384abeeb25620f950ab6e34b",
-        size_mb=207,
-        status="stable",
-        aliases=("rdp_v4v5",),
-        description="Amplicons of the 16S V4-V5 region (primers 515F-Y and 926R), RDP taxonomy.",
-    ),
-    # The 26.11 Greengenes2 and SILVA V4-V5 checkpoints of release 26.11.0, replaced in 26.11.1 by the same networks
-    # with a species gate (and, for Greengenes2, the genus-token check with the renamed-genus table). Kept so that
-    # earlier analyses can be rerun; the short ids resolve to the 26.11.1 files above. The RDP V4-V5 model has no
-    # species gate in 26.11.1 (its gate cost more than 0.01 species F1 on validation data), so v4v5-rdp still names
-    # its 26.11 file and needs no deprecated entry.
+    # The 26.11 Greengenes2 V4-V5 checkpoint of release 26.11.0, replaced in 26.11.1 by the same network with a
+    # species gate and the genus-token check with the renamed-genus table. Kept so that earlier analyses can be
+    # rerun; the short id resolves to the 26.11.1 file above.
     ModelSpec(
         id="v4v5-26.11",
         name="16S V4-V5, Greengenes2 (26.11)",
@@ -253,22 +216,6 @@ _REGISTRY: List[ModelSpec] = [
         size_mb=524,
         status="deprecated",
         description="26.11 checkpoint of v4v5, without a species gate.",
-    ),
-    ModelSpec(
-        id="v4v5-silva-26.11",
-        name="16S V4-V5, SILVA (26.11)",
-        region="16S V4-V5",
-        reference="SILVA",
-        reference_version="138.2",
-        taxonomy="SILVA 138.2",
-        model_version="26.11",
-        filename="taxonova-V4V5-silva-26.11.pt",
-        urls=_urls("taxonova-V4V5-silva-26.11.pt", tag="v26.11.0"),
-        sha256="c358924f3c9fc2911e6415949fa8771ab45ae67d1fb6df017fe002d3689cac4e",
-        md5="eb8ea861d31852ba9a24ce1140002855",
-        size_mb=479,
-        status="deprecated",
-        description="26.11 checkpoint of v4v5-silva, without a species gate.",
     ),
     # The 26.10 Greengenes2 checkpoints, replaced in 26.11.0 by the same networks with a calibrated operating
     # point. Kept so that earlier analyses can be rerun; their file names (and the 26.10.0 asset names) resolve
