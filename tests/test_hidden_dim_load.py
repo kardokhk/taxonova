@@ -1,11 +1,11 @@
 """Checkpoints whose network width is not 512 load with their own width (integration, 2026-11-02).
 
-The Greengenes2 and SILVA V4-V5 models (and other networks trained at that width) use a hidden size of 1024; the
+The Greengenes2 V4-V5 model (and other networks trained at that width) use a hidden size of 1024; the
 loader built every network at 512 and failed with size mismatches. The width is read from the state dict.
 
 Known answer: a tiny network of width 64 saved as a unified checkpoint (and as a legacy pair) loads with width 64 and
 reproduces the saved network's outputs. Edge cases: widths 8 and 1024 (embed_dim = hidden // 8 >= 1). Regression:
-when present, the hidden-1024 Greengenes2 and SILVA V4-V5 checkpoints load and give the same logits as a network
+when present, the hidden-1024 Greengenes2 V4-V5 checkpoints load and give the same logits as a network
 built directly at 1024 from the same state dict.
 """
 from pathlib import Path
@@ -69,7 +69,7 @@ def test_default_width_unchanged_for_512(tmp_path):
     assert loaded.hidden_dim == 512
 
 
-@pytest.mark.parametrize("model_id", ["v4v5", "v4v5-silva"])
+@pytest.mark.parametrize("model_id", ["v4v5", "v4v5-26.11"])
 def test_released_width_1024_checkpoints_load(model_id):
     import sys
     sys.path.insert(0, str(Path(__file__).resolve().parent))

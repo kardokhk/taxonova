@@ -19,7 +19,7 @@ from conftest import released_checkpoint  # noqa: E402
 TORCH = tuple(int(x) for x in torch.__version__.split("+")[0].split(".")[:2])
 pytestmark = pytest.mark.skipif(TORCH < (2, 6), reason=f"torch {torch.__version__} < 2.6: weights_only is not "
                                                        f"the default and its allowlist is older")
-RELEASED = ["v4", "v3v4", "v5v7", "16s", "operon", "v4v5", "v4v5-silva", "v4v5-rdp",
+RELEASED = ["v4", "v3v4", "v5v7", "16s", "operon", "v4v5", "v4v5-26.11",
             "v4-26.10", "v3v4-26.10", "v5v7-26.10", "16s-26.10"]
 
 
@@ -57,9 +57,9 @@ def test_operating_point_and_centroids_keep_weights_only_loading(tmp_path):
     assert data["species_centroids"]["labels"] == ["a", "b"]
 
 
-# V4-V5 checkpoints (hidden 1024 for Greengenes2 and SILVA): region metadata and the 26.11 operating point survive a
+# V4-V5 checkpoints (hidden 1024): region metadata and the 26.11 operating point survive a
 # weights-only load.
-@pytest.mark.parametrize("model_id", ["v4v5", "v4v5-silva", "v4v5-rdp"])
+@pytest.mark.parametrize("model_id", ["v4v5", "v4v5-26.11"])
 def test_v4v5_checkpoint_loads_weights_only(model_id):
     data = torch.load(_path(model_id), map_location="cpu", weights_only=True)
     assert "model_state_dict" in data and "region_metadata" in data

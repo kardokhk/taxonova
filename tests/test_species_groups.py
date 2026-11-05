@@ -55,7 +55,7 @@ def ref():
     ("[Escherichia coli|Shigella flexneri|Shigella sonnei]", True),
     ("[Eubacterium]", False),                                       # bracketed single name, not a group
     ("[Eubacterium] rectale", False),
-    ("[Eubacterium] eligens group eligens", False),                 # SILVA named taxon
+    ("[Eubacterium] eligens group eligens", False),                 # bracketed named taxon
     ("[Streptomyces albus|]", False),                               # one member only
     ("[|]", False),
     ("Streptomyces albus", False),
@@ -66,10 +66,9 @@ def test_is_species_group(label, expected):
     assert SG.is_species_group(label) is expected
 
 
-def test_package_is_group_unchanged_for_single_bracket_names():
-    """This module does not rely on labels.is_group, which still reads '[Eubacterium]' as a group (strict xfail
-    in tests/test_labels.py stays open)."""
-    assert L.is_group("[Eubacterium]") is True
+def test_package_is_group_agrees_for_single_bracket_names():
+    """labels.is_group and this module agree that '[Eubacterium]' is a single name, not a group (26.11.1)."""
+    assert L.is_group("[Eubacterium]") is False
     assert SG.is_species_group("[Eubacterium]") is False
 
 
@@ -276,7 +275,7 @@ def _fixture_rows():
 
 def test_regression_fixture_val_rows():
     rows = _fixture_rows()
-    assert len(rows) == 23 and sum(r["reason"] == "group_to_genus" for r in rows) == 12
+    assert len(rows) == 7 and sum(r["reason"] == "group_to_genus" for r in rows) == 4
     for r in rows:
         out, why = SG.collapse(L.parse_lineage(r["final"]))
         assert L.format_lineage(out) == r["expected"], r["query_id"]

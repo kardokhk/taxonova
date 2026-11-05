@@ -14,8 +14,8 @@ Schema (``SCHEMA_VERSION`` 1)::
     primers              {"forward": {"name", "sequence"}, "reverse": {"name", "sequence"}}
     extraction           in-silico PCR settings (max_mismatches, three_prime_exact,
                          min_len, max_len, primers_removed, ambiguity policy)
-    reference            "Greengenes2" | "SILVA" | "RDP"
-    reference_release    e.g. "2024.09", "138.2", "19"
+    reference            name of the training reference, e.g. "Greengenes2"
+    reference_release    e.g. "2024.09"
     taxonomy             free text
     training_set         {"path", "sha256", "records"}
     nn_database          {"path", "sha256", "records"} or None (hybrid species step)

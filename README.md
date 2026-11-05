@@ -35,12 +35,9 @@ to `reads.taxonova.tsv`.
 | `16s` | whole 16S gene (V1-V9) | Greengenes2 |
 | `operon` | rRNA operon (16S-ITS-23S) | GROND |
 | `v4v5` | 16S V4-V5 (515F-Y / 926R) | Greengenes2 |
-| `v4v5-silva` | 16S V4-V5 (515F-Y / 926R) | SILVA |
-| `v4v5-rdp` | 16S V4-V5 (515F-Y / 926R) | RDP |
 
-Species names follow GTDB in the Greengenes2 and operon models, and the
-reference's own taxonomy in the SILVA and RDP models. The V4-V5 models have
-known limitations; see
+The 16S models are trained on Greengenes2, and species names follow GTDB in
+all models. The V4-V5 model has known limitations; see
 [models](https://github.com/kardokhk/taxonova/blob/main/docs/models.md).
 Run `taxonova models` to see which models are downloaded.
 

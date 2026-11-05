@@ -23,9 +23,9 @@ EXPECTED = {
     "16s": ["16s", "16S", "v1v9", "V1-V9", "full", "gg2_v1v9", "taxonova-16S-greengenes2-26.11.pt"],
     "operon": ["operon", "rrn", "RRN", "gtdb_rrn", "gtdb_rrn_mrgroups_model.pt",
                "taxonova-operon-grond-1.0.pt"],
-    "v4v5": ["v4v5", "V4V5", "V4-V5", "gg2_v4v5", "taxonova-V4V5-greengenes2-26.11.pt"],
-    "v4v5-silva": ["v4v5-silva", "silva_v4v5", "taxonova-V4V5-silva-26.11.pt"],
-    "v4v5-rdp": ["v4v5-rdp", "rdp_v4v5", "taxonova-V4V5-rdp-26.11.pt"],
+    "v4v5": ["v4v5", "V4V5", "V4-V5", "gg2_v4v5", "taxonova-V4V5-greengenes2-26.11.1.pt"],
+    # the replaced 26.11 V4-V5 files (released in 26.11.0) stay resolvable, to their own bytes
+    "v4v5-26.11": ["v4v5-26.11", "taxonova-V4V5-greengenes2-26.11.pt"],
     # the 26.10 files (and their 26.10.0 asset names) stay resolvable, to the 26.10 bytes
     "v4-26.10": ["v4-26.10", "gg2_v4_mrgroups_model_26.10.pt", "taxonova-V4-greengenes2-26.10.pt"],
     "v3v4-26.10": ["v3v4-26.10", "gg2_v3v4_mrgroups_model_26.10.pt", "taxonova-V3V4-greengenes2-26.10.pt"],
@@ -42,13 +42,13 @@ def test_every_alias_resolves(model_id, name):
 
 def test_registry_contents():
     specs = list_models()
-    assert [s.id for s in specs] == ["v4", "v3v4", "v5v7", "16s", "operon", "v4v5", "v4v5-silva", "v4v5-rdp"]
+    assert [s.id for s in specs] == ["v4", "v3v4", "v5v7", "16s", "operon", "v4v5"]
     names = set()
     for s in list_models(include_hidden=True):
         assert len(s.sha256) == 64 and len(s.md5) == 32
         assert s.filename.startswith("taxonova-") and s.filename.endswith(".pt")
         assert "mrgroups" not in s.filename
-        tag = "v26.10.1" if s.model_version in ("26.10", "1.0") else "v26.11.0"
+        tag = {"26.10": "v26.10.1", "1.0": "v26.10.1", "26.11": "v26.11.0", "26.11.1": "v26.11.1"}[s.model_version]
         assert s.urls[0] == f"https://github.com/kardokhk/taxonova/releases/download/{tag}/{s.filename}"
         assert s.urls[1] == f"https://huggingface.co/claessonlab/taxonova-models/resolve/main/{s.filename}"
         for n in (s.id, s.filename) + s.aliases:
@@ -61,13 +61,20 @@ def test_26_11_registry():
     hidden = {s.id: s for s in list_models(include_hidden=True)}
     assert [i for i, s in hidden.items() if s.status == "preview"] == []
     assert [i for i, s in hidden.items() if s.status == "stable"] == [
-        "v4", "v3v4", "v5v7", "16s", "operon", "v4v5", "v4v5-silva", "v4v5-rdp"]
+        "v4", "v3v4", "v5v7", "16s", "operon", "v4v5"]
     assert [i for i, s in hidden.items() if s.status == "deprecated"] == [
-        "v4-26.10", "v3v4-26.10", "v5v7-26.10", "16s-26.10"]
-    for i in ("v4", "v3v4", "v5v7", "16s", "v4v5", "v4v5-silva", "v4v5-rdp"):
+        "v4v5-26.11", "v4-26.10", "v3v4-26.10", "v5v7-26.10", "16s-26.10"]
+    for i in ("v4", "v3v4", "v5v7", "16s"):
         assert hidden[i].model_version == "26.11" and hidden[i].filename.endswith("-26.11.pt")
-    assert hidden["v4v5-silva"].reference == "SILVA" and hidden["v4v5-rdp"].reference == "RDP"
-    assert hidden["v4v5"].reference == "Greengenes2"
+    # 26.11.1: a new Greengenes2 V4-V5 file (species gate, label rules); its 26.11 file keeps its own entry
+    assert hidden["v4v5"].model_version == "26.11.1" and hidden["v4v5"].filename.endswith("-26.11.1.pt")
+    old = hidden["v4v5-26.11"]
+    assert old.model_version == "26.11" and old.filename.endswith("-26.11.pt")
+    assert old.sha256 != hidden["v4v5"].sha256 and old.legacy_filenames == () and hidden["v4v5"].legacy_filenames == ()
+    assert (old.region, old.reference, old.reference_version) == (
+        hidden["v4v5"].region, hidden["v4v5"].reference, hidden["v4v5"].reference_version)
+    # 26.11.1 has Greengenes2 16S models only (and the GROND operon model)
+    assert {s.reference for s in hidden.values()} == {"Greengenes2", "GROND"}
     # the 26.11 Greengenes2 files are new bytes: no earlier file name is an alias of them
     for i in ("v4", "v3v4", "v5v7", "16s"):
         assert hidden[i].legacy_filenames == ()
@@ -85,7 +92,7 @@ def test_checksums_unchanged_from_26_10_0():
 
 def test_unknown_model_lists_valid_ids():
     with pytest.raises(KeyError) as err:
-        get_model("silva")
+        get_model("nosuchmodel")
     text = str(err.value)
     assert isinstance(err.value, UnknownModelError)
     assert "v4, v3v4, v5v7, 16s, operon" in text and not text.startswith("'")
@@ -98,14 +105,14 @@ def test_superseded_v1_names_are_not_aliases():
 
 
 def test_preview_models_hidden_by_default(monkeypatch):
-    preview = ModelSpec(id="v4-silva", name="16S V4, SILVA", region="16S V4", reference="SILVA",
-                        reference_version="138.2", taxonomy="SILVA", model_version="26.11",
-                        filename="taxonova-V4-silva-26.11.pt", urls=("file:///nonexistent",),
+    preview = ModelSpec(id="v6v8", name="16S V6-V8, Greengenes2", region="16S V6-V8", reference="Greengenes2",
+                        reference_version="2024.09", taxonomy="GTDB, through Greengenes2", model_version="26.11",
+                        filename="taxonova-V6V8-greengenes2-26.11.pt", urls=("file:///nonexistent",),
                         sha256="0" * 64, status="preview")
     monkeypatch.setattr(models, "_REGISTRY", models._REGISTRY + [preview])
-    assert "v4-silva" not in [s.id for s in list_models()]
-    assert "v4-silva" in [s.id for s in list_models(include_hidden=True)]
-    assert get_model("V4-SILVA") is preview
+    assert "v6v8" not in [s.id for s in list_models()]
+    assert "v6v8" in [s.id for s in list_models(include_hidden=True)]
+    assert get_model("V6V8") is preview
 
 
 def test_models_dir_env(monkeypatch, tmp_path):
@@ -261,7 +268,7 @@ def test_missing_file_and_unknown_name(tmp_path):
     with pytest.raises(FileNotFoundError):
         ensure_model(str(tmp_path / "nope.pt"), models_dir=tmp_path)
     with pytest.raises(KeyError):
-        ensure_model("silva", models_dir=tmp_path)
+        ensure_model("nosuchmodel", models_dir=tmp_path)
 
 
 def test_superseded_warning_needs_name_and_md5(tmp_path, monkeypatch):
@@ -297,9 +304,9 @@ def test_model_downloader_shim(tmp_path, monkeypatch, source):
     assert not dl.is_model_downloaded("fake")
     path = dl.download_model("fake", show_progress=False)
     assert dl.verify_model("fake") and dl.get_model_path("fake") == path
-    assert dl.download_multiple_models(["fake", "silva"]) == {"fake": path, "silva": None}
+    assert dl.download_multiple_models(["fake", "nosuchmodel"]) == {"fake": path, "nosuchmodel": None}
     with pytest.raises(ValueError):
-        dl.get_model_path("silva")
+        dl.get_model_path("nosuchmodel")
     # an old key names the current model: a copy cached by 26.10.0 is the 26.10 checkpoint, not the 26.11 one
     old = tmp_path / "m" / "gg2_v4_mrgroups_model_26.10.pt"
     old.write_bytes(b"x")

@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 def _hidden_dim_of(state_dict, default: int = 512) -> int:
     """Network width of a saved HierarchicalClassifier: the output size of the first Linear layer of
     ``feature_processor`` (``feature_processor.1.weight`` is hidden x input). Released 26.10 models are 512; the
-    Greengenes2 and SILVA V4-V5 networks, and other networks trained at that width, are 1024."""
+    Greengenes2 V4-V5 network, and other networks trained at that width, are 1024."""
     w = state_dict.get("feature_processor.1.weight") if hasattr(state_dict, "get") else None
     if w is None or getattr(w, "ndim", 0) != 2:
         return default

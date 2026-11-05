@@ -10,9 +10,8 @@ different species. A checkpoint can ask for these to be reported at the genus in
   outside the genus call, but a model run without it can still emit one. Then the call is cut to the lowest rank at
   which every member's reference path shares the called label; a member whose path is unknown confirms no rank, so
   the read gets no call.
-* **Bracketed single names** (``[Eubacterium]``, ``[Eubacterium] rectale``) are not groups here: a group needs a
-  ``|``. ``taxonova.labels.is_group`` still reads ``[Eubacterium]`` as a group (open, strict xfail in
-  tests/test_labels.py); this module does not use it.
+* **Bracketed single names** (``[Eubacterium]``, ``[Eubacterium] rectale``) are not groups: a group needs a ``|``
+  and two or more members, as in ``taxonova.labels.is_group`` (since 26.11.1).
 
 The mode is stored in the checkpoint's ``operating_point`` entry under ``species_groups`` (``"keep"`` or
 ``"genus"``). Absent means ``"keep"``, so checkpoints without the key behave exactly as before. Like the species

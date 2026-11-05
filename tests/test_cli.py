@@ -115,8 +115,8 @@ def test_classify_errors_are_short(tmp_path, repo_env):
     r = _run(["classify", "missing.fasta"], repo_env, tmp_path)
     assert r.returncode != 0 and "input file not found" in r.stderr and "Traceback" not in r.stderr
     (tmp_path / "q.fasta").write_text(">a\nACGT\n")
-    r = _run(["classify", "q.fasta", "-m", "silva"], repo_env, tmp_path)
-    assert r.returncode != 0 and "Unknown model 'silva'" in r.stderr and "Traceback" not in r.stderr
+    r = _run(["classify", "q.fasta", "-m", "nosuchmodel"], repo_env, tmp_path)
+    assert r.returncode != 0 and "Unknown model 'nosuchmodel'" in r.stderr and "Traceback" not in r.stderr
 
 
 def test_failed_start_keeps_earlier_log(tmp_path, repo_env):
@@ -125,7 +125,7 @@ def test_failed_start_keeps_earlier_log(tmp_path, repo_env):
     (tmp_path / "q.fasta").write_text(">a\nACGT\n")
     log = tmp_path / "q.taxonova.log"
     log.write_text("log of an earlier successful run\n")
-    r = _run(["classify", "q.fasta", "-m", "v4-silva"], repo_env, tmp_path)
+    r = _run(["classify", "q.fasta", "-m", "nosuchmodel"], repo_env, tmp_path)
     assert r.returncode != 0 and "Unknown model" in r.stderr
     assert log.read_text() == "log of an earlier successful run\n"
     r = _run(["classify", "missing.fasta"], repo_env, tmp_path)

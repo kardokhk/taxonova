@@ -44,11 +44,15 @@ def is_nocall(label: Optional[str]) -> bool:
 
 
 def is_group(label: str) -> bool:
-    return len(label) > 2 and label[0] == "[" and label[-1] == "]"
+    """True for a group label ``[a|b|...]``: in brackets, with two or more non-empty members separated by ``|``.
+    A bracketed single name such as the genus ``[Eubacterium]`` is a name, not a group."""
+    if not label or len(label) <= 2 or label[0] != "[" or label[-1] != "]" or "|" not in label:
+        return False
+    return sum(1 for m in label[1:-1].split("|") if m.strip()) >= 2
 
 
 def members(label: str) -> List[str]:
-    """Members of a group label ``[a|b]``, or ``[label]``; ``[]`` for no call."""
+    """Members of a group label ``[a|b]``, or ``[label]`` for any other label; ``[]`` for no call."""
     if is_nocall(label):
         return []
     if is_group(label):
@@ -160,8 +164,8 @@ class RefTaxonomy:
                     if pre:
                         self.member_genera[m].update(pre)
                     elif len(gm) == 1 and genus_token_agrees(m, gm[0]):
-                        # a record whose genus disagrees with the species name (SILVA source-organism names,
-                        # for example) does not define the genus of that species
+                        # a record whose genus disagrees with the species name (a source-organism name, for
+                        # example) does not define the genus of that species
                         self.member_genera[m].update(gm)
         # member sets of the species taxa under each genus label, for subset matching
         self._by_set: Dict[Tuple[str, frozenset], str] = {}
@@ -241,12 +245,12 @@ _TOKEN_SPLIT = re.compile(r"[-_ \[\]]+")
 
 
 def genus_token_agrees(species: str, genus: str, synonyms: Optional[Mapping[str, Iterable[str]]] = None) -> bool:
-    """The genus part of a species name agrees with the genus label (SILVA records can carry a source-organism
-    species name from another genus).
+    """The genus part of a species name agrees with the genus label (a reference record can carry a
+    source-organism species name from another genus).
 
     True when the species name starts with a genus member followed by a space (Greengenes2 suffixes included, as
     written), or when its first word (brackets and 'Candidatus' removed) is one of the words of a genus member
-    split at '-', '_', spaces and brackets (SILVA composite genera such as 'Escherichia-Shigella' or
+    split at '-', '_', spaces and brackets (composite genera such as 'Escherichia-Shigella' or
     '[Ruminococcus] torques group'). 'Salmonella enterica' under 'Escherichia-Shigella' disagrees.
 
     ``synonyms`` maps a genus label (or group member) to further genus names its species may carry, for

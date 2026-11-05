@@ -1,7 +1,8 @@
 """Per-checkpoint label-rule options (integration, 2026-11-02).
 
-The species rule's genus-token check is off for Greengenes2 (renamed species stay under the old genus field
-in its training lineages) and on for SILVA and RDP. A checkpoint carries this as a ``label_rules`` entry,
+The species rule's genus-token check is a per-checkpoint setting: Greengenes2 keeps some renamed species under the
+old genus field in its training lineages, so a checkpoint either leaves the check off or pairs it with a table of
+renamed genera. A checkpoint carries this as a ``label_rules`` entry,
 written by ``model_saver.set_operating_point(..., label_rules=...)`` and read at load; ``--genus-token-check``
 overrides it on the command line.
 """

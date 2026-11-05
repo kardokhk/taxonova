@@ -2,8 +2,8 @@ cff-version: 1.2.0
 message: "If you use Taxonova, please cite the paper below."
 title: "Taxonova"
 type: software
-version: "26.11.0"
-date-released: "2026-11-04"
+version: "26.11.1"
+date-released: "2026-11-05"
 license: MIT
 repository-code: "https://github.com/kardokhk/taxonova"
 url: "https://github.com/kardokhk/taxonova"
