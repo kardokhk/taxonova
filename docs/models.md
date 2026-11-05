@@ -1,7 +1,7 @@
 # Models
 
 Pick the model that matches how your sequences were made. Each one is
-downloaded the first time you use it (200 to 570 MB) and kept for later runs.
+downloaded the first time you use it (230 to 570 MB) and kept for later runs.
 
 | id | amplicon | reference | taxonomy | model version | status |
 | --- | --- | --- | --- | --- | --- |
@@ -11,16 +11,12 @@ downloaded the first time you use it (200 to 570 MB) and kept for later runs.
 | `16s` | whole 16S gene, V1-V9 | Greengenes2 2024.09 | GTDB, through Greengenes2 | 26.11 | stable |
 | `operon` | rRNA operon, 16S-ITS-23S | GROND (GTDB R207 build) | GTDB R207 | 1.0 | stable |
 | `v4v5` | 16S V4-V5 (515F-Y / 926R) | Greengenes2 2024.09 | GTDB, through Greengenes2 | 26.11.1 | stable |
-| `v4v5-silva` | 16S V4-V5 (515F-Y / 926R) | SILVA 138.2 | SILVA 138.2 | 26.11.1 | stable |
-| `v4v5-rdp` | 16S V4-V5 (515F-Y / 926R) | RDP 19 | RDP 19 | 26.11 | stable |
 
-Read the
+The 16S models are trained on Greengenes2 only. Read the
 [known limitations](https://github.com/kardokhk/taxonova/blob/main/CHANGELOG.md#known-limitations)
-of the V4-V5 models before you use them: their species handling was chosen
-after the benchmark results had been read, and the species gate of the
-Greengenes2 and SILVA V4-V5 models (added in 26.11.1) has been checked on
-validation data only. The RDP V4-V5 model has no species gate. SILVA and RDP models for
-the other regions are in preparation.
+of the V4-V5 model before you use it: its species handling was chosen after
+the benchmark results had been read, and its species gate (added in 26.11.1)
+has been checked on validation data only.
 
 ```bash
 taxonova models                      # list the models and which are downloaded
@@ -50,7 +46,7 @@ without internet access), download the file from either address, put it in the
 models directory, and check it with `sha256sum`:
 
 - `https://github.com/kardokhk/taxonova/releases/download/<tag>/<file>`, where
-  `<tag>` is `v26.11.1` for the 26.11.1 files, `v26.11.0` for the 26.11 files
+  `<tag>` is `v26.11.1` for the 26.11.1 file, `v26.11.0` for the 26.11 files
   and `v26.10.1` for the 26.10 files and the operon model
 - `https://huggingface.co/claessonlab/taxonova-models/resolve/main/<file>`
 
@@ -66,10 +62,7 @@ You can also pass the path to any `.pt` file with `--model`.
 | `16s` | `taxonova-16S-greengenes2-26.11.pt` | `90cac67a43a95350c1587a72cd017249442ef6214d8bc32a7a7aaa08d8b36cb1` | `757a638b2ed022bf4743d6343c44c963` |
 | `operon` | `taxonova-operon-grond-1.0.pt` | `9ac36fea212edd569198027c9e6fb182199bb316acacad188d758929c9408289` | `6f5d4ef039888a33ad765ef41725b624` |
 | `v4v5` | `taxonova-V4V5-greengenes2-26.11.1.pt` | `00204a6c35deca165d055db0638742eab503d01dc044d30fc3a0fa4aa54358fb` | `383a2e8a7b81a26b402880abb8b48129` |
-| `v4v5-silva` | `taxonova-V4V5-silva-26.11.1.pt` | `121e0f230f79556bfeedee1e84f58385348d4a0bc78599c5f809b4e30f1aca60` | `53a22a1917a1062971ad380b366dd100` |
-| `v4v5-rdp` | `taxonova-V4V5-rdp-26.11.pt` | `1b62cbf91817803d6410882f3e231b7d9442957074e89bbc072c87b46a5aef8b` | `b786769f384abeeb25620f950ab6e34b` |
 | `v4v5-26.11` | `taxonova-V4V5-greengenes2-26.11.pt` | `68bfdeada873e325299547ade195025a39370f122674b13a5ae14fa273058ebc` | `d67b3b3115fc089f1993540dc5283bc2` |
-| `v4v5-silva-26.11` | `taxonova-V4V5-silva-26.11.pt` | `c358924f3c9fc2911e6415949fa8771ab45ae67d1fb6df017fe002d3689cac4e` | `eb8ea861d31852ba9a24ce1140002855` |
 | `v4-26.10` | `taxonova-V4-greengenes2-26.10.pt` | `c52aaafe2b9b79092171c11f67de469ac9d64f3e8fadac74e63e756792c0a3a3` | `bccf86c9086b68defe8bc8a2a3dff2b6` |
 | `v3v4-26.10` | `taxonova-V3V4-greengenes2-26.10.pt` | `005677c10327b981847b9ec5c5c529828716d0d628706fa65e2f77222309e0aa` | `a5e584504627a8055afe25fd56893e37` |
 | `v5v7-26.10` | `taxonova-V5V7-greengenes2-26.10.pt` | `77f7a75bf38c4923422dadf88e971764a3ccf604b23c1c96b46c0b325a670385` | `6de1add678c05fd0c5c3679ea4094d1d` |
@@ -78,10 +71,9 @@ You can also pass the path to any `.pt` file with `--model`.
 The same values are in `taxonova/models.py`, which the downloader reads. The
 26.11 Greengenes2 files hold the same network weights as the 26.10 files; only
 the operating point, the species centroid table and the label-rule settings
-were added. Likewise, the 26.11.1 Greengenes2 and SILVA V4-V5 files hold the
-networks, cut-offs and species-group setting of their 26.11 files; the
-species gate, its centroid table and (for Greengenes2) the label-rule
-settings were added. The RDP V4-V5 file is the 26.11 file of 26.11.0.
+were added. Likewise, the 26.11.1 V4-V5 file holds the network, cut-offs and
+species-group setting of its 26.11 file; the species gate, its centroid table
+and the label-rule settings were added.
 
 ## Operating points
 
@@ -98,26 +90,17 @@ applies. `taxonova.classify()` in Python uses the same rule.
 | `v5v7` | 0.61 | 0.51 | Mahalanobis, at most 1706.5 | kept | genus-token check on, renamed-genus table |
 | `16s` | 0.53 | 0.47 | Mahalanobis, at most 3757.0 | kept | genus-token check on, renamed-genus table |
 | `v4v5` | 0.52 | 0.50 | Mahalanobis, at most 3031.7 | reported at the genus | genus-token check on, renamed-genus table |
-| `v4v5-silva` | 0.45 | 0.69 | Mahalanobis, at most 3214.5 | reported at the genus | genus-token check on |
-| `v4v5-rdp` | 0.69 | 0.59 | none (see below) | reported at the genus | genus-token check on |
 
 - Genus and species cut-offs maximise F1 on validation data of the same
-  reference and region (the median over three training seeds of the recipe).
-  For the V4-V5 models the species cut-off was refitted with group labels
+  region (the median over three training seeds of the recipe).
+  For the V4-V5 model the species cut-off was refitted with group labels
   reported at the genus.
 - The species gate withholds the species call when the squared Mahalanobis
   distance of the read's species feature to the training centroid of the
   predicted species is above the listed value. It only removes species calls.
   Its value is the strictest that keeps validation species F1 within 0.0075
-  of the ungated value (median over three training seeds). The V4-V5 gates
-  were added in 26.11.1; the files of 26.11.0 (`v4v5-26.11`,
-  `v4v5-silva-26.11`) have none.
-- `v4v5-rdp` has no species gate. A model whose gate costs more than 0.01
-  species F1 on validation reads ships without one. The RDP gate met that
-  limit on the cross-fitted fitting route only at a budget of 0.005 (mean
-  cost 0.0086 over three training seeds), and with `taxonova classify` on the
-  validation reads it lowered species F1 by 0.016 (95% CI 0.002 to 0.034).
-  Most RDP species have one training record.
+  of the ungated value (median over three training seeds). The V4-V5 gate
+  was added in 26.11.1; the 26.11.0 file (`v4v5-26.11`) has none.
 - "Reported at the genus": a species group label (`[a|b|...]`) becomes
   `Unclassified` at species, and the genus call stands.
 
@@ -128,11 +111,10 @@ use the architecture and training recipe described in the
 [paper](https://doi.org/10.1371/journal.pcbi.1014912). These four 16S models are
 trained on Greengenes2 release 2024.09, which takes its species names from GTDB.
 The operon model is trained on GROND, built for GTDB release 207. The V4-V5
-models are trained with the same architecture on in-silico V4-V5 amplicons of
-each reference (primers 515F-Y and 926R); the Greengenes2 and SILVA V4-V5
-networks are twice as wide (hidden size 1024), and the RDP network was started
-from a SILVA V4-V5 network. The primers, extraction settings and training-set
-checksums are stored in each V4-V5 checkpoint (`region_metadata`). The history
+model is trained with the same architecture on in-silico V4-V5 amplicons of
+Greengenes2 2024.09 (primers 515F-Y and 926R), with a network twice as wide
+(hidden size 1024). The primers, extraction settings and training-set
+checksums are stored in the V4-V5 checkpoint (`region_metadata`). The history
 of the 26.10 checkpoints, and how output changed when they replaced those of
 v1.0.0, is in the
 [changelog](https://github.com/kardokhk/taxonova/blob/main/CHANGELOG.md#26100---2026-10-29).
@@ -154,7 +136,6 @@ finds a copy you already downloaded, so it is not fetched again.
 | `operon` | `gtdb_rrn`, `rrn`, `RRN`, `gtdb_rrn_mrgroups_model.pt` |
 | `v4v5` | `gg2_v4v5`, `V4-V5` |
 | `v4v5-26.11` | `taxonova-V4V5-greengenes2-26.11.pt` |
-| `v4v5-silva-26.11` | `taxonova-V4V5-silva-26.11.pt` |
 | `v4-26.10` | `taxonova-V4-greengenes2-26.10.pt`, `gg2_v4_mrgroups_model_26.10.pt` |
 | `v3v4-26.10` | `taxonova-V3V4-greengenes2-26.10.pt`, `gg2_v3v4_mrgroups_model_26.10.pt` |
 | `v5v7-26.10` | `taxonova-V5V7-greengenes2-26.10.pt`, `gg2_v5v7_mrgroups_model_26.10.pt` |
@@ -163,11 +144,9 @@ finds a copy you already downloaded, so it is not fetched again.
 Since 26.11.0 the short ids and the old keys name the 26.11 files. The 26.10
 file names resolve to the 26.10 checkpoints (status `deprecated`): a run
 that names one of them uses the 0.5 / 0.7 / 0.8 default and no species gate.
-Since 26.11.1 `v4v5` and `v4v5-silva` name the 26.11.1 files, and their 26.11
-file names resolve to the 26.11 checkpoints (status `deprecated`): a run that
-names one of them uses the 26.11.0 cut-offs and no species gate. `v4v5-rdp`
-and `taxonova-V4V5-rdp-26.11.pt` both name the 26.11 RDP file, which is still
-the current one.
+Since 26.11.1 `v4v5` names the 26.11.1 file, and the 26.11 file name resolves
+to the 26.11 checkpoint (`v4v5-26.11`, status `deprecated`): a run that names
+it uses the 26.11.0 cut-offs and no species gate.
 
 Names are matched without regard to case. The v26.10.0 and v1.0.0 release
 assets stay where they are, so scripts that download them by URL keep working.
@@ -182,17 +161,15 @@ so that earlier analyses can be traced.
 
 ## Versioning
 
-- A model id names what a model is for: `<region>[-<reference>]`, for example
-  `v4` or, for a future SILVA model, `v4-silva`. The reference is left out for
-  the default reference of a region (Greengenes2 for the 16S regions).
+- A model id names the region a model is for, for example `v4` or `v4v5`. A
+  deprecated checkpoint adds its model version (`v4v5-26.11`).
 - A file name is `taxonova-<REGION>-<reference>-<model version>.pt`. The model
   version is the year and month the checkpoint was made (`26.10`). A second
   checkpoint of the same model in the same month adds a counter (`26.11.1`,
-  the Greengenes2 and SILVA V4-V5 files of November 2026 with a species
-  gate). The model version is
+  the V4-V5 file of November 2026 with a species gate). The model version is
   not the package version, even where the two look alike. A file never changes
   once released: a new checkpoint gets a new file name.
-- An id points to the recommended checkpoint for that region and reference.
+- An id points to the recommended checkpoint for that region.
   When a better checkpoint replaces it, the changelog says so, says how output
   changes, and the earlier file stays downloadable for reproducibility.
 - Status: `stable` models are listed by default. `preview` models can be used
@@ -203,7 +180,7 @@ so that earlier analyses can be traced.
 
 ## Adding a model
 
-For maintainers. A new model (for example `v4-silva`) is added in one place,
+For maintainers. A new model (for example `v1v3`) is added in one place,
 `taxonova/models.py`, and released with the package.
 
 1. Train and check the checkpoint (see [training.md](training.md)). Record the
@@ -214,7 +191,7 @@ For maintainers. A new model (for example `v4-silva`) is added in one place,
 3. Add a `ModelSpec` to `_REGISTRY` in `taxonova/models.py` with
    `status="preview"`, the file name, `urls=_urls(filename, tag="vYY.MM.MICRO")`
    with the tag of the release that will carry the file, the checksums,
-   the size in MB, the reference and its version, and a one-line description.
+   the size in MB, the reference (Greengenes2) and its version, and a one-line description.
 4. Upload the file to the GitHub release named by that tag (the release of
    the package version that adds the model) and to the Hugging Face mirror `claessonlab/taxonova-models` (see
    [releasing.md](releasing.md)), and add it to the mirror's model card.

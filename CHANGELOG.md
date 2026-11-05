@@ -10,45 +10,40 @@ for further releases in the same month. Model files carry their own version
 
 ## [26.11.1] - 2026-11-04
 
-**Greengenes2 and SILVA V4-V5 models: new files with a species gate.**
-`v4v5` and `v4v5-silva` now download new files
-(`taxonova-V4V5-<reference>-26.11.1.pt`) that hold the same networks,
-cut-offs and group-label handling as 26.11.0, together with a species
-abstention gate. Some species calls are now withheld, so results differ from
-26.11.0 at the species rank only; every other rank is unchanged. The 26.11
-files remain available as `v4v5-26.11` and `v4v5-silva-26.11`. The RDP V4-V5
-model (`v4v5-rdp`) has no species gate and keeps its 26.11 file (see
-Changed). The four Greengenes2 models for V4, V3-V4, V5-V7 and the whole gene
-and the operon model are unchanged.
+**Greengenes2 only: the SILVA and RDP models are withdrawn.** Taxonova now
+supports the Greengenes2 reference database only (and the GROND operon
+model). The SILVA and RDP V4-V5 models of 26.11.0 (`v4v5-silva`,
+`v4v5-rdp`) are no longer in the model registry: `taxonova models` does not
+list them, `taxonova models download all` does not fetch them, and their ids
+and file names are unknown model names in 26.11.1. If you use them, keep
+taxonova 26.11.0 (`pip install taxonova==26.11.0`); their files stay on the
+v26.11.0 GitHub release and the Hugging Face mirror, so 26.11.0 installs keep
+downloading them.
+
+**Greengenes2 V4-V5 model: new file with a species gate.** `v4v5` now
+downloads a new file (`taxonova-V4V5-greengenes2-26.11.1.pt`) that holds the
+same network, cut-offs and group-label handling as 26.11.0, together with a
+species abstention gate. Some species calls are now withheld, so results
+differ from 26.11.0 at the species rank only; every other rank is unchanged.
+The 26.11 file remains available as `v4v5-26.11`. The four Greengenes2 models
+for V4, V3-V4, V5-V7 and the whole gene and the operon model are unchanged.
 
 ### Added
 
-- **Species gate for the Greengenes2 and SILVA V4-V5 models.** As in the
-  four Greengenes2 models, the species call is withheld when the read's
-  species feature is far from the training records of the predicted species
-  (Mahalanobis distance to the species centroid). The cut of each model is
-  listed in [docs/models.md](docs/models.md#operating-points). It was fitted
-  on validation reads as the strictest cut that keeps species F1 within
-  0.0075 of the ungated value, and is the median over three training seeds.
-  On validation reads, cross-fitted, the gate changed species F1 of the
-  released network by -0.008 (95% CI -0.014 to -0.002) for Greengenes2 and
-  -0.006 (-0.012 to -0.0003) for SILVA. On synthetic chimeras of two genera,
-  the share of reads with a species call fell from 0.38 to 0.11
-  (Greengenes2) and 0.21 to 0.10 (SILVA); on reads with 3% random
-  substitutions, from 0.68 to 0.40 and 0.38 to 0.26.
+- **Species gate for the Greengenes2 V4-V5 model.** As in the four
+  Greengenes2 models, the species call is withheld when the read's species
+  feature is far from the training records of the predicted species
+  (Mahalanobis distance to the species centroid). The cut is listed in
+  [docs/models.md](docs/models.md#operating-points). It was fitted on
+  validation reads as the strictest cut that keeps species F1 within 0.0075
+  of the ungated value, and is the median over three training seeds. On
+  validation reads, cross-fitted, the gate changed species F1 of the released
+  network by -0.008 (95% CI -0.014 to -0.002). On synthetic chimeras of two
+  genera, the share of reads with a species call fell from 0.38 to 0.11; on
+  reads with 3% random substitutions, from 0.68 to 0.40.
 
 ### Changed
 
-- **RDP V4-V5 model: no species gate.** `v4v5-rdp` ships without a species
-  gate and still downloads its 26.11 file (`taxonova-V4V5-rdp-26.11.pt`, the
-  same bytes as in 26.11.0), so its output is unchanged. A model whose gate
-  costs more than 0.01 species F1 on validation reads ships without one. For
-  RDP, the gate met that limit on the cross-fitted fitting route only at the
-  stricter budget of 0.005 (mean cost over three training seeds 0.0086;
-  0.0107 at 0.0075), but with `taxonova classify` on the validation reads it
-  lowered species F1 by 0.016 (95% CI 0.002 to 0.034; these are the reads it
-  was fitted on). Most RDP species have one training record, so the cut lay
-  above every training distance.
 - **V4-V5 Greengenes2 model, label rules.** `v4v5` now has the genus-token
   check on, with the table of renamed genera, like the other Greengenes2
   models. This only matters with `--label-rules`; `--genus-token-check off`
@@ -56,15 +51,23 @@ and the operon model are unchanged.
   species F1 changed by -0.0005 (95% CI -0.0016 to 0.0004); 5 of 2,909 reads
   changed.
 
+### Removed
+
+- **SILVA and RDP models.** `v4v5-silva` (SILVA 138.2) and `v4v5-rdp`
+  (RDP 19), their aliases `silva_v4v5` and `rdp_v4v5`, and their file names
+  are removed from the registry, the documentation and the tests. No SILVA or
+  RDP model file is published for 26.11.1. Analyses made with them can be
+  rerun with taxonova 26.11.0, which still downloads their 26.11 files.
+
 ### Fixed
 
-- `taxonova.labels.is_group` read a bracketed single name such as the SILVA
-  genus `[Eubacterium]` as a one-member group, so that it shared its member
-  with the plain genus `Eubacterium`. A group label now needs two or more
-  members separated by `|`. This affects `--label-rules` and the
-  `taxonova.labels` functions, which the V4-V5 models also use when they
-  report group labels at the genus. No group label of the V4-V5 files
-  contains a bracketed single name, so default output is unchanged.
+- `taxonova.labels.is_group` read a bracketed single name such as the genus
+  `[Eubacterium]` as a one-member group, so that it shared its member with
+  the plain genus `Eubacterium`. A group label now needs two or more members
+  separated by `|`. This affects `--label-rules` and the `taxonova.labels`
+  functions, which the V4-V5 model also uses when it reports group labels at
+  the genus. No group label of the V4-V5 file contains a bracketed single
+  name, so default output is unchanged.
 
 ### Evaluation of the 26.11.0 files (descriptive)
 
@@ -90,21 +93,26 @@ the 26.10 whole-gene model; +0.538 (0.453 to 0.620).
 
 ### Known limitations
 
+- **V4-V5 model, species.** Reporting group labels at the genus was decided
+  after the benchmark results were read. In the one pre-specified test, on
+  in-silico V4-V5 amplicons from genomes new in GTDB R226, it changed species
+  F1 by +0.048 (95% CI 0.027 to 0.069) for Greengenes2; the overall criterion
+  of that test was not met (see 26.11.0). The test scored the evaluation
+  pipeline, which adds a nearest-neighbour species step to the network;
+  `taxonova classify` uses the network alone.
 - The V4-V5 species gate was fitted after the benchmark results had been
   read, on validation data only, and has not been tested on unread data.
-- **RDP V4-V5 model, species gate.** `v4v5-rdp` has no species abstention
-  gate, so its species call is not withheld for reads far from the predicted
-  species (see Changed).
-- The limitations of the V4-V5 models listed for 26.11.0 (species-group
-  confirmation not met for SILVA; no SILVA models for the other regions)
-  still apply. The item on the Greengenes2 label rules is resolved, and the
-  item on the species gate is resolved for Greengenes2 and SILVA.
+- The 26.11.0 items on the V4-V5 species gate and the Greengenes2 V4-V5
+  label rules are resolved, and one-member bracketed names are no longer
+  read as groups (see Fixed).
 
 ### Compatibility
 
-- New downloads: 565 MB (`v4v5`) and 509 MB (`v4v5-silva`), once;
-  `v4v5-rdp` needs no new download. The new files load with `torch.load(...,
-  weights_only=True)` under torch 2.6 and later, as the 26.11 files do.
+- New download: 565 MB (`v4v5`), once. The new file loads with
+  `torch.load(..., weights_only=True)` under torch 2.6 and later, as the
+  26.11 files do.
+- Scripts that name `v4v5-silva`, `v4v5-rdp` or their files stop with an
+  unknown-model error in 26.11.1; use taxonova 26.11.0 for them.
 
 ## [26.11.0] - 2026-11-04
 
