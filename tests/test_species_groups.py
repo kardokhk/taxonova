@@ -55,7 +55,7 @@ def ref():
     ("[Escherichia coli|Shigella flexneri|Shigella sonnei]", True),
     ("[Eubacterium]", False),                                       # bracketed single name, not a group
     ("[Eubacterium] rectale", False),
-    ("[Eubacterium] eligens group eligens", False),                 # SILVA named taxon
+    ("[Eubacterium] eligens group eligens", False),                 # bracketed named taxon
     ("[Streptomyces albus|]", False),                               # one member only
     ("[|]", False),
     ("Streptomyces albus", False),
@@ -275,7 +275,7 @@ def _fixture_rows():
 
 def test_regression_fixture_val_rows():
     rows = _fixture_rows()
-    assert len(rows) == 23 and sum(r["reason"] == "group_to_genus" for r in rows) == 12
+    assert len(rows) == 7 and sum(r["reason"] == "group_to_genus" for r in rows) == 4
     for r in rows:
         out, why = SG.collapse(L.parse_lineage(r["final"]))
         assert L.format_lineage(out) == r["expected"], r["query_id"]

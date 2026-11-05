@@ -108,7 +108,7 @@ def test_single_species_is_kept_and_no_genus_abstains(ref):
 
 
 def test_genera_of_uses_reference_not_first_word(ref):
-    # SILVA-style: species names do not start with the genus label
+    # composite genus label: species names do not start with the genus label
     assert ref.genera_of("Escherichia coli") == {"Escherichia-Shigella"}
     assert ref.genera_of(STAPH_GROUP) == {"Allobacillus", "Megasphaera_A_38685", "Staphylococcus"}
     # unknown member: first word
@@ -195,7 +195,7 @@ def test_placeholder_single_species_takes_named_alternative_or_abstains(ref):
     assert L.resolve_species("uncultured bacterium", "Escherichia-Shigella", ref) == ("", "placeholder_abstain")
 
 
-def test_placeholder_uses_reference_genus_for_silva_style_names():
+def test_placeholder_uses_reference_genus_for_bracketed_genus_names():
     up = ["Bacteria", "Bacillota", "Clostridia", "Lachnospirales", "Lachnospiraceae"]
     ref = L.RefTaxonomy([up + ["[Eubacterium] cellulosolvens group", "[Eubacterium] cellulosolvens group cellulosolvens"],
                          up + ["Candidatus Stoquefichus", "Candidatus Stoquefichus massiliensis"]])
@@ -335,7 +335,7 @@ def p08_ref():
         fam_b + ["Incertae Sedis", ""],
         ENT + ["Escherichia-Shigella", "uncultured bacterium"],
         ENT + ["Escherichia-Shigella", "Escherichia coli"],
-        ENT + ["Escherichia-Shigella", "Salmonella enterica"],     # SILVA source-organism name (P10)
+        ENT + ["Escherichia-Shigella", "Salmonella enterica"],     # source-organism name (P10)
         ENT + ["Salmonella", "Salmonella enterica"],
         # one class name under two phyla (mixed GTDB releases)
         ["Bacteria", "Bacillota_A", "Clostridia", "Lachnospirales", "Lachnospiraceae", "Blautia", "Blautia obeum"],
@@ -445,7 +445,7 @@ def test_apply_to_predictions_passes_genus_token_switch():
     assert out["predictions"]["species"] == ["Segatella copri"] and why == {"kept": 1}
 
 
-# SILVA single names in brackets such as '[Eubacterium]' or '[Bacillus]' are names, not one-member groups, so
+# Single names in brackets such as '[Eubacterium]' or '[Bacillus]' are names, not one-member groups, so
 # they do not share a member with the plain genus 'Eubacterium' (fixed in 26.11.1).
 def test_single_bracketed_name_is_not_a_group():
     assert L.is_group("[Eubacterium]") is False
@@ -476,7 +476,7 @@ def test_members_of_bracketed_single_names():
 
 
 def test_bracketed_single_genus_is_not_the_plain_genus():
-    """A species of the SILVA genus '[Eubacterium]' does not belong to a genus call 'Eubacterium' (and the
+    """A species of the genus '[Eubacterium]' does not belong to a genus call 'Eubacterium' (and the
     reverse): the two labels have no member in common."""
     assert not set(L.members("[Eubacterium]")) & set(L.members("Eubacterium"))
     lins = [["Bacteria", "Bacillota", "Clostridia", "Lachnospirales", "Lachnospiraceae", "[Eubacterium]",
