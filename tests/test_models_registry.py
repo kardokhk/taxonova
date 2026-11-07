@@ -42,7 +42,7 @@ def test_every_alias_resolves(model_id, name):
 
 def test_registry_contents():
     specs = list_models()
-    assert [s.id for s in specs] == ["v4", "v3v4", "v5v7", "16s", "operon", "v4v5"]
+    assert [s.id for s in specs] == ["v4", "v4v5", "v3v4", "v5v7", "16s", "operon"]
     names = set()
     for s in list_models(include_hidden=True):
         assert len(s.sha256) == 64 and len(s.md5) == 32
@@ -61,9 +61,9 @@ def test_26_11_registry():
     hidden = {s.id: s for s in list_models(include_hidden=True)}
     assert [i for i, s in hidden.items() if s.status == "preview"] == []
     assert [i for i, s in hidden.items() if s.status == "stable"] == [
-        "v4", "v3v4", "v5v7", "16s", "operon", "v4v5"]
+        "v4", "v4v5", "v3v4", "v5v7", "16s", "operon"]
     assert [i for i, s in hidden.items() if s.status == "deprecated"] == [
-        "v4v5-26.11", "v4-26.10", "v3v4-26.10", "v5v7-26.10", "16s-26.10"]
+        "v4-26.10", "v4v5-26.11", "v3v4-26.10", "v5v7-26.10", "16s-26.10"]
     for i in ("v4", "v3v4", "v5v7", "16s"):
         assert hidden[i].model_version == "26.11" and hidden[i].filename.endswith("-26.11.pt")
     # 26.11.1: a new Greengenes2 V4-V5 file (species gate, label rules); its 26.11 file keeps its own entry
@@ -95,7 +95,7 @@ def test_unknown_model_lists_valid_ids():
         get_model("nosuchmodel")
     text = str(err.value)
     assert isinstance(err.value, UnknownModelError)
-    assert "v4, v3v4, v5v7, 16s, operon" in text and not text.startswith("'")
+    assert "v4, v4v5, v3v4, v5v7, 16s, operon" in text and not text.startswith("'")
 
 
 def test_superseded_v1_names_are_not_aliases():

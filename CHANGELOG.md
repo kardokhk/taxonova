@@ -8,6 +8,17 @@ for further releases in the same month. Model files carry their own version
 
 ## [Unreleased]
 
+## [26.11.2] - 2026-11-07
+
+### Changed
+- Models are listed in region order everywhere: `v4`, `v4v5`, `v3v4`, `v5v7`,
+  `16s`, then `operon` (the `taxonova models` table, the model registry, the
+  error message for an unknown model, command-line help and the tables in the
+  README and [docs/models.md](docs/models.md)). Deprecated files follow in the
+  same order. No model file, threshold or classification output changes.
+- The `--model` and `taxonova models download` help now name `v4v5`, which
+  they left out in 26.11.1.
+
 ## [26.11.1] - 2026-11-05
 
 **Greengenes2 only: the SILVA and RDP models are withdrawn.** Taxonova now

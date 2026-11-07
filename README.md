@@ -30,11 +30,11 @@ to `reads.taxonova.tsv`.
 | id | amplicon | reference |
 | --- | --- | --- |
 | `v4` | 16S V4 | Greengenes2 |
+| `v4v5` | 16S V4-V5 (515F-Y / 926R) | Greengenes2 |
 | `v3v4` | 16S V3-V4 | Greengenes2 |
 | `v5v7` | 16S V5-V7 | Greengenes2 |
 | `16s` | whole 16S gene (V1-V9) | Greengenes2 |
 | `operon` | rRNA operon (16S-ITS-23S) | GROND |
-| `v4v5` | 16S V4-V5 (515F-Y / 926R) | Greengenes2 |
 
 The 16S models are trained on Greengenes2, and species names follow GTDB in
 all models. The V4-V5 model has known limitations; see

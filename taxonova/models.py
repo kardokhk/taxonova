@@ -118,6 +118,26 @@ _REGISTRY: List[ModelSpec] = [
         description="Short amplicons of the 16S V4 region (about 250 bp).",
     ),
     ModelSpec(
+        id="v4v5",
+        name="16S V4-V5, Greengenes2",
+        region="16S V4-V5",
+        reference="Greengenes2",
+        reference_version="2024.09",
+        taxonomy="GTDB, through Greengenes2",
+        model_version="26.11.1",
+        filename="taxonova-V4V5-greengenes2-26.11.1.pt",
+        urls=_urls("taxonova-V4V5-greengenes2-26.11.1.pt", tag="v26.11.1"),
+        sha256="00204a6c35deca165d055db0638742eab503d01dc044d30fc3a0fa4aa54358fb",
+        md5="383a2e8a7b81a26b402880abb8b48129",
+        size_mb=565,
+        status="stable",
+        aliases=("gg2_v4v5", "V4-V5"),
+        description="Amplicons of the 16S V4-V5 region (primers 515F-Y and 926R).",
+    ),
+    # The 26.11 Greengenes2 V4-V5 checkpoint of release 26.11.0, replaced in 26.11.1 by the same network with a
+    # species gate and the genus-token check with the renamed-genus table. Kept so that earlier analyses can be
+    # rerun; the short id resolves to the 26.11.1 file above.
+    ModelSpec(
         id="v3v4",
         name="16S V3-V4, Greengenes2",
         region="16S V3-V4",
@@ -182,25 +202,22 @@ _REGISTRY: List[ModelSpec] = [
         description="Long reads that span the rRNA operon, 16S-ITS-23S (about 4,500 bp).",
     ),
     ModelSpec(
-        id="v4v5",
-        name="16S V4-V5, Greengenes2",
-        region="16S V4-V5",
+        id="v4-26.10",
+        name="16S V4, Greengenes2 (26.10)",
+        region="16S V4",
         reference="Greengenes2",
         reference_version="2024.09",
         taxonomy="GTDB, through Greengenes2",
-        model_version="26.11.1",
-        filename="taxonova-V4V5-greengenes2-26.11.1.pt",
-        urls=_urls("taxonova-V4V5-greengenes2-26.11.1.pt", tag="v26.11.1"),
-        sha256="00204a6c35deca165d055db0638742eab503d01dc044d30fc3a0fa4aa54358fb",
-        md5="383a2e8a7b81a26b402880abb8b48129",
-        size_mb=565,
-        status="stable",
-        aliases=("gg2_v4v5", "V4-V5"),
-        description="Amplicons of the 16S V4-V5 region (primers 515F-Y and 926R).",
+        model_version="26.10",
+        filename="taxonova-V4-greengenes2-26.10.pt",
+        urls=_urls("taxonova-V4-greengenes2-26.10.pt", tag="v26.10.1"),
+        sha256="c52aaafe2b9b79092171c11f67de469ac9d64f3e8fadac74e63e756792c0a3a3",
+        md5="bccf86c9086b68defe8bc8a2a3dff2b6",
+        size_mb=234,
+        status="deprecated",
+        aliases=("gg2_v4_mrgroups_model_26.10.pt",),
+        description="26.10 checkpoint of v4, without an operating point.",
     ),
-    # The 26.11 Greengenes2 V4-V5 checkpoint of release 26.11.0, replaced in 26.11.1 by the same network with a
-    # species gate and the genus-token check with the renamed-genus table. Kept so that earlier analyses can be
-    # rerun; the short id resolves to the 26.11.1 file above.
     ModelSpec(
         id="v4v5-26.11",
         name="16S V4-V5, Greengenes2 (26.11)",
@@ -220,23 +237,6 @@ _REGISTRY: List[ModelSpec] = [
     # The 26.10 Greengenes2 checkpoints, replaced in 26.11.0 by the same networks with a calibrated operating
     # point. Kept so that earlier analyses can be rerun; their file names (and the 26.10.0 asset names) resolve
     # here, the short ids resolve to the 26.11 files above.
-    ModelSpec(
-        id="v4-26.10",
-        name="16S V4, Greengenes2 (26.10)",
-        region="16S V4",
-        reference="Greengenes2",
-        reference_version="2024.09",
-        taxonomy="GTDB, through Greengenes2",
-        model_version="26.10",
-        filename="taxonova-V4-greengenes2-26.10.pt",
-        urls=_urls("taxonova-V4-greengenes2-26.10.pt", tag="v26.10.1"),
-        sha256="c52aaafe2b9b79092171c11f67de469ac9d64f3e8fadac74e63e756792c0a3a3",
-        md5="bccf86c9086b68defe8bc8a2a3dff2b6",
-        size_mb=234,
-        status="deprecated",
-        aliases=("gg2_v4_mrgroups_model_26.10.pt",),
-        description="26.10 checkpoint of v4, without an operating point.",
-    ),
     ModelSpec(
         id="v3v4-26.10",
         name="16S V3-V4, Greengenes2 (26.10)",

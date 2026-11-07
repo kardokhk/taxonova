@@ -106,8 +106,8 @@ def test_version_help_and_models_list(tmp_path, repo_env):
     assert r.returncode == 0
     lines = r.stdout.splitlines()
     assert lines[0].split()[:3] == ["id", "amplicon", "reference"]
-    assert [l.split()[0] for l in lines[1:6]] == ["v4", "v3v4", "v5v7", "16s", "operon"]
-    assert all(l.rstrip().endswith("no") for l in lines[1:6])
+    assert [l.split()[0] for l in lines[1:7]] == ["v4", "v4v5", "v3v4", "v5v7", "16s", "operon"]
+    assert all(l.rstrip().endswith("no") for l in lines[1:7])
     assert not (tmp_path / "output").exists()  # 'models' writes no log directory
 
 
