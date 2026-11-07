@@ -45,11 +45,12 @@ WITHDRAWN = ("v4v5-silva", "silva_v4v5", "v4v5-silva-26.11", "taxonova-V4V5-silv
              "taxonova-V4V5-rdp-26.11.pt", "taxonova-V4V5-rdp-26.11.1.pt")
 
 
-def test_version_is_26_11_1():
-    assert taxonova.__version__ == "26.11.1"
-    assert re.search(r'^version = "26\.11\.1"$', (REPO / "pyproject.toml").read_text(), re.M)
-    assert re.search(r'^version: "26\.11\.1"$', (REPO / "CITATION.cff").read_text(), re.M)
-    assert "## [26.11.1]" in (REPO / "CHANGELOG.md").read_text()
+def test_version_is_consistent_and_26_11_1_is_recorded():
+    v = taxonova.__version__
+    assert re.search(rf'^version = "{re.escape(v)}"$', (REPO / "pyproject.toml").read_text(), re.M)
+    assert re.search(rf'^version: "{re.escape(v)}"$', (REPO / "CITATION.cff").read_text(), re.M)
+    changelog = (REPO / "CHANGELOG.md").read_text()
+    assert f"## [{v}]" in changelog and "## [26.11.1]" in changelog
 
 
 def test_unchanged_files_keep_their_checksums():

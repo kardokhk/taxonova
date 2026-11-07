@@ -57,7 +57,7 @@ def _add_classify_parser(subparsers):
     )
     p.add_argument("input", metavar="INPUT", help="query sequences in FASTA format (plain or .gz)")
     p.add_argument("-m", "--model", default=None, metavar="MODEL",
-                   help="model id (v4, v3v4, v5v7, 16s, operon; see 'taxonova models') or the path "
+                   help="model id (v4, v4v5, v3v4, v5v7, 16s, operon; see 'taxonova models') or the path "
                         "to a .pt checkpoint (default: v4)")
     p.add_argument("-o", "--output", default=None, metavar="OUT",
                    help="output table (default: <input name>.taxonova.tsv in the current directory)")
@@ -123,7 +123,7 @@ def _add_download_models_parser(subparsers):
     )
     g = download_parser.add_argument_group("Download Options")
     g.add_argument("--models", type=str, nargs="+", metavar="MODEL",
-                   help="Model(s) to download: model ids (v4, v3v4, v5v7, 16s, operon), the earlier "
+                   help="Model(s) to download: model ids (v4, v4v5, v3v4, v5v7, 16s, operon), the earlier "
                         "keys (gg2_v4, gg2_v3v4, gg2_v5v7, gg2_v1v9, gtdb_rrn), or 'all'")
     g.add_argument("--list", action="store_true", help="List available models and their download status")
     g.add_argument("--interactive", action="store_true", help="Interactive model selection")

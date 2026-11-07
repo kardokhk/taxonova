@@ -6,11 +6,11 @@ downloaded the first time you use it (230 to 570 MB) and kept for later runs.
 | id | amplicon | reference | taxonomy | model version | status |
 | --- | --- | --- | --- | --- | --- |
 | `v4` | 16S V4 (about 250 bp) | Greengenes2 2024.09 | GTDB, through Greengenes2 | 26.11 | stable |
+| `v4v5` | 16S V4-V5 (515F-Y / 926R) | Greengenes2 2024.09 | GTDB, through Greengenes2 | 26.11.1 | stable |
 | `v3v4` | 16S V3-V4 (about 450 bp) | Greengenes2 2024.09 | GTDB, through Greengenes2 | 26.11 | stable |
 | `v5v7` | 16S V5-V7 | Greengenes2 2024.09 | GTDB, through Greengenes2 | 26.11 | stable |
 | `16s` | whole 16S gene, V1-V9 | Greengenes2 2024.09 | GTDB, through Greengenes2 | 26.11 | stable |
 | `operon` | rRNA operon, 16S-ITS-23S | GROND (GTDB R207 build) | GTDB R207 | 1.0 | stable |
-| `v4v5` | 16S V4-V5 (515F-Y / 926R) | Greengenes2 2024.09 | GTDB, through Greengenes2 | 26.11.1 | stable |
 
 The 16S models are trained on Greengenes2 only. Read the
 [known limitations](https://github.com/kardokhk/taxonova/blob/main/CHANGELOG.md#known-limitations)
@@ -57,13 +57,13 @@ You can also pass the path to any `.pt` file with `--model`.
 | id | file | sha256 | md5 |
 | --- | --- | --- | --- |
 | `v4` | `taxonova-V4-greengenes2-26.11.pt` | `2026db6c5d4875247d7f581c24bd3ae45c43281a5fd1d13de9f95caa8c4078c2` | `e0058514d575d5d2c9d33728deeac8cc` |
+| `v4v5` | `taxonova-V4V5-greengenes2-26.11.1.pt` | `00204a6c35deca165d055db0638742eab503d01dc044d30fc3a0fa4aa54358fb` | `383a2e8a7b81a26b402880abb8b48129` |
 | `v3v4` | `taxonova-V3V4-greengenes2-26.11.pt` | `13eadc5cbefbf511ed364244101951e3a5b10d2a85318ca621cc732ae75eee5b` | `d6d73e8f5d032c6ad2cc95a8731e9368` |
 | `v5v7` | `taxonova-V5V7-greengenes2-26.11.pt` | `0156510cc97ca10ef30676257fcc5e190257d1f1a5cf9b11bdd35afdf558f354` | `c9288833baa412f3702e1299ae7cd26b` |
 | `16s` | `taxonova-16S-greengenes2-26.11.pt` | `90cac67a43a95350c1587a72cd017249442ef6214d8bc32a7a7aaa08d8b36cb1` | `757a638b2ed022bf4743d6343c44c963` |
 | `operon` | `taxonova-operon-grond-1.0.pt` | `9ac36fea212edd569198027c9e6fb182199bb316acacad188d758929c9408289` | `6f5d4ef039888a33ad765ef41725b624` |
-| `v4v5` | `taxonova-V4V5-greengenes2-26.11.1.pt` | `00204a6c35deca165d055db0638742eab503d01dc044d30fc3a0fa4aa54358fb` | `383a2e8a7b81a26b402880abb8b48129` |
-| `v4v5-26.11` | `taxonova-V4V5-greengenes2-26.11.pt` | `68bfdeada873e325299547ade195025a39370f122674b13a5ae14fa273058ebc` | `d67b3b3115fc089f1993540dc5283bc2` |
 | `v4-26.10` | `taxonova-V4-greengenes2-26.10.pt` | `c52aaafe2b9b79092171c11f67de469ac9d64f3e8fadac74e63e756792c0a3a3` | `bccf86c9086b68defe8bc8a2a3dff2b6` |
+| `v4v5-26.11` | `taxonova-V4V5-greengenes2-26.11.pt` | `68bfdeada873e325299547ade195025a39370f122674b13a5ae14fa273058ebc` | `d67b3b3115fc089f1993540dc5283bc2` |
 | `v3v4-26.10` | `taxonova-V3V4-greengenes2-26.10.pt` | `005677c10327b981847b9ec5c5c529828716d0d628706fa65e2f77222309e0aa` | `a5e584504627a8055afe25fd56893e37` |
 | `v5v7-26.10` | `taxonova-V5V7-greengenes2-26.10.pt` | `77f7a75bf38c4923422dadf88e971764a3ccf604b23c1c96b46c0b325a670385` | `6de1add678c05fd0c5c3679ea4094d1d` |
 | `16s-26.10` | `taxonova-16S-greengenes2-26.10.pt` | `d2ec6d014cf771525887c136fa0591b09d5284db6035022bb60f7f96d2e453ca` | `103e508682ad0b948e9f8a993bb7be0a` |
@@ -86,10 +86,10 @@ applies. `taxonova.classify()` in Python uses the same rule.
 | id | genus | species | species gate | species group labels | label rules (`--label-rules`) |
 | --- | --- | --- | --- | --- | --- |
 | `v4` | 0.56 | 0.50 | Mahalanobis, at most 1636.8 | kept | genus-token check on, renamed-genus table |
+| `v4v5` | 0.52 | 0.50 | Mahalanobis, at most 3031.7 | reported at the genus | genus-token check on, renamed-genus table |
 | `v3v4` | 0.50 | 0.48 | Mahalanobis, at most 2080.5 | kept | genus-token check on, renamed-genus table |
 | `v5v7` | 0.61 | 0.51 | Mahalanobis, at most 1706.5 | kept | genus-token check on, renamed-genus table |
 | `16s` | 0.53 | 0.47 | Mahalanobis, at most 3757.0 | kept | genus-token check on, renamed-genus table |
-| `v4v5` | 0.52 | 0.50 | Mahalanobis, at most 3031.7 | reported at the genus | genus-token check on, renamed-genus table |
 
 - Genus and species cut-offs maximise F1 on validation data of the same
   region (the median over three training seeds of the recipe).
@@ -130,13 +130,13 @@ finds a copy you already downloaded, so it is not fetched again.
 | id | also accepted |
 | --- | --- |
 | `v4` | `gg2_v4`, `V4` |
+| `v4v5` | `gg2_v4v5`, `V4-V5` |
 | `v3v4` | `gg2_v3v4`, `V3-V4` |
 | `v5v7` | `gg2_v5v7`, `V5-V7` |
 | `16s` | `gg2_v1v9`, `v1v9`, `V1-V9`, `full` |
 | `operon` | `gtdb_rrn`, `rrn`, `RRN`, `gtdb_rrn_mrgroups_model.pt` |
-| `v4v5` | `gg2_v4v5`, `V4-V5` |
-| `v4v5-26.11` | `taxonova-V4V5-greengenes2-26.11.pt` |
 | `v4-26.10` | `taxonova-V4-greengenes2-26.10.pt`, `gg2_v4_mrgroups_model_26.10.pt` |
+| `v4v5-26.11` | `taxonova-V4V5-greengenes2-26.11.pt` |
 | `v3v4-26.10` | `taxonova-V3V4-greengenes2-26.10.pt`, `gg2_v3v4_mrgroups_model_26.10.pt` |
 | `v5v7-26.10` | `taxonova-V5V7-greengenes2-26.10.pt`, `gg2_v5v7_mrgroups_model_26.10.pt` |
 | `16s-26.10` | `taxonova-16S-greengenes2-26.10.pt`, `gg2_v1v9_mrgroups_model_26.10.pt` |
