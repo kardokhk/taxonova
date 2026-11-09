@@ -188,12 +188,17 @@ def classification_mode(args):
         logger.info(f"--strand both: {n_rev}/{len(sequences)} reads classified reverse-complemented")
     else:
         species_features = getattr(predictor, 'last_species_features', None)
-        sample = sequences[:STRAND_SAMPLE]
+        # Short reads are left out: forward reads under SHORT_READ_BASES often score higher
+        # reverse-complemented, so they would raise the warning on correctly oriented input.
+        from taxonova.core.operating_point import SHORT_READ_BASES, valid_bases
+        idx = [i for i, s in enumerate(sequences[:STRAND_SAMPLE])
+               if len(s) > 1 and valid_bases(s[1]) >= SHORT_READ_BASES]
+        sample = [sequences[i] for i in idx]
         reverse = _predict_reversed(model, sample, processor, taxonomy_info, taxonomic_encoders,
-                                    config, device, args)
-        n_better = sum(_confidence_score(reverse, i) > _confidence_score(predictions, i)
-                       for i in range(len(sample)))
-        if n_better > STRAND_WARN_FRACTION * len(sample):
+                                    config, device, args) if sample else None
+        n_better = sum(_confidence_score(reverse, j) > _confidence_score(predictions, i)
+                       for j, i in enumerate(idx))
+        if sample and n_better > STRAND_WARN_FRACTION * len(sample):
             msg = (f"{n_better} of the first {len(sample)} reads score higher reverse-complemented: the input "
                    f"may be in mixed or reverse orientation. Rerun with --strand both, or orient the reads first.")
             logger.warning(msg)

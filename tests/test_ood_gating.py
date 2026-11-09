@@ -55,7 +55,7 @@ def _rows(conf_rows, ood_scores=None):
     }
     if ood_scores is not None:
         preds["ood_score"] = list(ood_scores)
-    seqs = [(f"r{i}", "ACGT" * 63) for i in range(n)]   # 252 nt: the writer abstains on reads under 100 valid bases (26.11)
+    seqs = [(f"r{i}", "ACGT" * 63) for i in range(n)]   # 252 nt: the writer abstains on reads under 80 valid bases
     return preds, seqs
 
 

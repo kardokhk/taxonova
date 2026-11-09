@@ -155,10 +155,11 @@ class PredictionOutputFormatter:
                 f.write("\t".join(header) + "\n")
 
                 strict_thresholds = self._get_level_thresholds(args)
-                from taxonova.core.operating_point import (gate_passes, low_information,
-                                                           low_information_limits, row_thresholds)
+                from taxonova.core.operating_point import (SHORT_READ_BASES, gate_passes, low_information,
+                                                           low_information_limits, row_thresholds, valid_bases)
                 min_valid, max_amb = low_information_limits(getattr(args, "operating_point_entry", None))
                 n_low_info = 0
+                n_short = 0
                 species_gate = getattr(args, "species_gate", None)
                 gate_stats = predictions.get("species_gate_stat")
                 if species_gate is not None and gate_stats is None:
@@ -209,6 +210,7 @@ class PredictionOutputFormatter:
                     # one place computes the row's gates, elementwise never below strict_thresholds
                     low_info = low_information(seq[1], min_valid, max_amb) if len(seq) > 1 else True
                     n_low_info += int(low_info)
+                    n_short += int(not low_info and valid_bases(seq[1]) < SHORT_READ_BASES)
                     thresholds = row_thresholds(strict_thresholds, ood_extra, gate_ok, low_info)
 
                     no_signal = predictions.get('no_signal')
@@ -259,6 +261,10 @@ class PredictionOutputFormatter:
             if n_low_info:
                 logger.warning(f"{n_low_info}/{len(sequences)} inputs have fewer than {min_valid} valid bases or "
                                f"more than {100 * max_amb:.0f}% ambiguous characters: no call at any rank")
+            if n_short:
+                logger.warning(f"{n_short}/{len(sequences)} inputs are short ({min_valid} to {SHORT_READ_BASES - 1} "
+                               f"valid bases): they are classified, but genus and species calls on short reads are "
+                               f"less reliable than on full-length amplicons; read them with caution")
             if species_gate is not None:
                 logger.info(f"Species gate ({species_gate['statistic']}): species call withheld for "
                             f"{n_gated}/{len(sequences)} inputs")

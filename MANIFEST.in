@@ -1,7 +1,6 @@
 # The sdist contains exactly these files plus the package, so its content does
 # not depend on what else is in the working tree (untracked tests, outputs).
-include README.md CHANGELOG.md LICENSE CITATION.cff requirements.txt
-include MODELS.md QUICKSTART.md
+include README.md CHANGELOG.md LICENSE CITATION.cff
 recursive-include docs *.md
 recursive-include examples *.fasta
 prune tests

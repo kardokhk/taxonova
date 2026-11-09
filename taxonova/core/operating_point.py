@@ -33,16 +33,30 @@ GATE_STATISTICS = ("energy_species", "mahalanobis_species", "centroid_cosine_spe
 #: an all-N read used to receive a full lineage, because k-mers containing N are skipped and the network then
 #: classifies a near-empty feature vector). A/C/G/T/U (either case) are valid bases; everything else, including
 #: IUPAC codes and alignment gaps, counts against the read. A checkpoint operating point may set stricter values.
-MIN_VALID_BASES = 100
+MIN_VALID_BASES = 80
 MAX_AMBIGUOUS_FRACTION = 0.05
+#: Reads with at least MIN_VALID_BASES but fewer than SHORT_READ_BASES valid bases are classified as usual and
+#: reported as short: on real V4 mock-community reads (about 253 bp) cut to 90 bases, genus precision was 0.81 and
+#: species precision 0.61, against 1.00 and 0.96 at full length; at 120 bases, 0.95 and 0.96.
+SHORT_READ_BASES = 120
 _VALID = frozenset("ACGTUacgtu")
+
+
+def valid_bases(sequence):
+    """Number of A, C, G, T and U (either case) in the read."""
+    return sum(1 for ch in sequence if ch in _VALID)
 
 
 def low_information(sequence, min_valid=MIN_VALID_BASES, max_ambiguous=MAX_AMBIGUOUS_FRACTION):
     """True if the read has fewer than `min_valid` valid bases or more than `max_ambiguous` other characters."""
     n = len(sequence)
-    valid = sum(1 for ch in sequence if ch in _VALID)
+    valid = valid_bases(sequence)
     return valid < min_valid or (n - valid) > max_ambiguous * n
+
+
+def short_read(sequence, min_valid=MIN_VALID_BASES, max_ambiguous=MAX_AMBIGUOUS_FRACTION, short=SHORT_READ_BASES):
+    """True if the read is classified (not low-information) but has fewer than `short` valid bases."""
+    return not low_information(sequence, min_valid, max_ambiguous) and valid_bases(sequence) < short
 
 
 def low_information_limits(entry):

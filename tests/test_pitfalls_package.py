@@ -1,7 +1,7 @@
 """Package checks for four classifier pitfalls, numbered as rows 3 to 6 below.
 
 Row 3, low-information reads abstain: the zero-k-mer case is fixed here; the
-general rule (fewer than 100 A/C/G/T or more than 5% other symbols) lives in
+general rule (fewer than 80 A/C/G/T or more than 5% other symbols) lives in
 taxonova.core.operating_point and is recorded as an expected failure where it does not apply.
 Row 4, orientation: `--strand both` classifies each read in the orientation
 the model is more confident about; the default (`plus`) warns when a sample of
@@ -123,6 +123,18 @@ def test_plus_strand_silent_on_forward_input(checkpoint, tmp_path, caplog):
     with caplog.at_level(logging.WARNING):
         run_classification(write_fasta(read_plain_fasta(GUT), tmp_path / "f.fa"), ckpt, tmp_path / "f.tsv")
     assert "--strand both" not in caplog.text
+
+
+@pytest.mark.models
+def test_short_forward_reads_are_classified_without_strand_warning(checkpoint, tmp_path, caplog):
+    import logging
+    ckpt = checkpoint("v4")
+    short = [(sid, seq[:90]) for sid, seq in read_plain_fasta(GUT)]
+    with caplog.at_level(logging.WARNING):
+        rows = parse_tsv(run_classification(write_fasta(short, tmp_path / "s.fa"), ckpt, tmp_path / "s.tsv"))
+    assert "--strand both" not in caplog.text
+    assert f"{len(short)}/{len(short)} inputs are short" in caplog.text
+    assert sum(r["domain"] != "Unclassified" for r in rows) > len(rows) / 2
 
 
 # --- row 3 ------------------------------------------------------------------------

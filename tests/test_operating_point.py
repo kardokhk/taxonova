@@ -202,7 +202,9 @@ CLEAN = "ACGT" * 63 + "A"                       # 253 nt, all valid
     ("N" * 140 + CLEAN[:113], True),            # mostly N
     (CLEAN[:240] + "N" * 13, True),             # 5.1% N
     (CLEAN[:241] + "N" * 12, False),            # 4.7% N
-    (CLEAN[:99], True),                         # too short to carry information
+    (CLEAN[:79], True),                         # too short to carry information
+    (CLEAN[:80], False),                        # short, but classified (26.11.3)
+    (CLEAN[:99], False),
     ("", True),
     ("ACGT" * 30 + "-" * 20, True),             # gaps count against the read
 ])
@@ -211,9 +213,46 @@ def test_low_information_rule(seq, expected):
 
 
 def test_checkpoint_can_tighten_not_loosen_low_information_limits():
-    assert low_information_limits(None) == (100, 0.05)
+    assert low_information_limits(None) == (80, 0.05)
     assert low_information_limits({"min_valid_bases": 200, "max_ambiguous_fraction": 0.01}) == (200, 0.01)
-    assert low_information_limits({"min_valid_bases": 10, "max_ambiguous_fraction": 0.5}) == (100, 0.05)
+    assert low_information_limits({"min_valid_bases": 10, "max_ambiguous_fraction": 0.5}) == (80, 0.05)
+
+
+@pytest.mark.parametrize("seq,expected", [
+    (CLEAN, False),                             # full length
+    (CLEAN[:120], False),                       # 120 valid bases: not short
+    (CLEAN[:119], True),
+    (CLEAN[:90], True),                         # a 90 bp ASV
+    (CLEAN[:80], True),
+    (CLEAN[:79], False),                        # below the floor: low-information, not short
+    ("N" * 253, False),
+    (CLEAN[:100] + "N" * 10, False),            # 9% N: low-information
+])
+def test_short_read_rule(seq, expected):
+    from taxonova.core.operating_point import short_read
+    assert short_read(seq) is expected
+
+
+def test_writer_classifies_short_reads_and_warns(tmp_path, caplog):
+    import logging
+    preds = {"predictions": {l: [f"{l[0]}__T{i}" for i in range(3)] for l in LEVELS},
+             "confidence": {l: [1.0, 1.0, 1.0] for l in LEVELS}}
+    seqs = [("full", CLEAN), ("asv90", CLEAN[:90]), ("short79", CLEAN[:79])]
+    with caplog.at_level(logging.WARNING):
+        t = _write(tmp_path, preds, seqs, _entry())
+    assert t[0]["species"] == "s__T0"
+    assert t[1]["species"] == "s__T1"                         # short read: every rank called as usual
+    assert all(t[2][l] == "Unclassified" for l in LEVELS)    # below the floor: no call
+    assert "1/3 inputs are short (80 to 119 valid bases)" in caplog.text
+    assert "1/3 inputs have fewer than 80 valid bases" in caplog.text
+
+
+def test_writer_silent_on_full_length_reads(tmp_path, caplog):
+    import logging
+    preds = {"predictions": {l: ["x__T0"] for l in LEVELS}, "confidence": {l: [1.0] for l in LEVELS}}
+    with caplog.at_level(logging.WARNING):
+        _write(tmp_path, preds, [("full", CLEAN)], _entry())
+    assert "short" not in caplog.text
 
 
 def test_writer_low_information_read_gets_no_call_at_any_rank(tmp_path):
