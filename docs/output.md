@@ -42,6 +42,27 @@ close a call was.
 `Unknown` means the reference itself had no name at that rank for the
 predicted lineage.
 
+## Short reads
+
+Taxonova classifies reads with at least 80 valid bases (A, C, G, T or U). A
+read with fewer, or with more than 5% ambiguous or other characters (N, IUPAC
+codes, gaps), is `Unclassified` at every rank. Reads with 80 to 119 valid bases
+are classified with the usual thresholds, and the run log (and the web app)
+says how many there are.
+
+Expect fewer and less reliable calls at genus and species on short reads. On
+real V4 mock-community reads of about 253 bp cut to their first 90 bases, the
+share of correct calls (precision) was 0.96 at phylum, 0.83 at family, 0.81 at
+genus and 0.61 at species, against 1.00, 1.00 and 0.96 at family, genus and
+species at full length. Fewer reads were named: 70% at genus and 4% at species
+(98% and 79% at full length). At 120 bases, genus and species precision were
+0.95 and 0.96. On V4 reads that were about 101 bp as sequenced, genus precision
+was 0.88 and species precision 0.74. The reads came from organisms with close
+relatives in Greengenes2; reads from less well known lineages may do worse. The
+operating points were fitted on full-length amplicons. For the other regions, the first 90 bases carry less
+information than the start of V4: genus precision was 0.77 for V4-V5 and 0.38
+for V3-V4. For short reads, the higher ranks are the safer summary.
+
 ## Confidence capping
 
 The reported confidence at a rank is never higher than the confidence at the

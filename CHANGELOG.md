@@ -8,6 +8,27 @@ for further releases in the same month. Model files carry their own version
 
 ## [Unreleased]
 
+## [26.11.3] - 2026-11-09
+
+### Changed
+- Short reads are classified. Reads with 80 to 119 valid bases (A, C, G, T or
+  U) were given no call at any rank since 26.11.0, because the low-information
+  rule required 100 valid bases; a table of 90 bp ASVs got no classification
+  at all. The minimum is now 80 valid bases. Reads with 80 to 119 valid bases
+  are classified with the model's usual thresholds, and the run log warns how
+  many there are. Genus and species calls on short reads are fewer and less
+  reliable: on real V4 mock-community reads (about 253 bp) cut to their first
+  90 bases, genus precision was 0.81 and species precision 0.61 (1.00 and 0.96
+  at full length), and 4% of reads received a species call (79% at full
+  length). At 120 bases they were 0.95 and 0.96. The operating points were
+  fitted on full-length amplicons. Reads with fewer than 80 valid bases, or more than 5% ambiguous
+  or other characters, still get no call at any rank. See
+  [docs/output.md](docs/output.md#short-reads).
+- The orientation check of `--strand plus` (the default) leaves out reads
+  with fewer than 120 valid bases, which often score higher
+  reverse-complemented even when they are forward; a file of short reads no
+  longer gets a false warning about reversed input.
+
 ## [26.11.2] - 2026-11-07
 
 ### Changed
